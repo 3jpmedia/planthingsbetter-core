@@ -19,10 +19,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/allanleonardjr/planthingsbetter-core.git"
+    "url": "git+https://github.com/3jpmedia/planthingsbetter-core.git"
   },
   "license": "Apache-2.0",
-  "author": "JR Leonard",
+  "author": "3JPMedia, LLC",
   "packageManager": "pnpm@10.30.3",
   "engines": {
     "node": ">=20"
