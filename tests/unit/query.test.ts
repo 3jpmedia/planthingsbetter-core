@@ -1,0 +1,1185 @@
+import { describe, expect, it } from "vitest";
+import { sampleSnapshot } from "../../src/core/templates/instantiate";
+import { parseQuery, printQuery, queryContext } from "../../src/core/query";
+import { createTaxonomy } from "../../src/core/taxonomy";
+import {
+	applyFilters,
+	canonicalizeDefinition,
+	canonicalizeFilters,
+	defaultViews,
+	definitionsEqual,
+	matchesFilters,
+	snapshotContext,
+	viewDefinition,
+} from "../../src/core/views";
+import { DEFAULT_DEFINITION } from "../../src/core/views/defaults";
+import {
+	NONE,
+	SELF,
+	TASK_FIELDS,
+	type ViewDefinition,
+	type ViewFilters,
+} from "../../src/core/types";
+
+const snapshot = sampleSnapshot();
+const ctx = queryContext(snapshot);
+const viewCtx = snapshotContext(snapshot);
+
+const def = (partial: Partial<ViewDefinition> = {}): ViewDefinition => ({
+	...DEFAULT_DEFINITION,
+	...partial,
+});
+
+const withFilters = (filters: ViewFilters): ViewDefinition => def({ filters });
+
+/** The guarantee the sync loop's termination depends on. */
+function expectRoundTrip(definition: ViewDefinition) {
+	const source = printQuery(definition, ctx);
+	const parsed = parseQuery(source, ctx);
+	expect(parsed.issues.filter((i) => i.severity === "error")).toEqual([]);
+	expect(parsed.ok).toBe(true);
+	expect(parsed.definition).toEqual(canonicalizeDefinition(definition));
+	return source;
+}
+
+const project = ctx.projects[0].path;
+const spacedProject =
+	ctx.projects.find((p) => p.path.includes("&"))?.path ?? ctx.projects[1].path;
+const taskPath = ctx.tasks[0].path;
+
+/* ----------------------------------------------------------- round-trip -- */
+
+describe("round-trip (Invariant A)", () => {
+	const cases: [string, ViewDefinition][] = [
+		["empty", def()],
+		["status", withFilters({ status: ["todo"] })],
+		["multi-value status", withFilters({ status: ["todo", "in-progress"] })],
+		["priority", withFilters({ priority: ["high"] })],
+		["taskType", withFilters({ taskType: ["bug"] })],
+		["labels", withFilters({ labels: ["design", "docs"] })],
+		["assignee id", withFilters({ assignee: ["alice"] })],
+		["assignee self", withFilters({ assignee: [SELF] })],
+		["mentions self", withFilters({ mentions: [SELF] })],
+		["project", withFilters({ project: [project] })],
+		["project with spaces", withFilters({ project: [spacedProject] })],
+		["parent", withFilters({ parent: [taskPath] })],
+		["root", withFilters({ root: [taskPath] })],
+		["excludeRoot", withFilters({ excludeRoot: [taskPath] })],
+		["subtasks nested", def({ subtaskDisplay: "nested" })],
+		["subtasks hidden", def({ subtaskDisplay: "hidden" })],
+		["archived included", withFilters({ archived: "included" })],
+		["archived only", withFilters({ archived: "only" })],
+		["openOnly", withFilters({ openOnly: true })],
+		["unscheduled", withFilters({ unscheduled: true })],
+		["recurring filter", withFilters({ recurring: true })],
+		["recurring preview", def({ recurringPreview: true })],
+		["both is: flags", withFilters({ openOnly: true, unscheduled: true })],
+
+		["text", withFilters({ text: "login" })],
+		["text with spaces", withFilters({ text: "login screen" })],
+		["text with a colon", withFilters({ text: "status:todo" })],
+		["text with a comma", withFilters({ text: "a,b" })],
+		["text with a quote", withFilters({ text: 'say "hi"' })],
+		["text with a backslash", withFilters({ text: "a\\b" })],
+		["text with wide spacing", withFilters({ text: "a   b" })],
+		["NONE priority", withFilters({ priority: [NONE] })],
+		["NONE labels", withFilters({ labels: [NONE] })],
+		["NONE assignee", withFilters({ assignee: [NONE] })],
+		["NONE project", withFilters({ project: [NONE] })],
+		["NONE parent", withFilters({ parent: [NONE] })],
+		["due date", withFilters({ dueDate: ["2026-09-19"] })],
+		["multi-value due date", withFilters({ dueDate: ["2026-09-19", "2026-09-20"] })],
+		["NONE due date", withFilters({ dueDate: [NONE] })],
+		["start date", withFilters({ startDate: ["2026-09-19"] })],
+		["created date", withFilters({ createdAt: ["2026-09-19"] })],
+		["updated date", withFilters({ updatedAt: ["2026-09-19"] })],
+		["completed date", withFilters({ completedAt: ["2026-09-19"] })],
+		["due-before/after", withFilters({ dueDateBefore: "2026-10-01", dueDateAfter: "2026-09-01" })],
+		["start-before/after", withFilters({ startDateBefore: "2026-10-01", startDateAfter: "2026-09-01" })],
+		["created-before/after", withFilters({ createdAtBefore: "2026-10-01", createdAtAfter: "2026-09-01" })],
+		["updated-before/after", withFilters({ updatedAtBefore: "2026-10-01", updatedAtAfter: "2026-09-01" })],
+		["completed-before/after", withFilters({ completedAtBefore: "2026-10-01", completedAtAfter: "2026-09-01" })],
+		["stale taxonomy id", withFilters({ status: ["long-gone"] })],
+		["stale person", withFilters({ assignee: ["ghost"] })],
+		["board layout", def({ viewType: "board" })],
+		["calendar layout", def({ viewType: "calendar" })],
+		["canvas layout", def({ viewType: "canvas" })],
+		["canvas flow down", def({ viewType: "canvas", canvasArrangement: "flow", canvasDirection: "down" })],
+		["canvas tree right", def({ viewType: "canvas", canvasArrangement: "tree", canvasDirection: "right" })],
+		["canvas tree down", def({ viewType: "canvas", canvasArrangement: "tree", canvasDirection: "down" })],
+		["canvas one relation hidden", def({ viewType: "canvas", canvasHiddenRelationKinds: ["dependency"] })],
+		["canvas all relations hidden", def({ viewType: "canvas", canvasHiddenRelationKinds: ["dependency", "hierarchy", "related"] })],
+		["calendar by start date", def({ viewType: "calendar", calendarDateField: "startDate" })],
+		["grouping", def({ groupBy: "priority" })],
+		["sorting", def({ sortBy: "dueDate" })],
+		["descending", def({ sortBy: "dueDate", sortDirection: "desc" })],
+		["empty behaviour", def({ emptyColumnBehavior: "auto-collapse" })],
+		["hidden fields", def({ hiddenFields: ["priority", "labels"] })],
+		["all fields hidden", def({ hiddenFields: [...TASK_FIELDS] })],
+		[
+			"everything at once",
+			def({
+				viewType: "board",
+				groupBy: "label",
+				sortBy: "updatedAt",
+				sortDirection: "desc",
+				emptyColumnBehavior: "auto-hide",
+				hiddenFields: ["type", "progress"],
+				subtaskDisplay: "nested",
+				recurringPreview: true,
+				filters: {
+					status: ["todo", "in-progress"],
+					priority: ["high", NONE],
+					taskType: ["bug"],
+					labels: ["design"],
+					assignee: [SELF, "bob"],
+					mentions: [SELF],
+					project: [project],
+					parent: [taskPath],
+					text: "onboarding flow",
+					archived: "included",
+					openOnly: true,
+					unscheduled: true,
+					recurring: true,
+				},
+			}),
+		],
+	];
+
+	for (const [name, definition] of cases) {
+		it(name, () => expectRoundTrip(definition));
+	}
+
+	it("prints every grouping, sort field and layout reversibly", () => {
+		const groups = [
+			"none", "status", "priority", "taskType", "assignee", "label", "project",
+		] as const;
+		const sorts = [
+			"rank", "priority", "status", "title", "dueDate", "startDate",
+			"estimate", "createdAt", "updatedAt",
+		] as const;
+		for (const groupBy of groups) expectRoundTrip(def({ groupBy }));
+		for (const sortBy of sorts) {
+			expectRoundTrip(def({ sortBy }));
+			expectRoundTrip(def({ sortBy, sortDirection: "desc" }));
+		}
+		for (const viewType of ["list", "board", "timeline", "calendar"] as const) {
+			expectRoundTrip(def({ viewType }));
+		}
+		for (const arrangement of ["flow", "tree"] as const) {
+			for (const direction of ["right", "down"] as const) {
+				expectRoundTrip(
+					def({ viewType: "canvas", canvasArrangement: arrangement, canvasDirection: direction }),
+				);
+			}
+		}
+		for (const calendarDateField of ["dueDate", "startDate"] as const) {
+			expectRoundTrip(def({ viewType: "calendar", calendarDateField }));
+		}
+		for (const field of TASK_FIELDS) {
+			expectRoundTrip(def({ hiddenFields: [field] }));
+		}
+		for (const kind of ["dependency", "hierarchy", "related"] as const) {
+			expectRoundTrip(def({ viewType: "canvas", canvasHiddenRelationKinds: [kind] }));
+		}
+	});
+});
+
+describe("round-trip (generative)", () => {
+	// A tiny LCG rather than a property-testing dependency, matching the rest
+	// of the suite's zero-dependency style.
+	let seed = 0x2545f491;
+	const next = () => {
+		seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+		return seed / 0x7fffffff;
+	};
+	const pick = <T,>(items: readonly T[]): T =>
+		items[Math.floor(next() * items.length)];
+
+	const adversarial = [
+		"a,b", "a:b", 'a"b', "a\\b", "me", "self", "unset", "none", "=x",
+		"  ", "", "Projects/A", "A", "café", "在庫", "-x", "a b",
+	];
+	const pool = [
+		...adversarial,
+		"todo", "in-progress", "high", "bug", "design", "alice", "bob",
+		NONE, SELF, project, spacedProject, taskPath,
+	];
+	const arrayKeys = [
+		"status", "priority", "taskType", "labels", "assignee",
+		"mentions", "project", "parent",
+	] as const;
+
+	it("survives 400 random definitions", () => {
+		for (let n = 0; n < 400; n += 1) {
+			const filters: ViewFilters = {};
+			for (const key of arrayKeys) {
+				if (next() < 0.25) {
+					const count = 1 + Math.floor(next() * 3);
+					filters[key] = Array.from({ length: count }, () => pick(pool));
+				}
+			}
+			if (next() < 0.3) filters.text = pick(pool);
+			if (next() < 0.2) filters.archived = pick(["included", "only"] as const);
+
+			const hiddenFields = TASK_FIELDS.filter(() => next() < 0.3);
+
+			expectRoundTrip(
+				def({
+					filters,
+					hiddenFields,
+					subtaskDisplay: pick(["nested", "flat", "hidden"] as const),
+					viewType: pick(["list", "board"] as const),
+					groupBy: pick(["none", "status", "priority", "label"] as const),
+					sortBy: pick(["rank", "title", "dueDate", "estimate"] as const),
+					sortDirection: pick(["asc", "desc"] as const),
+					emptyColumnBehavior: pick([
+						"show-normal", "auto-collapse", "auto-hide",
+					] as const),
+				}),
+			);
+		}
+	});
+});
+
+describe("print idempotence (Invariant B)", () => {
+	it("is a fixpoint", () => {
+		const definition = def({
+			groupBy: "label",
+			sortDirection: "desc",
+			sortBy: "dueDate",
+			filters: {
+				status: ["todo"],
+				labels: ["design", NONE],
+				assignee: [SELF],
+				text: "a b",
+			},
+		});
+		const once = printQuery(definition, ctx);
+		const twice = printQuery(parseQuery(once, ctx).definition, ctx);
+		expect(twice).toBe(once);
+	});
+});
+
+/* ------------------------------------------------------- canonicalisation -- */
+
+describe("canonicalisation", () => {
+	it("drops no-ops", () => {
+		expect(
+			canonicalizeFilters({
+				status: [],
+				text: "   ",
+				archived: undefined,
+			}),
+		).toEqual({});
+	});
+
+	it("trims text and dedupes preserving first occurrence", () => {
+		expect(
+			canonicalizeFilters({ status: ["b", "a", "b"], text: "  hi  " }),
+		).toEqual({ status: ["b", "a"], text: "hi" });
+	});
+
+	it("is idempotent", () => {
+		const once = canonicalizeFilters({ labels: ["a", "a"], text: " x " });
+		expect(canonicalizeFilters(once)).toEqual(once);
+	});
+
+	it("makes equality insensitive to key order", () => {
+		const a = withFilters({ status: ["todo"], labels: ["design"] });
+		const b = withFilters({ labels: ["design"], status: ["todo"] });
+		expect(definitionsEqual(a, b)).toBe(true);
+	});
+
+	it("viewDefinition drops identity and column state", () => {
+		expect(Object.keys(viewDefinition(defaultViews()[0])).sort()).toEqual([
+			"calendarDateField", "canvasArrangement", "canvasDirection",
+			"canvasHiddenRelationKinds", "emptyColumnBehavior", "filters", "groupBy",
+			"hiddenFields", "recurringPreview", "sortBy", "sortDirection",
+			"subtaskDisplay", "tableSort", "viewType",
+		]);
+	});
+
+	it("does not change what a filter set matches (Invariant C)", () => {
+		const filterSets: ViewFilters[] = [
+			{ status: ["todo", "todo"], text: " onboarding " },
+			{ labels: [], priority: ["high"] },
+			{ assignee: [SELF], archived: undefined },
+		];
+		for (const filters of filterSets) {
+			for (const task of snapshot.tasks) {
+				expect(matchesFilters(task, canonicalizeFilters(filters), viewCtx)).toBe(
+					matchesFilters(task, filters, viewCtx),
+				);
+			}
+		}
+	});
+});
+
+/* -------------------------------------------------- canvas clauses -- */
+
+describe("canvas arrangement clauses", () => {
+	it("accepts the current tokens and their legacy/alias spellings", () => {
+		const parse = (q: string) => parseQuery(q, ctx).definition;
+		expect(parse("canvas-layout:flow")).toMatchObject({ canvasArrangement: "flow" });
+		expect(parse("canvas-layout:layered")).toMatchObject({ canvasArrangement: "flow" });
+		expect(parse("canvas-layout:dependency")).toMatchObject({ canvasArrangement: "flow" });
+		expect(parse("canvas-layout:tree")).toMatchObject({ canvasArrangement: "tree" });
+		expect(parse("canvas-layout:hierarchy")).toMatchObject({ canvasArrangement: "tree" });
+		expect(parse("canvas-layout:hierarchical")).toMatchObject({ canvasArrangement: "tree" });
+		expect(parse("canvas-direction:right")).toMatchObject({ canvasDirection: "right" });
+		expect(parse("canvas-direction:lr")).toMatchObject({ canvasDirection: "right" });
+		expect(parse("canvas-direction:left-to-right")).toMatchObject({ canvasDirection: "right" });
+		expect(parse("canvas-direction:down")).toMatchObject({ canvasDirection: "down" });
+		expect(parse("canvas-direction:tb")).toMatchObject({ canvasDirection: "down" });
+		expect(parse("canvas-direction:top-to-bottom")).toMatchObject({ canvasDirection: "down" });
+	});
+
+	it("rejects an unknown arrangement/direction", () => {
+		const badLayout = parseQuery("canvas-layout:spiral", ctx);
+		expect(badLayout.ok).toBe(false);
+		const badDirection = parseQuery("canvas-direction:diagonal", ctx);
+		expect(badDirection.ok).toBe(false);
+	});
+
+	it("prints the clauses after sort: in canonical order", () => {
+		const src = printQuery(
+			def({
+				viewType: "canvas",
+				groupBy: "status",
+				sortBy: "rank",
+				canvasArrangement: "tree",
+				canvasDirection: "down",
+			}),
+			ctx,
+		);
+		const at = (needle: string) => src.indexOf(needle);
+		expect(at("layout:canvas")).toBeGreaterThanOrEqual(0);
+		expect(at("sort:rank")).toBeGreaterThan(at("group:status"));
+		expect(at("canvas-layout:tree")).toBeGreaterThan(at("sort:rank"));
+		expect(at("canvas-direction:down")).toBeGreaterThan(at("canvas-layout:tree"));
+		expect(src).toBe("layout:canvas group:status sort:rank canvas-layout:tree canvas-direction:down");
+	});
+
+	it("omits canvas clauses unless the layout is canvas", () => {
+		expect(printQuery(def({ viewType: "list", canvasArrangement: "tree" }), ctx)).not.toContain("canvas-");
+		expect(printQuery(def({ viewType: "list", canvasDirection: "down" }), ctx)).not.toContain("canvas-");
+		// Defaults on a canvas view omit the clauses too.
+		expect(printQuery(def({ viewType: "canvas" }), ctx)).not.toContain("canvas-");
+	});
+
+	it("canonicalises omitted canvas fields to their defaults", () => {
+		expect(
+			canonicalizeDefinition(def({ viewType: "canvas" })).canvasArrangement,
+		).toBe("flow");
+		expect(
+			canonicalizeDefinition(def({ viewType: "canvas" })).canvasDirection,
+		).toBe("right");
+	});
+});
+
+describe("relations: clause (canvas relation visibility)", () => {
+	it("accepts the current tokens and their aliases", () => {
+		const parse = (q: string) => parseQuery(q, ctx).definition;
+		expect(parse("relations:blocks")).toMatchObject({
+			canvasHiddenRelationKinds: ["dependency"],
+		});
+		expect(parse("relations:dependency")).toMatchObject({
+			canvasHiddenRelationKinds: ["dependency"],
+		});
+		expect(parse("relations:depends")).toMatchObject({
+			canvasHiddenRelationKinds: ["dependency"],
+		});
+		expect(parse("relations:blocked")).toMatchObject({
+			canvasHiddenRelationKinds: ["dependency"],
+		});
+		expect(parse("relations:parent")).toMatchObject({
+			canvasHiddenRelationKinds: ["hierarchy"],
+		});
+		expect(parse("relations:hierarchy")).toMatchObject({
+			canvasHiddenRelationKinds: ["hierarchy"],
+		});
+		expect(parse("relations:subtask")).toMatchObject({
+			canvasHiddenRelationKinds: ["hierarchy"],
+		});
+		expect(parse("relations:child")).toMatchObject({
+			canvasHiddenRelationKinds: ["hierarchy"],
+		});
+		expect(parse("relations:related")).toMatchObject({
+			canvasHiddenRelationKinds: ["related"],
+		});
+		expect(parse("relations:rel")).toMatchObject({
+			canvasHiddenRelationKinds: ["related"],
+		});
+	});
+
+	it("hides both dependency and hierarchy edges from a comma-separated list", () => {
+		const parsed = parseQuery("relations:blocks,parent", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.canvasHiddenRelationKinds).toEqual([
+			"dependency",
+			"hierarchy",
+		]);
+	});
+
+	it("errors on an unknown relation kind", () => {
+		const parsed = parseQuery("relations:foo", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("unknown-value");
+	});
+
+	it("errors on relations: with no value", () => {
+		const parsed = parseQuery("relations:", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("empty-value");
+	});
+
+	it("warns but still parses a repeated relations:", () => {
+		const parsed = parseQuery("relations:blocks relations:parent", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.issues.map((i) => i.code)).toContain("duplicate-field");
+		expect(parsed.definition.canvasHiddenRelationKinds).toEqual([
+			"dependency",
+			"hierarchy",
+		]);
+	});
+
+	it("prints in canonical (CANVAS_RELATION_KINDS) order regardless of input order", () => {
+		expect(
+			printQuery(
+				def({ viewType: "canvas", canvasHiddenRelationKinds: ["related", "dependency"] }),
+				ctx,
+			),
+		).toContain("relations:blocks,related");
+	});
+
+	it("is dropped from the printed query on a non-canvas view", () => {
+		expect(
+			printQuery(def({ viewType: "list", canvasHiddenRelationKinds: ["dependency"] }), ctx),
+		).not.toContain("relations:");
+	});
+
+	it("prints no relations: clause when nothing is hidden", () => {
+		expect(printQuery(def({ viewType: "canvas" }), ctx)).not.toContain("relations:");
+	});
+
+	it("leaves existing hide:/canvas-layout:/canvas-direction: clauses unaffected", () => {
+		const src = printQuery(
+			def({
+				viewType: "canvas",
+				canvasArrangement: "tree",
+				canvasDirection: "down",
+				hiddenFields: ["priority"],
+				canvasHiddenRelationKinds: ["dependency"],
+			}),
+			ctx,
+		);
+		expect(src).toContain("canvas-layout:tree");
+		expect(src).toContain("canvas-direction:down");
+		expect(src).toContain("hide:priority");
+		expect(src).toContain("relations:blocks");
+	});
+});
+
+/* ------------------------------------------------------------- defaults -- */
+
+describe("defaults", () => {
+	it("prints the built-in All Tasks view", () => {
+		expect(printQuery(viewDefinition(defaultViews()[0]), ctx)).toBe(
+			"group:status sort:rank",
+		);
+	});
+
+	it("parses an empty query to the base defaults", () => {
+		const parsed = parseQuery("   ", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition).toEqual(canonicalizeDefinition(DEFAULT_DEFINITION));
+	});
+
+	it("leaves unmentioned fields at their defaults", () => {
+		expect(parseQuery("group:priority", ctx).definition).toEqual(
+			canonicalizeDefinition(def({ groupBy: "priority" })),
+		);
+	});
+
+	it("prints no hide: clause when nothing is hidden", () => {
+		expect(printQuery(def(), ctx)).not.toContain("hide:");
+		expect(printQuery(viewDefinition(defaultViews()[0]), ctx)).not.toContain(
+			"hide:",
+		);
+	});
+});
+
+/* --------------------------------------------------------- hidden fields -- */
+
+describe("hide: clause", () => {
+	it("parses a comma-separated list into hiddenFields", () => {
+		expect(parseQuery("hide:priority,labels", ctx).definition.hiddenFields).toEqual(
+			["priority", "labels"],
+		);
+	});
+
+	it("maps a field alias to its canonical member", () => {
+		expect(parseQuery("hide:due", ctx).definition.hiddenFields).toEqual([
+			"dueDate",
+		]);
+	});
+
+	it("prints hiddenFields in canonical order", () => {
+		expect(
+			printQuery(def({ hiddenFields: ["labels", "type"] }), ctx),
+		).toContain("hide:type,labels");
+	});
+
+	it("parses the fields added after the original seven", () => {
+		expect(
+			parseQuery("hide:project,estimate,start", ctx).definition.hiddenFields,
+		).toEqual(["project", "estimate", "startDate"]);
+	});
+
+	it("maps the new fields' aliases too", () => {
+		expect(
+			parseQuery("hide:proj,est,startdate", ctx).definition.hiddenFields,
+		).toEqual(["project", "estimate", "startDate"]);
+		expect(parseQuery("hide:points", ctx).definition.hiddenFields).toEqual([
+			"estimate",
+		]);
+	});
+
+	it("round-trips every field through print and parse", () => {
+		const printed = printQuery(def({ hiddenFields: [...TASK_FIELDS] }), ctx);
+		expect(parseQuery(printed, ctx).definition.hiddenFields).toEqual([
+			...TASK_FIELDS,
+		]);
+	});
+
+	it("errors on an unknown field", () => {
+		const parsed = parseQuery("hide:bogus", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("unknown-value");
+	});
+
+	it("errors on hide: with no value", () => {
+		const parsed = parseQuery("hide:", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("empty-value");
+	});
+
+	it("warns but still parses a repeated hide:", () => {
+		const parsed = parseQuery("hide:priority hide:labels", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.issues.map((i) => i.code)).toContain("duplicate-field");
+		expect(parsed.definition.hiddenFields).toEqual(["priority", "labels"]);
+	});
+});
+
+/* --------------------------------------------------------- table sort -- */
+
+describe("table-sort: clause", () => {
+	it("round-trips layout:table table-sort:priority,-due byte-for-byte", () => {
+		const source = "layout:table table-sort:priority,-due";
+		const parsed = parseQuery(source, ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.viewType).toBe("table");
+		expect(parsed.definition.tableSort).toEqual([
+			{ field: "priority", direction: "asc" },
+			{ field: "dueDate", direction: "desc" },
+		]);
+		expect(printQuery(parsed.definition, ctx)).toBe(
+			`layout:table group:none sort:rank ${source.split(" ")[1]}`,
+		);
+	});
+
+	it("parses a single ascending key", () => {
+		expect(parseQuery("table-sort:priority", ctx).definition.tableSort).toEqual([
+			{ field: "priority", direction: "asc" },
+		]);
+	});
+
+	it("parses a leading - as descending", () => {
+		expect(parseQuery("table-sort:-due", ctx).definition.tableSort).toEqual([
+			{ field: "dueDate", direction: "desc" },
+		]);
+	});
+
+	it("skips a field already present, first occurrence wins", () => {
+		expect(
+			parseQuery("table-sort:priority,-priority", ctx).definition.tableSort,
+		).toEqual([{ field: "priority", direction: "asc" }]);
+	});
+
+	it("errors on an unknown field, same shape as sort:", () => {
+		const parsed = parseQuery("table-sort:vibes", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("unknown-value");
+	});
+
+	it("errors on table-sort: with no value", () => {
+		const parsed = parseQuery("table-sort:", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("empty-value");
+	});
+
+	it("warns but still parses a repeated table-sort:", () => {
+		const parsed = parseQuery("table-sort:priority table-sort:due", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.issues.map((i) => i.code)).toContain("duplicate-field");
+		expect(parsed.definition.tableSort).toEqual([
+			{ field: "priority", direction: "asc" },
+			{ field: "dueDate", direction: "asc" },
+		]);
+	});
+
+	it("prints no table-sort: clause when empty", () => {
+		expect(printQuery(def(), ctx)).not.toContain("table-sort:");
+	});
+
+	it("round-trips through the generic invariant", () => {
+		expectRoundTrip(
+			def({
+				viewType: "table",
+				tableSort: [
+					{ field: "status", direction: "asc" },
+					{ field: "estimate", direction: "desc" },
+				],
+			}),
+		);
+	});
+
+	it("round-trips layout:table table-sort:type,-progress byte-for-byte", () => {
+		const source = "layout:table table-sort:type,-progress";
+		const parsed = parseQuery(source, ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.tableSort).toEqual([
+			{ field: "taskType", direction: "asc" },
+			{ field: "progress", direction: "desc" },
+		]);
+		expect(printQuery(parsed.definition, ctx)).toBe(
+			`layout:table group:none sort:rank ${source.split(" ")[1]}`,
+		);
+	});
+
+	it("resolves each new field's alias", () => {
+		expect(parseQuery("table-sort:kind", ctx).definition.tableSort).toEqual([
+			{ field: "taskType", direction: "asc" },
+		]);
+		expect(parseQuery("table-sort:owner", ctx).definition.tableSort).toEqual([
+			{ field: "assignee", direction: "asc" },
+		]);
+		expect(parseQuery("table-sort:tag", ctx).definition.tableSort).toEqual([
+			{ field: "labels", direction: "asc" },
+		]);
+		expect(parseQuery("table-sort:rel", ctx).definition.tableSort).toEqual([
+			{ field: "relations", direction: "asc" },
+		]);
+	});
+});
+
+/* --------------------------------------------------------- name resolution -- */
+
+describe("resolution", () => {
+	it("accepts ids, names and casings interchangeably", () => {
+		for (const source of [
+			"status:in-progress",
+			'status:"In Progress"',
+			"status:IN-PROGRESS",
+			"Status:In-Progress",
+			"state:in-progress",
+		]) {
+			expect(parseQuery(source, ctx).definition.filters.status).toEqual([
+				"in-progress",
+			]);
+		}
+	});
+
+	it("accepts sort and group aliases", () => {
+		expect(parseQuery("sort:manual", ctx).definition.sortBy).toBe("rank");
+		expect(parseQuery("sort:due", ctx).definition.sortBy).toBe("dueDate");
+		expect(parseQuery("group:type", ctx).definition.groupBy).toBe("taskType");
+		const desc = parseQuery("sort:-due", ctx).definition;
+		expect(desc.sortBy).toBe("dueDate");
+		expect(desc.sortDirection).toBe("desc");
+	});
+
+	it("resolves people by name and alias", () => {
+		for (const source of ["assignee:alice", "assignee:Alice", "assignee:al"]) {
+			expect(parseQuery(source, ctx).definition.filters.assignee).toEqual([
+				"alice",
+			]);
+		}
+	});
+
+	it("resolves a project by its basename", () => {
+		const parsed = parseQuery(`project:"Core App Experience"`, ctx);
+		expect(parsed.definition.filters.project).toEqual([project]);
+	});
+
+	it("resolves a unique project title with no ambiguity warning", () => {
+		// Project titles are unique per workspace, so `resolveEntity`'s soleMatch
+		// always lands on exactly one project — the "use the full path" ambiguity
+		// warning never fires. Guards against a regression in that invariant.
+		const parsed = parseQuery(`project:"Core App Experience"`, ctx);
+		expect(parsed.definition.filters.project).toEqual([project]);
+		expect(parsed.issues).toEqual([]);
+	});
+
+	it("prints a project filter as its name, not the full vault path", () => {
+		const core = snapshot.projects.find(
+			(p) => p.title === "Core App Experience",
+		)!;
+		const source = printQuery(withFilters({ project: [core.path] }), ctx);
+		expect(source).toContain(`project:"Core App Experience"`);
+		expect(source).not.toContain(core.path);
+		// And it still round-trips.
+		expect(
+			parseQuery(source, ctx).definition.filters.project,
+		).toEqual([core.path]);
+	});
+
+	it("means the same thing as a hand-built filter set", () => {
+		const parsed = parseQuery("status:todo,in-progress type:bug", ctx);
+		expect(applyFilters(snapshot.tasks, parsed.definition.filters, viewCtx)).toEqual(
+			applyFilters(
+				snapshot.tasks,
+				{ status: ["todo", "in-progress"], taskType: ["bug"] },
+				viewCtx,
+			),
+		);
+	});
+
+	it("keeps reserved keywords ahead of taxonomy values, with = as the escape", () => {
+		expect(parseQuery("label:unset", ctx).definition.filters.labels).toEqual([
+			NONE,
+		]);
+		expect(parseQuery("label:=unset", ctx).definition.filters.labels).toEqual([
+			"unset",
+		]);
+		expect(printQuery(withFilters({ labels: ["unset"] }), ctx)).toBe(
+			"label:=unset group:none sort:rank",
+		);
+	});
+
+	it("stores 'me' even when this device has no self set, and says so", () => {
+		const lonely = { ...ctx, selfId: null };
+		const parsed = parseQuery("assignee:me", lonely);
+		expect(parsed.definition.filters.assignee).toEqual([SELF]);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.issues[0].code).toBe("self-unconfigured");
+	});
+
+	it("keeps subtasks:hidden and parent:unset structurally distinct", () => {
+		const a = def({ subtaskDisplay: "hidden" });
+		const b = withFilters({ parent: [NONE] });
+		expect(printQuery(a, ctx)).not.toBe(printQuery(b, ctx));
+		expectRoundTrip(a);
+		expectRoundTrip(b);
+	});
+
+	it("parses the retired is:top-level as subtasks:hidden", () => {
+		const parsed = parseQuery("is:top-level", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.subtaskDisplay).toBe("hidden");
+		expect(printQuery(parsed.definition, ctx)).toContain("subtasks:hidden");
+	});
+
+	it("parses is:open and is:unscheduled and round-trips them", () => {
+		const parsed = parseQuery("is:open is:unscheduled", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.openOnly).toBe(true);
+		expect(parsed.definition.filters.unscheduled).toBe(true);
+		expect(printQuery(parsed.definition, ctx)).toBe(
+			"is:open is:unscheduled group:none sort:rank",
+		);
+	});
+
+	it("parses is:recurring and show:recurring and round-trips them", () => {
+		const parsed = parseQuery("is:recurring show:recurring", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.recurring).toBe(true);
+		expect(parsed.definition.recurringPreview).toBe(true);
+		expect(printQuery(parsed.definition, ctx)).toBe(
+			"is:recurring show:recurring group:none sort:rank",
+		);
+	});
+
+	it("prints the Untriaged definition as its documented query", () => {
+		const inbox = defaultViews().find((v) => v.id === "untriaged")!;
+		expect(printQuery(viewDefinition(inbox), ctx)).toBe(
+			"project:unset parent:unset is:open is:unscheduled group:status sort:rank",
+		);
+	});
+
+	it("refuses to guess an ambiguous basename", () => {
+		const ambiguous = {
+			...ctx,
+			projects: [
+				{ path: "Projects/A", title: "A" },
+				{ path: "Archive/A", title: "A" },
+			],
+		};
+		const parsed = parseQuery("project:A", ambiguous);
+		expect(parsed.definition.filters.project).toEqual(["A"]);
+		expect(parsed.issues.map((i) => i.code)).toContain("unknown-value");
+		// Printing must therefore use the full path, not the shared basename.
+		expect(printQuery(withFilters({ project: ["Projects/A"] }), ambiguous)).toBe(
+			"project:Projects/A group:none sort:rank",
+		);
+	});
+});
+
+/* ---------------------------------------------------- group wildcards -- */
+
+describe("group-wildcard filters (label:*/project:*)", () => {
+	// Local fixture: labels and projects that use the `/`-nesting convention,
+	// layered onto the base context. Not added to the shared sample-workspace
+	// fixture, which many other suites depend on unchanged.
+	const groupCtx: typeof ctx = {
+		...ctx,
+		taxonomies: {
+			...ctx.taxonomies,
+			label: createTaxonomy("label", [
+				{ id: "labelA", name: "LabelA", color: "#111111" },
+				{ id: "labelAB", name: "LabelA/B", color: "#222222" },
+				{ id: "labelACD", name: "LabelA/C/D", color: "#333333" },
+			]),
+		},
+		projects: [
+			...ctx.projects,
+			{ path: "Projects/Application", title: "Application" },
+			{ path: "Projects/Application-UI", title: "Application/UI" },
+			{ path: "Projects/Application-UI-Forms", title: "Application/UI/Forms" },
+		],
+	};
+
+	it("resolves a group pattern to itself, verbatim, when something matches", () => {
+		expect(
+			parseQuery("label:LabelA/*", groupCtx).definition.filters.labels,
+		).toEqual(["LabelA/*"]);
+		expect(
+			parseQuery("project:Application/*", groupCtx).definition.filters.project,
+		).toEqual(["Application/*"]);
+	});
+
+	it("still resolves a pattern with no matches, but warns", () => {
+		const label = parseQuery("label:Nothing/*", groupCtx);
+		expect(label.definition.filters.labels).toEqual(["Nothing/*"]);
+		expect(label.issues[0].code).toBe("unknown-value");
+
+		const project = parseQuery("project:Nothing/*", groupCtx);
+		expect(project.definition.filters.project).toEqual(["Nothing/*"]);
+		expect(project.issues[0].code).toBe("unknown-value");
+	});
+
+	it("round-trips a group pattern exactly", () => {
+		const labelSrc = printQuery(
+			withFilters({ labels: ["LabelA/*"] }),
+			groupCtx,
+		);
+		expect(parseQuery(labelSrc, groupCtx).definition.filters.labels).toEqual([
+			"LabelA/*",
+		]);
+
+		const projectSrc = printQuery(
+			withFilters({ project: ["Application/*"] }),
+			groupCtx,
+		);
+		expect(
+			parseQuery(projectSrc, groupCtx).definition.filters.project,
+		).toEqual(["Application/*"]);
+	});
+
+	it("leaves a bare name/title as an exact match, never a group", () => {
+		expect(
+			parseQuery("label:LabelA", groupCtx).definition.filters.labels,
+		).toEqual(["labelA"]);
+		expect(
+			parseQuery("project:Application", groupCtx).definition.filters.project,
+		).toEqual(["Projects/Application"]);
+	});
+
+	it("parses a combined OR-list of an exact value and a group pattern, in order", () => {
+		expect(
+			parseQuery("label:LabelA,LabelA/*", groupCtx).definition.filters.labels,
+		).toEqual(["labelA", "LabelA/*"]);
+		expect(
+			parseQuery("project:Application,Application/*", groupCtx).definition
+				.filters.project,
+		).toEqual(["Projects/Application", "Application/*"]);
+	});
+
+	it("gives parent: no group behaviour, even with a /*-suffixed value", () => {
+		// `parent` also routes through the entity branch, but with
+		// `resolveAs: "task"` — the group-wildcard hook only fires for "project".
+		const withoutMatch = parseQuery("parent:Something/*", groupCtx);
+		expect(withoutMatch.definition.filters.parent).toEqual(["Something/*"]);
+		expect(withoutMatch.issues[0].code).toBe("unknown-value");
+		expect(withoutMatch.issues[0].message).not.toContain("start with");
+	});
+});
+
+/* ---------------------------------------------------------- diagnostics -- */
+
+describe("diagnostics", () => {
+	const at = (source: string, issue: { span: { start: number; end: number } }) =>
+		source.slice(issue.span.start, issue.span.end);
+
+	it("flags a field with no value", () => {
+		const source = "status:";
+		const parsed = parseQuery(source, ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("empty-value");
+		expect(at(source, parsed.issues[0])).toBe("status:");
+	});
+
+	it("flags an unknown field and suggests the nearest", () => {
+		const source = "staus:todo";
+		const parsed = parseQuery(source, ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("unknown-field");
+		expect(parsed.issues[0].suggestion).toBe("status");
+		expect(at(source, parsed.issues[0])).toBe("staus");
+	});
+
+	it("flags an unterminated quote", () => {
+		const parsed = parseQuery('label:"bug', ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("unterminated-quote");
+	});
+
+	it("rejects tokens ViewFilters cannot express, with a pointer", () => {
+		for (const source of ["is:archived", "archived:true", "archived:only"]) {
+			const parsed = parseQuery(source, ctx);
+			expect(parsed.ok).toBe(false);
+			expect(parsed.issues[0].code).toBe("not-expressible");
+			expect(parsed.issues[0].suggestion).toBe("show:archived-only");
+		}
+		const subtask = parseQuery("is:sub-task", ctx);
+		expect(subtask.issues[0].code).toBe("not-expressible");
+		expect(subtask.issues[0].suggestion).toBe("parent:");
+	});
+
+	it("errors on an unknown grouping or sort field", () => {
+		expect(parseQuery("group:nonsense", ctx).ok).toBe(false);
+		expect(parseQuery("sort:nonsense", ctx).ok).toBe(false);
+	});
+
+	it("parses both archived flags and warns when they conflict", () => {
+		expect(parseQuery("show:archived", ctx).definition.filters.archived).toBe(
+			"included",
+		);
+		expect(
+			parseQuery("show:archived-only", ctx).definition.filters.archived,
+		).toBe("only");
+
+		const conflict = parseQuery("show:archived show:archived-only", ctx);
+		expect(conflict.issues.map((i) => i.code)).toContain("duplicate-field");
+		expect(conflict.definition.filters.archived).toBe("only");
+
+		const bad = parseQuery("show:nonsense", ctx);
+		expect(bad.ok).toBe(false);
+		expect(bad.issues[0].code).toBe("unknown-value");
+	});
+
+	it("warns rather than errors on a vacuous filter", () => {
+		for (const source of ["mentions:unset", "status:unset"]) {
+			const parsed = parseQuery(source, ctx);
+			expect(parsed.ok).toBe(true);
+			expect(parsed.issues.map((i) => i.code)).toContain("vacuous-value");
+		}
+	});
+
+	it("warns on an unknown value but keeps it", () => {
+		const parsed = parseQuery("status:long-gone", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.issues[0].code).toBe("unknown-value");
+		expect(parsed.definition.filters.status).toEqual(["long-gone"]);
+	});
+
+	it("merges a duplicated field and says so", () => {
+		const parsed = parseQuery("status:todo status:done", ctx);
+		expect(parsed.definition.filters.status).toEqual(["todo", "done"]);
+		expect(parsed.issues.map((i) => i.code)).toContain("duplicate-field");
+	});
+
+	it("still returns usable filters when part of the query is broken", () => {
+		const parsed = parseQuery("status:todo lbel:bug", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.definition.filters.status).toEqual(["todo"]);
+	});
+
+	it("treats a quoted field-shaped token as text", () => {
+		const parsed = parseQuery('"status:todo"', ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.text).toBe("status:todo");
+		expect(parsed.definition.filters.status).toBeUndefined();
+	});
+
+	it("collects bare words into free text", () => {
+		expect(parseQuery("login screen status:todo", ctx).definition.filters.text).toBe(
+			"login screen",
+		);
+	});
+});
+
+describe("date field filtering", () => {
+	it("parses exact-match date values", () => {
+		const parsed = parseQuery("due:2026-09-19", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.dueDate).toEqual(["2026-09-19"]);
+	});
+
+	it("OR's comma-separated exact-match values", () => {
+		const parsed = parseQuery("due:2026-09-19,2026-09-20", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.dueDate).toEqual([
+			"2026-09-19",
+			"2026-09-20",
+		]);
+	});
+
+	it("parses unset on a nullable date field", () => {
+		const parsed = parseQuery("due:unset", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.dueDate).toEqual([NONE]);
+		expect(parsed.issues.map((i) => i.code)).not.toContain("vacuous-value");
+	});
+
+	it("warns as vacuous on a non-nullable date field", () => {
+		const parsed = parseQuery("created:unset", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.createdAt).toEqual([NONE]);
+		expect(parsed.issues.map((i) => i.code)).toContain("vacuous-value");
+	});
+
+	it("warns (not errors) on an invalid exact-match date", () => {
+		const parsed = parseQuery("due:not-a-date", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.issues[0].code).toBe("unknown-value");
+		expect(parsed.definition.filters.dueDate).toEqual(["not-a-date"]);
+	});
+
+	it("errors (not warns) on an invalid range bound", () => {
+		const parsed = parseQuery("due-before:not-a-date", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("unknown-value");
+		expect(parsed.definition.filters.dueDateBefore).toBeUndefined();
+	});
+
+	it("rejects a non-existent calendar day as a range bound", () => {
+		const parsed = parseQuery("due-before:2026-02-30", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("unknown-value");
+	});
+
+	it("warns on a duplicated bound", () => {
+		const parsed = parseQuery("due-before:2026-09-01 due-before:2026-09-05", ctx);
+		expect(parsed.issues.map((i) => i.code)).toContain("duplicate-field");
+		expect(parsed.definition.filters.dueDateBefore).toBe("2026-09-05");
+	});
+
+	it("combines -before and -after into a range", () => {
+		const parsed = parseQuery(
+			"due-after:2026-09-01 due-before:2026-10-01",
+			ctx,
+		);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.dueDateAfter).toBe("2026-09-01");
+		expect(parsed.definition.filters.dueDateBefore).toBe("2026-10-01");
+	});
+
+	it("supports every date field's aliases and bound tokens", () => {
+		const created = parseQuery("created-after:2026-01-01", ctx);
+		expect(created.definition.filters.createdAtAfter).toBe("2026-01-01");
+
+		const updated = parseQuery("updated-before:2026-01-01", ctx);
+		expect(updated.definition.filters.updatedAtBefore).toBe("2026-01-01");
+
+		const completed = parseQuery("completed:2026-01-01", ctx);
+		expect(completed.definition.filters.completedAt).toEqual(["2026-01-01"]);
+
+		const start = parseQuery("start-date:2026-01-01", ctx);
+		expect(start.definition.filters.startDate).toEqual(["2026-01-01"]);
+	});
+
+	it("bypasses date validation with the verbatim prefix", () => {
+		const parsed = parseQuery("due:=not-a-date", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.issues).toEqual([]);
+		expect(parsed.definition.filters.dueDate).toEqual(["not-a-date"]);
+	});
+});
+
+describe("exclusion filters", () => {
+	it("parses -status:done into excludeStatus, not status", () => {
+		const parsed = parseQuery("-status:done", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.excludeStatus).toEqual(["done"]);
+		expect(parsed.definition.filters.status).toBeUndefined();
+	});
+
+	it("parses -due:unset as meaningful, without a vacuous warning", () => {
+		const parsed = parseQuery("-due:unset", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.excludeDueDate).toEqual([NONE]);
+		expect(parsed.issues.map((i) => i.code)).not.toContain("vacuous-value");
+	});
+
+	it("rejects exclusion on a range bound", () => {
+		const parsed = parseQuery("-due-before:2026-09-01", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("not-expressible");
+	});
+
+	it("rejects exclusion on free text", () => {
+		const parsed = parseQuery("-title:foo", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("not-expressible");
+	});
+
+	it("rejects exclusion on a flag", () => {
+		const parsed = parseQuery("-is:open", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0].code).toBe("not-expressible");
+	});
+
+	it("warns on a duplicated exclude clause, same as a duplicated include", () => {
+		const parsed = parseQuery("-status:done -status:blocked", ctx);
+		expect(parsed.issues.map((i) => i.code)).toContain("duplicate-field");
+		expect(parsed.definition.filters.excludeStatus).toEqual(["done", "blocked"]);
+	});
+
+	it("treats status:done -status:done as two independent, non-conflicting clauses", () => {
+		const parsed = parseQuery("status:done -status:done", ctx);
+		expect(parsed.issues.map((i) => i.code)).not.toContain("duplicate-field");
+		expect(parsed.definition.filters.status).toEqual(["done"]);
+		expect(parsed.definition.filters.excludeStatus).toEqual(["done"]);
+	});
+
+	it("supports exclusion on every array-valued field, including the date families", () => {
+		const parsed = parseQuery(
+			"-priority:high -type:bug -label:design -assignee:alice -mentions:alice -due:2026-09-19",
+			ctx,
+		);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.excludePriority).toEqual(["high"]);
+		expect(parsed.definition.filters.excludeTaskType).toEqual(["bug"]);
+		expect(parsed.definition.filters.excludeLabels).toEqual(["design"]);
+		expect(parsed.definition.filters.excludeAssignee).toEqual(["alice"]);
+		expect(parsed.definition.filters.excludeMentions).toEqual(["alice"]);
+		expect(parsed.definition.filters.excludeDueDate).toEqual(["2026-09-19"]);
+	});
+
+	it("resolves an excluded project/parent value the same way inclusion does", () => {
+		const parsed = parseQuery(`-project:="${project}" -parent:="${taskPath}"`, ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.excludeProject).toEqual([project]);
+		expect(parsed.definition.filters.excludeParent).toEqual([taskPath]);
+	});
+
+	it("parses root:/-root: like parent:/-parent:", () => {
+		const parsed = parseQuery(`root:="${taskPath}" -root:="${project}"`, ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.root).toEqual([taskPath]);
+		expect(parsed.definition.filters.excludeRoot).toEqual([project]);
+	});
+});

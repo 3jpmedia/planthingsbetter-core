@@ -1,0 +1,248 @@
+/**
+ * Project frontmatter ↔ domain object.
+ *
+ * Unlike Tasks, a Project note is named by *title*, so the filename is the
+ * human-readable identity and `title` in frontmatter is the display override.
+ */
+
+import { basename } from "../links";
+import type { Project } from "../types";
+import {
+	asBoolean,
+	asDate,
+	asDateTime,
+	asString,
+	asStringArray,
+	asRecord,
+	compact,
+	nowIso,
+	IssueLog,
+	type ParseResult,
+} from "./coerce";
+import { parseProjectView, serializeProjectView } from "./views";
+import { emptyQueryContext, type QueryContext } from "../query";
+
+export interface EntityParseOptions {
+	path: string;
+	/** Used when the note omits `status`, same as for Tasks. `null` when the workspace has no statuses. */
+	defaultStatus: string | null;
+	/** Resolves the embedded `view.query` string (see `ViewParseOptions.context`). */
+	context?: QueryContext;
+}
+
+export function parseProject(
+	raw: unknown,
+	options: EntityParseOptions,
+): ParseResult<Project> {
+	const fm = asRecord(raw);
+	const createdAt = asDateTime(fm.createdAt);
+	const archivedAt = asDateTime(fm.archivedAt);
+	const log = new IssueLog();
+	const title = asString(fm.title) ?? basename(options.path);
+
+	return {
+		value: {
+			type: "vertex-flow-project",
+			title,
+			icon: asString(fm.icon) ?? undefined,
+			status: asString(fm.status) ?? options.defaultStatus,
+			// Priority/labels reuse the Task taxonomies — same forgiving coercion.
+			priority: asString(fm.priority),
+			labels: asStringArray(fm.labels),
+			// Dates parsed independently, no start-before-due rule — Task doesn't
+			// enforce one either, so this stays the same forgiving parse.
+			startDate: asDate(fm.startDate),
+			dueDate: asDate(fm.dueDate),
+			owner: asString(fm.owner),
+			archived: asBoolean(fm.archived, false) || archivedAt != null,
+			archivedAt,
+			createdAt: createdAt ?? nowIso(),
+			updatedAt: asDateTime(fm.updatedAt) ?? createdAt ?? nowIso(),
+			path: options.path,
+			view:
+				fm.view != null
+					? parseProjectView(fm.view, log, options.context ?? emptyQueryContext())
+					: null,
+		},
+		issues: log.issues.map((issue) => `Project "${title}": ${issue}`),
+	};
+}
+
+export function serializeProject(
+	project: Project,
+	context: QueryContext = emptyQueryContext(),
+): Record<string, unknown> {
+	const base = compact({
+		type: "vertex-flow-project",
+		title: project.title,
+		icon: project.icon,
+		status: project.status,
+		priority: project.priority,
+		owner: project.owner,
+		labels: project.labels,
+		startDate: project.startDate,
+		dueDate: project.dueDate,
+	});
+	// `archived` is written explicitly even when false — an absent field reads as
+	// "unknown" rather than "no" (same reasoning as `serializeTask`).
+	base.archived = project.archived;
+	if (project.archivedAt) base.archivedAt = project.archivedAt;
+	base.createdAt = project.createdAt;
+	base.updatedAt = project.updatedAt;
+	// Absent until the user hits Save on the embedded viewport at least once.
+	if (project.view) base.view = serializeProjectView(project.view, context);
+	return base;
+}
+
+/** Field order for the writer, so notes stay diff-stable across edits. */
+export const PROJECT_FIELD_ORDER: readonly string[] = [
+	"type",
+	"title",
+	"icon",
+	"status",
+	"priority",
+	"owner",
+	"labels",
+	"startDate",
+	"dueDate",
+	"archived",
+	"archivedAt",
+	"createdAt",
+	"updatedAt",
+	"view",
+] as const;
+
+// ---------------------------------------------------------------------------
+// Project note body ↔ `ProjectDocument.description`
+// ---------------------------------------------------------------------------
+
+/**
+ * A Project note's body *is* its description — there's no comments block to
+ * split around, so this is far simpler than the Task equivalent.
+ *
+ * A lone leading `## Overview` heading (what older projects and the create
+ * template seeded) is dropped so it doesn't show up as literal text in the
+ * editor.
+ */
+export function extractProjectDescription(body: string): string {
+	return body
+		.replace(/\r\n/g, "\n")
+		.replace(/^\s*##\s+overview\s*\n?/i, "")
+		.trim();
+}
+
+/** Serialize a description back to a note body — trimmed, one trailing newline. */
+export function withProjectDescription(text: string): string {
+	const content = text.replace(/\r\n/g, "\n").trim();
+	return content ? `${content}\n` : "";
+}
+
+// ---------------------------------------------------------------------------
+// Title uniqueness (per workspace)
+// ---------------------------------------------------------------------------
+//
+// Project notes are title-based files, so two projects in one workspace sharing
+// a `title` produces ambiguous `project:` filters and links (the query bar
+// falls back to printing the raw vault path). Titles are unique per workspace —
+// the same "nothing shared across workspaces" scoping taxonomies and people
+// follow — and compared case-insensitively, matching the taxonomy engine.
+
+function titleKey(title: string): string {
+	return title.trim().toLowerCase();
+}
+
+/**
+ * Whether another project in this workspace already uses `title`
+ * (case-insensitive). `excludePath` lets a project keep (or re-case) its own
+ * name on rename without tripping the check — mirrors `updateValue` in the
+ * taxonomy engine.
+ */
+export function isProjectTitleTaken(
+	projects: readonly Project[],
+	title: string,
+	excludePath?: string,
+): boolean {
+	const key = titleKey(title);
+	if (!key) return false;
+	return projects.some(
+		(project) => project.path !== excludePath && titleKey(project.title) === key,
+	);
+}
+
+/**
+ * `base`, or `"base 2"`, `"base 3"`… — the first form not already taken by a
+ * project in this workspace (case-insensitive, matching `isProjectTitleTaken`).
+ *
+ * The two convenience entry points that mint a project without a dialog to fix
+ * the name in — the `c p` / "New project" default title, and "Duplicate" — use
+ * this to disambiguate their own generated title. A user typing a real name
+ * still gets hard-blocked on a real clash by `createProject`.
+ */
+export function nextAvailableProjectTitle(
+	projects: readonly Project[],
+	base: string,
+): string {
+	const taken = new Set(projects.map((p) => titleKey(p.title)));
+	if (!taken.has(titleKey(base))) return base;
+	for (let n = 2; ; n++) {
+		const candidate = `${base} ${n}`;
+		if (!taken.has(titleKey(candidate))) return candidate;
+	}
+}
+
+/**
+ * The subset of a project's fields a duplicate inherits: its taxonomy and
+ * scheduling identity, but **not** `archived`/`archivedAt` (a copy starts fresh
+ * and active, like every other "new" flow) and **not** `title` (the caller
+ * assigns a deduped `"<title> copy"`). The note body / description is copied
+ * separately by the mutation. Pure so `duplicateProject` stays testable.
+ */
+export function projectDuplicatePatch(
+	project: Project,
+): Pick<
+	Project,
+	"status" | "priority" | "labels" | "startDate" | "dueDate" | "owner"
+> {
+	return {
+		status: project.status,
+		priority: project.priority,
+		labels: [...project.labels],
+		startDate: project.startDate,
+		dueDate: project.dueDate,
+		owner: project.owner,
+	};
+}
+
+export interface ProjectTitleCollision {
+	path: string;
+	title: string;
+}
+
+/**
+ * Projects in one workspace whose titles collide case-insensitively — one entry
+ * per affected project, so each note gets its own issue. Same shape and spirit
+ * as `detectPrefixCollisions`: a real correctness problem, surfaced as a
+ * non-fatal note issue rather than blocking vault load, since an existing vault
+ * may already contain duplicates from before the rule existed.
+ */
+export function detectProjectTitleCollisions(
+	projects: readonly Project[],
+): ProjectTitleCollision[] {
+	const groups = new Map<string, Project[]>();
+	for (const project of projects) {
+		const key = titleKey(project.title);
+		if (!key) continue;
+		const group = groups.get(key) ?? [];
+		group.push(project);
+		groups.set(key, group);
+	}
+
+	const out: ProjectTitleCollision[] = [];
+	for (const group of groups.values()) {
+		if (group.length < 2) continue;
+		for (const project of group) {
+			out.push({ path: project.path, title: project.title });
+		}
+	}
+	return out;
+}

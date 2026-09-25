@@ -1,0 +1,61 @@
+{
+  "name": "@planthingsbetter/core",
+  "version": "0.1.0",
+  "description": "Pure domain logic shared across Plan Things Better products: per-workspace taxonomy engine, LexoRank ordering, filter/query grammar, and workspace templates. No runtime dependencies.",
+  "type": "module",
+  "main": "./dist/core/index.js",
+  "types": "./dist/core/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allanleonardjr/planthingsbetter-core.git"
+  },
+  "license": "Apache-2.0",
+  "author": "JR Leonard",
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:templates": "node scripts/build-templates.mjs",
+    "build": "pnpm build:templates && tsc -p tsconfig.build.json",
+    "typecheck": "pnpm build:templates && tsc --noEmit",
+    "lint": "eslint src tests --max-warnings 0",
+    "pretest": "pnpm build:templates",
+    "test": "vitest run",
+    "pretest:watch": "pnpm build:templates",
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "keywords": [
+    "task-management",
+    "domain-logic"
+  ],
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "@eslint/js": "^10.0.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.10.0",
+    "tslib": "^2.8.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.1.11",
+    "yaml": "^2.9.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

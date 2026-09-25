@@ -1,0 +1,117 @@
+/**
+ * View evaluation: snapshot + Saved View → what to render.
+ *
+ * This is the single path every List and Board render goes through, so the two
+ * views can never drift out of agreement about which tasks a filter matches.
+ */
+
+import type {
+	IsoDate,
+	SavedView,
+	Task,
+	TaskGroup,
+	WorkspaceSnapshot,
+} from "../types";
+import { projectRecurrences } from "../recurrence/project";
+import { snapshotContext, type ViewContext } from "./context";
+import { applyFilters } from "./filter";
+import { groupTasksForView } from "./group";
+import { sortTasks, sortTasksMulti } from "./sort";
+
+export interface EvaluatedView {
+	view: SavedView;
+	context: ViewContext;
+	/** Filtered + sorted, before grouping — what the List view renders. */
+	tasks: Task[];
+	/** Grouped — what the Board view renders. */
+	groups: TaskGroup[];
+	/** Tasks matching the filters. Excludes nothing that grouping hid. */
+	total: number;
+	/** How many were filtered out of the workspace's full task list. */
+	filteredOut: number;
+}
+
+export function evaluateView(
+	snapshot: WorkspaceSnapshot,
+	view: SavedView,
+	// The default context has `selfId: null`, so `self` filters resolve to
+	// nothing. Real callers (the UI) must pass a context built with the
+	// device's per-workspace "me" id — see `useActiveWorkspace`. The default is
+	// only for tests and callers that provably have no `self` filter.
+	context: ViewContext = snapshotContext(snapshot),
+	// The local calendar day, for the `show:recurring` projection. Omitted =>
+	// no projection, whatever `view.recurringPreview` says (tests and callers
+	// that don't preview futures).
+	today?: IsoDate,
+): EvaluatedView {
+	const filtered = applyFilters(snapshot.tasks, view.filters, context);
+	// `hidden` drops sub-tasks outright; `nested` and `flat` both keep them in the
+	// evaluated set (the List view derives the tree from it — see `nest.ts`).
+	const visible =
+		view.subtaskDisplay === "hidden"
+			? filtered.filter((task) => task.parent == null)
+			: filtered;
+
+	// `total` / `filteredOut` count real tasks only — projected ghosts are a
+	// presentation layer, not "more tasks matched". They merge *after* filtering
+	// (projected from filter-matched sources), then sort and group like any row.
+	const projected =
+		view.recurringPreview && today
+			? projectRecurrences(snapshot, visible, today)
+			: [];
+	const merged = projected.length > 0 ? [...visible, ...projected] : visible;
+	const sorted =
+		view.viewType === "table" && view.tableSort.length > 0
+			? sortTasksMulti(merged, view.tableSort, context)
+			: sortTasks(merged, view.sortBy, view.sortDirection, context);
+
+	return {
+		view,
+		context,
+		tasks: sorted,
+		groups: groupTasksForView(sorted, view, context),
+		total: visible.length,
+		filteredOut: snapshot.tasks.length - visible.length,
+	};
+}
+
+/** Groups the Board should actually paint, in order. */
+export function visibleGroups(evaluated: EvaluatedView): TaskGroup[] {
+	return evaluated.groups.filter((group) => !group.hidden);
+}
+
+/** Groups the user hid, so the sidebar can offer to restore them. */
+export function hiddenGroups(evaluated: EvaluatedView): TaskGroup[] {
+	return evaluated.groups.filter((group) => group.hidden);
+}
+
+/** Toggle a column's collapsed state, returning a new Saved View. */
+export function toggleColumnCollapsed(view: SavedView, key: string): SavedView {
+	const collapsed = view.columns.collapsed.includes(key)
+		? view.columns.collapsed.filter((k) => k !== key)
+		: [...view.columns.collapsed, key];
+	return { ...view, columns: { ...view.columns, collapsed } };
+}
+
+/**
+ * Collapse or expand a whole set of columns at once — the "collapse all" /
+ * "expand all" list-view control. Collapsing is a union (keys already collapsed
+ * stay collapsed); expanding removes exactly the given keys.
+ */
+export function setColumnsCollapsed(
+	view: SavedView,
+	keys: string[],
+	collapsed: boolean,
+): SavedView {
+	const next = collapsed
+		? [...new Set([...view.columns.collapsed, ...keys])]
+		: view.columns.collapsed.filter((k) => !keys.includes(k));
+	return { ...view, columns: { ...view.columns, collapsed: next } };
+}
+
+export function toggleColumnHidden(view: SavedView, key: string): SavedView {
+	const hidden = view.columns.hidden.includes(key)
+		? view.columns.hidden.filter((k) => k !== key)
+		: [...view.columns.hidden, key];
+	return { ...view, columns: { ...view.columns, hidden } };
+}

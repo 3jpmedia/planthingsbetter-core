@@ -1,0 +1,505 @@
+import { describe, expect, it } from "vitest";
+import {
+	ancestorTasks,
+	childTasks,
+	computeProgress,
+	depthUnder,
+	descendantTasks,
+	formatProgress,
+	MAX_COMFORTABLE_DEPTH,
+	newTaskProject,
+	primaryParent,
+	projectProgress,
+	projectTaskBreakdown,
+	projectTasks,
+	relationScope,
+	scopeOf,
+	subtaskProgress,
+	topLevelProjectTasks,
+	type HierarchyScope,
+} from "../../src/core/hierarchy";
+import { sampleSnapshot } from "../../src/core/templates/instantiate";
+import { createTaxonomy, DEFAULT_STATUSES } from "../../src/core/taxonomy";
+import { emptyRelations, type Task } from "../../src/core/types";
+
+const snapshot = sampleSnapshot();
+const scope = scopeOf(snapshot);
+const statuses = createTaxonomy("status", DEFAULT_STATUSES);
+
+const P = (name: string) => `Sample/${name}`;
+const T = (id: string) => `Sample/Tasks/SMP-${id}`;
+
+function task(overrides: Partial<Task> & { path: string }): Task {
+	return {
+		type: "vertex-flow-task",
+		id: overrides.path.split("/").pop() as string,
+		title: "t",
+		taskType: null,
+		status: "queue",
+		priority: null,
+		rank: "0|i00000:",
+		project: null,
+		parent: null,
+		recurringFrom: null,
+		assignee: null,
+		estimate: null,
+		labels: [],
+		startDate: null,
+		dueDate: null,
+		recurrence: null,
+		archived: false,
+		archivedAt: null,
+		relations: emptyRelations(),
+		createdAt: "2026-01-01T00:00:00Z",
+		updatedAt: "2026-01-01T00:00:00Z",
+		completedAt: null,
+		mentions: [],
+		...overrides,
+	};
+}
+
+describe("direct children", () => {
+	it("finds sub-tasks by their parent link, with no stored children list", () => {
+		expect(childTasks(scope, T("0101")).map((t) => t.id).sort()).toEqual([
+			"SMP-0102",
+			"SMP-0103",
+		]);
+	});
+
+	it("finds a project's tasks", () => {
+		expect(projectTasks(scope, P("Projects/App Store Launch"))).toHaveLength(5);
+	});
+
+	it("topLevelProjectTasks drops sub-tasks that carry the project link", () => {
+		const core = P("Projects/Core App Experience");
+		// SMP-0102 and SMP-0103 are sub-tasks of SMP-0101 but still carry
+		// `project: Core App Experience` — the denormalized link.
+		expect(projectTasks(scope, core).map((t) => t.id).sort()).toEqual([
+			"SMP-0101",
+			"SMP-0102",
+			"SMP-0103",
+			"SMP-0104",
+			"SMP-0105",
+		]);
+		expect(topLevelProjectTasks(scope, core).map((t) => t.id).sort()).toEqual([
+			"SMP-0101",
+			"SMP-0104",
+			"SMP-0105",
+		]);
+	});
+
+	it("matches short-form wikilinks against full paths", () => {
+		const local: HierarchyScope = {
+			tasks: [task({ path: "W/Tasks/A-1", parent: "A-0" })],
+			projects: [],
+		};
+		expect(childTasks(local, "W/Tasks/A-0")).toHaveLength(1);
+	});
+});
+
+describe("descendants and ancestors", () => {
+	it("walks the whole sub-task tree", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1") }),
+				task({ path: T("2"), parent: T("1") }),
+				task({ path: T("3"), parent: T("2") }),
+				task({ path: T("4"), parent: T("3") }),
+				task({ path: T("9") }),
+			],
+			projects: [],
+		};
+		expect(descendantTasks(local, T("1")).map((t) => t.path)).toEqual([
+			T("2"),
+			T("3"),
+			T("4"),
+		]);
+	});
+
+	it("does not hang on a parent cycle in a corrupted vault", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1"), parent: T("2") }),
+				task({ path: T("2"), parent: T("1") }),
+			],
+			projects: [],
+		};
+		expect(descendantTasks(local, T("1")).map((t) => t.path)).toEqual([T("2")]);
+		expect(ancestorTasks(local, local.tasks[0]).map((t) => t.path)).toEqual([
+			T("2"),
+		]);
+	});
+
+	it("walks up to the root ancestor, nearest first", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1") }),
+				task({ path: T("2"), parent: T("1") }),
+				task({ path: T("3"), parent: T("2") }),
+			],
+			projects: [],
+		};
+		expect(ancestorTasks(local, local.tasks[2]).map((t) => t.path)).toEqual([
+			T("2"),
+			T("1"),
+		]);
+	});
+});
+
+describe("relationScope (root: filter traversal)", () => {
+	it("walks hierarchy descendants only", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1") }),
+				task({ path: T("2"), parent: T("1") }),
+				task({ path: T("3"), parent: T("2") }),
+				task({ path: T("9") }),
+			],
+			projects: [],
+		};
+		expect(relationScope(local, T("1")).map((t) => t.path).sort()).toEqual([
+			T("2"),
+			T("3"),
+		]);
+	});
+
+	it("walks blocks/blockedBy in either direction, flat structure with no parent/child links", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1"), relations: { ...emptyRelations(), blocks: [T("2")] } }),
+				task({
+					path: T("2"),
+					relations: { ...emptyRelations(), blockedBy: [T("1")], blocks: [T("3")] },
+				}),
+				task({ path: T("3"), relations: { ...emptyRelations(), blockedBy: [T("2")] } }),
+				task({ path: T("9") }),
+			],
+			projects: [],
+		};
+		expect(relationScope(local, T("1")).map((t) => t.path).sort()).toEqual([
+			T("2"),
+			T("3"),
+		]);
+		// Walking from the middle node reaches the whole connected component.
+		expect(relationScope(local, T("2")).map((t) => t.path).sort()).toEqual([
+			T("1"),
+			T("3"),
+		]);
+	});
+
+	it("combines hierarchy and dependency edges in a mixed case", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1") }),
+				task({ path: T("2"), parent: T("1"), relations: { ...emptyRelations(), blocks: [T("3")] } }),
+				task({
+					path: T("3"),
+					relations: { ...emptyRelations(), blockedBy: [T("2")] },
+				}),
+				task({ path: T("9") }),
+			],
+			projects: [],
+		};
+		expect(relationScope(local, T("1")).map((t) => t.path).sort()).toEqual([
+			T("2"),
+			T("3"),
+		]);
+	});
+
+	it("does not hang on a blocks/blockedBy cycle", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1"), relations: { ...emptyRelations(), blocks: [T("2")] } }),
+				task({
+					path: T("2"),
+					relations: { ...emptyRelations(), blockedBy: [T("1")], blocks: [T("1")] },
+				}),
+			],
+			projects: [],
+		};
+		expect(relationScope(local, T("1")).map((t) => t.path)).toEqual([T("2")]);
+	});
+
+	it("excludes related links from membership", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1"), relations: { ...emptyRelations(), related: [T("2")] } }),
+				task({ path: T("2"), relations: { ...emptyRelations(), related: [T("1")] } }),
+			],
+			projects: [],
+		};
+		expect(relationScope(local, T("1"))).toEqual([]);
+	});
+
+	it("returns just the root when it has no children or relations", () => {
+		const local: HierarchyScope = {
+			tasks: [task({ path: T("1") }), task({ path: T("9") })],
+			projects: [],
+		};
+		expect(relationScope(local, T("1"))).toEqual([]);
+	});
+});
+
+describe("primary parent (exactly one)", () => {
+	it("prefers parent, then project", () => {
+		expect(
+			primaryParent(task({ path: "x", parent: "p", project: "pr" })),
+		).toEqual({ kind: "task", path: "p" });
+		expect(primaryParent(task({ path: "x", project: "pr" }))).toEqual({
+			kind: "project",
+			path: "pr",
+		});
+		expect(primaryParent(task({ path: "x" }))).toEqual({ kind: "none" });
+	});
+});
+
+describe("newTaskProject (seed once, never sync)", () => {
+	const parent = task({ path: T("1"), project: P("Projects/Core") });
+
+	it("inherits the parent's project when none is given", () => {
+		expect(newTaskProject(undefined, parent)).toBe(P("Projects/Core"));
+	});
+
+	it("uses an explicit project over the inherited one", () => {
+		expect(newTaskProject(P("Projects/Other"), parent)).toBe(P("Projects/Other"));
+	});
+
+	it("honours an explicit null even when the parent has a project", () => {
+		expect(newTaskProject(null, parent)).toBeNull();
+	});
+
+	it("is null for a top-level task with no project", () => {
+		expect(newTaskProject(undefined, null)).toBeNull();
+		expect(newTaskProject(undefined, task({ path: T("9") }))).toBeNull();
+	});
+});
+
+describe("progress rollup", () => {
+	it("is zero for no tasks", () => {
+		expect(computeProgress([], statuses)).toEqual({
+			total: 0,
+			completed: 0,
+			started: 0,
+			canceled: 0,
+			percent: 0,
+		});
+	});
+
+	it("excludes canceled work from the denominator", () => {
+		const tasks = [
+			task({ path: "a", status: "done" }),
+			task({ path: "b", status: "done" }),
+			task({ path: "c", status: "canceled" }),
+		];
+		const progress = computeProgress(tasks, statuses);
+		expect(progress).toMatchObject({ total: 3, completed: 2, canceled: 1 });
+		// 2 of 2 real tasks are done — not 2 of 3.
+		expect(progress.percent).toBe(100);
+		expect(formatProgress(progress)).toBe("2/2");
+	});
+
+	it("reports 0% when everything is canceled", () => {
+		const progress = computeProgress(
+			[task({ path: "a", status: "canceled" })],
+			statuses,
+		);
+		expect(progress.percent).toBe(0);
+	});
+
+	it("counts started separately from completed", () => {
+		const progress = computeProgress(
+			[
+				task({ path: "a", status: "in-progress" }),
+				task({ path: "b", status: "done" }),
+				task({ path: "c", status: "queue" }),
+				task({ path: "d", status: "todo" }),
+			],
+			statuses,
+		);
+		expect(progress).toMatchObject({ completed: 1, started: 1, canceled: 0 });
+		expect(progress.percent).toBe(25);
+	});
+
+	it("ignores an unknown status rather than crashing", () => {
+		const progress = computeProgress(
+			[task({ path: "a", status: "invented-by-hand" })],
+			statuses,
+		);
+		expect(progress).toMatchObject({ total: 1, completed: 0, percent: 0 });
+	});
+});
+
+describe("sub-task rollup (§7.2)", () => {
+	it("counts direct children only, never grandchildren", () => {
+		const local: HierarchyScope = {
+			tasks: [
+				task({ path: T("1") }),
+				task({ path: T("2"), parent: T("1"), status: "done" }),
+				task({ path: T("3"), parent: T("2"), status: "queue" }),
+			],
+			projects: [],
+		};
+		const progress = subtaskProgress(local, local.tasks[0], statuses);
+		expect(progress.total).toBe(1);
+		expect(progress.percent).toBe(100);
+	});
+
+	it("never flips the parent's own status when children finish", () => {
+		const parent = task({ path: T("1"), status: "in-progress" });
+		const local: HierarchyScope = {
+			tasks: [parent, task({ path: T("2"), parent: T("1"), status: "done" })],
+			projects: [],
+		};
+		expect(subtaskProgress(local, parent, statuses).percent).toBe(100);
+		// The whole point of §7.2: 100% complete, status untouched.
+		expect(parent.status).toBe("in-progress");
+	});
+
+	it("excludes archived sub-tasks from the rollup (§7.7)", () => {
+		const parent = task({ path: T("1") });
+		const local: HierarchyScope = {
+			tasks: [
+				parent,
+				task({ path: T("2"), parent: T("1"), status: "done" }),
+				task({ path: T("3"), parent: T("1"), status: "todo" }),
+				task({ path: T("4"), parent: T("1"), status: "todo", archived: true }),
+			],
+			projects: [],
+		};
+		const progress = subtaskProgress(local, parent, statuses);
+		// The archived todo doesn't count: 1 done of 2, not of 3.
+		expect(progress.total).toBe(2);
+		expect(progress.percent).toBe(50);
+	});
+});
+
+describe("project progress (§7.1)", () => {
+	it("computes project progress from top-level tasks only", () => {
+		// Sub-tasks carry their parent's `project` link, but each is already
+		// counted in its own parent's §7.2 rollup — counting them again at the
+		// project level would double them. So the project's progress is over its
+		// three top-level tasks (SMP-0101/0104/0105), not all five.
+		const progress = projectProgress(
+			scope,
+			P("Projects/Core App Experience"),
+			statuses,
+		);
+		expect(progress.total).toBe(3);
+	});
+
+	it("isn't inflated by a top-level task's own sub-tasks", () => {
+		// One top-level task, 60%-ish done via its own sub-tasks. The project
+		// sees exactly one task, not one + its children.
+		const statusesLocal = statuses;
+		const local: HierarchyScope = {
+			projects: [],
+			tasks: [
+				task({ path: T("1"), project: P("Projects/X"), status: "in-progress" }),
+				task({ path: T("2"), parent: T("1"), project: P("Projects/X"), status: "done" }),
+				task({ path: T("3"), parent: T("1"), project: P("Projects/X"), status: "done" }),
+				task({ path: T("4"), parent: T("1"), project: P("Projects/X"), status: "done" }),
+				task({ path: T("5"), parent: T("1"), project: P("Projects/X"), status: "todo" }),
+				task({ path: T("6"), parent: T("1"), project: P("Projects/X"), status: "todo" }),
+			],
+		};
+		const progress = projectProgress(local, P("Projects/X"), statusesLocal);
+		expect(progress.total).toBe(1);
+		expect(progress.completed).toBe(0);
+	});
+
+	it("leaves the project's own status untouched by its progress", () => {
+		// The sample's launch project is deliberately still in the backlog while
+		// its tasks are moving — status and progress never auto-sync.
+		const project = snapshot.projects.find((p) => p.title.startsWith("App Store"));
+		expect(project?.status).toBe("backlog");
+		expect(projectProgress(scope, project!.path, statuses).total).toBe(5);
+	});
+
+	it("excludes archived top-level tasks from project progress", () => {
+		const local: HierarchyScope = {
+			projects: [],
+			tasks: [
+				task({ path: T("1"), project: P("Projects/X"), status: "done" }),
+				task({ path: T("2"), project: P("Projects/X"), status: "todo", archived: true }),
+			],
+		};
+		expect(projectProgress(local, P("Projects/X"), statuses).total).toBe(1);
+	});
+});
+
+describe("projectTaskBreakdown", () => {
+	const local: HierarchyScope = {
+		projects: [],
+		tasks: [
+			task({ path: T("1"), project: P("Projects/X") }),
+			task({ path: T("2"), project: P("Projects/X") }),
+			task({ path: T("3"), project: P("Projects/X"), archived: true }),
+			// Sub-tasks carrying the project link.
+			task({ path: T("4"), project: P("Projects/X"), parent: T("1") }),
+			task({ path: T("5"), project: P("Projects/X"), parent: T("1"), archived: true }),
+			// A different project — not counted.
+			task({ path: T("6"), project: P("Projects/Y") }),
+		],
+	};
+
+	it("splits active top-level, active sub-tasks, and archived", () => {
+		expect(projectTaskBreakdown(local, P("Projects/X"))).toEqual({
+			tasks: 2,
+			subtasks: 1,
+			archived: 2,
+		});
+	});
+
+	it("is all zeros for a project with no tasks", () => {
+		expect(projectTaskBreakdown(local, P("Projects/Z"))).toEqual({
+			tasks: 0,
+			subtasks: 0,
+			archived: 0,
+		});
+	});
+});
+
+describe("depthUnder", () => {
+	it("counts a root parent as depth two (one-based)", () => {
+		expect(depthUnder(scope, T("0101"))).toBe(2);
+	});
+
+	it("counts each ancestor link", () => {
+		// SMP-0102's parent is SMP-0101 (a root), so one more link than a root.
+		expect(depthUnder(scope, T("0102"))).toBe(3);
+	});
+
+	it("walks a deeper synthetic chain", () => {
+		const chain: HierarchyScope = {
+			projects: [],
+			tasks: [
+				task({ path: T("A"), title: "root" }),
+				task({ path: T("B"), parent: T("A") }),
+				task({ path: T("C"), parent: T("B") }),
+				task({ path: T("D"), parent: T("C") }),
+			],
+		};
+		expect(depthUnder(chain, T("A"))).toBe(2);
+		expect(depthUnder(chain, T("B"))).toBe(3);
+		expect(depthUnder(chain, T("C"))).toBe(4);
+		// Planting below the comfortable line reads one past the constant.
+		expect(depthUnder(chain, T("C"))).toBe(MAX_COMFORTABLE_DEPTH);
+		expect(depthUnder(chain, T("D"))).toBe(MAX_COMFORTABLE_DEPTH + 1);
+	});
+
+	it("treats a missing parent as depth one", () => {
+		expect(depthUnder(scope, T("999"))).toBe(1);
+	});
+
+	it("is cycle-safe on a corrupt chain", () => {
+		const cycle: HierarchyScope = {
+			projects: [],
+			tasks: [
+				task({ path: T("A"), parent: T("B") }),
+				task({ path: T("B"), parent: T("A") }),
+			],
+		};
+		// 1 + 2 ancestors reached before the cycle stops.
+		expect(depthUnder(cycle, T("A"))).toBe(3);
+	});
+});
