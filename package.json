@@ -29,7 +29,7 @@
   },
   "scripts": {
     "build:templates": "node scripts/build-templates.mjs",
-    "build": "pnpm build:templates && tsc -p tsconfig.build.json",
+    "build": "pnpm build:templates && tsc -p tsconfig.build.json && node scripts/fix-esm-extensions.mjs",
     "typecheck": "pnpm build:templates && tsc --noEmit",
     "lint": "eslint src tests --max-warnings 0",
     "pretest": "pnpm build:templates",
