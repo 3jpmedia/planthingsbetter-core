@@ -547,7 +547,7 @@ describe("spawnPlans — idempotency and reconcile", () => {
 		const applied = reconcilePlans(snapshotWith([a, b]), "2026-09-05");
 		const now: Task[] = [a, b];
 		for (const [source, plans] of applied) {
-			plans.forEach((plan, index) => {
+			plans.forEach((plan) => {
 				now.push(
 					nodeTask({
 						path: `W/Tasks/TSK-9${30 + now.length}`,

@@ -467,7 +467,7 @@ describe("serializeTemplateMarkdown round-trip", () => {
 		};
 
 		// Default: both are trash, not template payload.
-		let parsed = parseTemplateMarkdown(
+		const parsed = parseTemplateMarkdown(
 			serializeTemplateMarkdown(base),
 		);
 		expect(parsed.projects.map((p) => p.title)).not.toContain("Retired Project");

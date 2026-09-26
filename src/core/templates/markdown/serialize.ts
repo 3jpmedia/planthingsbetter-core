@@ -431,7 +431,7 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 		// Project's slugified-title anchor is effectively impossible, and the
 		// gallery's parser reports one loudly rather than silently breaking.
 		const anchorByPath = new Map(
-			activeTasks.map((task, index) => [task.path, task.id] as const),
+			activeTasks.map((task) => [task.path, task.id] as const),
 		);
 		const projectTitleByPath = new Map(
 			activeProjects.map(
