@@ -153,8 +153,17 @@ function candidatesFor(
 		const found = getValue(taxonomy, value);
 		if (found) pretty.push(found.name);
 	} else if (spec.resolveAs === "person") {
+		// `email`, not `name`, whenever it's there: a person's display name can
+		// change, or a second person can join sharing an old one's name, either
+		// of which would silently break or misdirect a saved/copy-pasted query
+		// printed with `name` baked in. `email` is stable and unique per
+		// workspace member, so it's the one safe to encode. Falls back to
+		// `name` only for a roster with no `email` at all (this plugin's own
+		// no-auth people have none) -- still resolves today, just without the
+		// same guarantee going forward.
 		const person = context.people.find((candidate) => candidate.id === value);
-		if (person) pretty.push(person.name);
+		if (person?.email) pretty.push(person.email);
+		else if (person) pretty.push(person.name);
 	}
 
 	// The name reads better than the raw id whenever one resolves — same

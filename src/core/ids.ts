@@ -142,6 +142,23 @@ export function parseTaskId(
 }
 
 /**
+ * `("PRD", "P", 5)` → `"PRD-P0005"` — the same `{prefix}-{sequence}` shape
+ * `formatTaskId` uses, with one extra letter marking which kind of entity
+ * this is. Needed once a workspace's per-entity-type counters (Project,
+ * View, Dashboard, ...) can produce the same *number* for two different
+ * kinds of thing at once — unlike Task, which is still the one kind that
+ * gets `formatTaskId`'s bare `{prefix}-{sequence}` with no letter, since
+ * historically it never needed to be told apart from anything else.
+ */
+export function formatEntityKey(
+	prefix: string,
+	typeLetter: string,
+	sequence: number,
+): string {
+	return `${prefix.toUpperCase()}-${typeLetter.toUpperCase()}${String(sequence).padStart(ID_DIGITS, "0")}`;
+}
+
+/**
  * Next free ID for a workspace. Takes the max existing sequence rather than a
  * count, so deleting a task never causes a later task to reuse its ID.
  */

@@ -83,32 +83,36 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "person",
 		unsetIsVacuous: true,
 	},
+	// `projectKey`/`taskParentKey`/`taskRootKey`/`taskKey`: renamed from their
+	// original bare `project`/`parent`/`root`/`id` tokens once printing
+	// switched to a stable key (see `print.ts`'s entity branch and
+	// `Project.id` above) rather than a value that can be renamed out from
+	// under a saved or copy-pasted query. The old spellings stay as aliases
+	// so nothing already typed or saved breaks; `printQuery` only ever
+	// emits the new one.
 	project: {
-		token: "project",
-		aliases: [],
+		token: "projectKey",
+		aliases: ["project"],
 		resolveAs: "project",
 		unsetIsVacuous: false,
 	},
 	parent: {
-		token: "parent",
-		aliases: ["subtaskof"],
+		token: "taskParentKey",
+		aliases: ["parent", "subtaskof"],
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
 	root: {
-		token: "root",
-		aliases: [],
+		token: "taskRootKey",
+		aliases: ["root"],
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
-	// `task` reads better than the bare `id` token in a query someone typed
-	// by hand (PTB's own UI labels this filter "Task" for the same reason) --
-	// aliased, not renamed, so `id:` keeps working. No collision with
-	// `sort:id` (SORT_VALUES, above): that spelling is always prefixed, so a
-	// bare field token only ever means a filter.
+	// No collision with `sort:id` (SORT_VALUES, above): that spelling is
+	// always prefixed, so a bare field token only ever means a filter.
 	id: {
-		token: "id",
-		aliases: ["task"],
+		token: "taskKey",
+		aliases: ["id", "task"],
 		resolveAs: "task",
 		unsetIsVacuous: true,
 	},
@@ -145,7 +149,10 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 };
 
 /** The free-text field. Not in `FILTER_FIELDS` — its value isn't a list. */
-export const TEXT_FIELD = { token: "title", aliases: ["text", "search"] };
+// Renamed from bare `title` for the same reason as `taskKey`/etc. above --
+// PTB's UI labels this filter "Task Title", and the old spelling stays as
+// an alias so nothing already typed or saved breaks.
+export const TEXT_FIELD = { token: "taskTitle", aliases: ["title", "text", "search"] };
 
 export interface EnumValueSpec {
 	token: string;
@@ -366,8 +373,13 @@ export const FILTER_FIELD_BY_TOKEN: Map<string, ArrayFilterKey | "text"> =
 		const map = indexBy(
 			Object.entries(FILTER_FIELDS) as [ArrayFilterKey, FilterFieldSpec][],
 		) as Map<string, ArrayFilterKey | "text">;
-		map.set(TEXT_FIELD.token, "text");
-		for (const alias of TEXT_FIELD.aliases) map.set(alias, "text");
+		// `indexBy` above lowercases every FILTER_FIELDS token/alias it
+		// inserts; matching that here too (previously missing, but harmless
+		// while TEXT_FIELD.token was the already-lowercase "title") -- a
+		// mixed-case token like "taskTitle" would otherwise never match the
+		// lexer's lowercased lookup.
+		map.set(TEXT_FIELD.token.toLowerCase(), "text");
+		for (const alias of TEXT_FIELD.aliases) map.set(alias.toLowerCase(), "text");
 		return map;
 	})();
 

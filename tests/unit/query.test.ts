@@ -711,6 +711,15 @@ describe("resolution", () => {
 		}
 	});
 
+	it("resolves people by email, before falling back to name", () => {
+		const withEmail = {
+			...ctx,
+			people: [{ id: "u1", name: "Jane Doe", email: "jane@example.com" }],
+		};
+		expect(parseQuery("assignee:jane@example.com", withEmail).definition.filters.assignee).toEqual(["u1"]);
+		expect(parseQuery("assignee:JANE@EXAMPLE.COM", withEmail).definition.filters.assignee).toEqual(["u1"]);
+	});
+
 	it("resolves a project by its basename", () => {
 		const parsed = parseQuery(`project:"Core App Experience"`, ctx);
 		expect(parsed.definition.filters.project).toEqual([project]);
@@ -730,7 +739,7 @@ describe("resolution", () => {
 			(p) => p.title === "Core App Experience",
 		)!;
 		const source = printQuery(withFilters({ project: [core.path] }), ctx);
-		expect(source).toContain(`project:"Core App Experience"`);
+		expect(source).toContain(`projectKey:"Core App Experience"`);
 		expect(source).not.toContain(core.path);
 		// And it still round-trips.
 		expect(
@@ -807,7 +816,7 @@ describe("resolution", () => {
 	it("prints the Untriaged definition as its documented query", () => {
 		const inbox = defaultViews().find((v) => v.id === "untriaged")!;
 		expect(printQuery(viewDefinition(inbox), ctx)).toBe(
-			"project:unset parent:unset is:open is:unscheduled group:status sort:rank",
+			"projectKey:unset taskParentKey:unset is:open is:unscheduled group:status sort:rank",
 		);
 	});
 
@@ -824,7 +833,7 @@ describe("resolution", () => {
 		expect(parsed.issues.map((i) => i.code)).toContain("unknown-value");
 		// Printing must therefore use the full path, not the shared basename.
 		expect(printQuery(withFilters({ project: ["Projects/A"] }), ambiguous)).toBe(
-			"project:Projects/A group:none sort:rank",
+			"projectKey:Projects/A group:none sort:rank",
 		);
 	});
 });

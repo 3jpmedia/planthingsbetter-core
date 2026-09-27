@@ -104,7 +104,7 @@ describe("printFilters prefers the task key over an opaque stored id", () => {
 
 	it("prints the key for parent, root and id", () => {
 		const printed = printFilters({ parent: [stored], root: [stored], id: [stored] }, opaqueCtx);
-		expect(printed).toBe(`parent:${key} root:${key} id:${key}`);
+		expect(printed).toBe(`taskParentKey:${key} taskRootKey:${key} taskKey:${key}`);
 		expect(printed).not.toContain(stored);
 	});
 
@@ -117,7 +117,7 @@ describe("printFilters prefers the task key over an opaque stored id", () => {
 	// Unchanged for this plugin's own vault, where `Task.id` *is* the filename
 	// stem: title and basename coincide, so only one candidate is emitted.
 	it("is unchanged when the key already is the basename", () => {
-		expect(printFilters({ parent: [ctx.tasks[0].path] }, ctx)).toBe(`parent:${key}`);
+		expect(printFilters({ parent: [ctx.tasks[0].path] }, ctx)).toBe(`taskParentKey:${key}`);
 	});
 
 	it("falls back to the raw value when the key doesn't round-trip", () => {
@@ -130,6 +130,31 @@ describe("printFilters prefers the task key over an opaque stored id", () => {
 				{ path: "oid-two", title: "DUP-0001" },
 			],
 		};
-		expect(printFilters({ parent: ["oid-one"] }, ambiguous)).toBe("parent:oid-one");
+		expect(printFilters({ parent: ["oid-one"] }, ambiguous)).toBe("taskParentKey:oid-one");
+	});
+});
+
+// A person's `name` can change, or a second person can join sharing an old
+// one's -- either would silently break or misdirect a saved/copy-pasted
+// `assignee:`/`mentions:` query printed with the name baked in. `email` is
+// stable and unique per workspace member, so print prefers it.
+describe("printFilters prefers a person's email over their name", () => {
+	const withEmail: QueryContext = {
+		...ctx,
+		people: [{ id: "u1", name: "Jane Doe", email: "jane@example.com" }],
+	};
+
+	it("prints the email, not the name", () => {
+		expect(printFilters({ assignee: ["u1"] }, withEmail)).toBe("assignee:jane@example.com");
+	});
+
+	it("still round-trips back to the person's id", () => {
+		const parsed = parseQuery(printFilters({ assignee: ["u1"] }, withEmail), withEmail);
+		expect(parsed.issues.filter((i) => i.severity === "error")).toEqual([]);
+		expect(parsed.definition.filters.assignee).toEqual(["u1"]);
+	});
+
+	it("falls back to the name for a roster with no email at all", () => {
+		expect(printFilters({ assignee: ["alice"] }, ctx)).toBe("assignee:Alice");
 	});
 });

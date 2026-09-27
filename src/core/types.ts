@@ -154,6 +154,15 @@ export interface Person {
 	id: string;
 	name: string;
 	aliases?: string[];
+	/**
+	 * A stable, unique handle for printing `assignee:`/`mentions:` queries --
+	 * `name` alone can't fill that role (two people can share a display name,
+	 * or one can rename), so a saved or copy-pasted query encoding it would
+	 * silently break or pick the wrong person later. Optional: this plugin's
+	 * own no-auth people roster has no such thing, and `print.ts` falls back
+	 * to `name` when it's absent.
+	 */
+	email?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -412,6 +421,15 @@ export interface TaskDocument {
 export interface Project {
 	type: "vertex-flow-project";
 	title: string;
+	/**
+	 * The human-facing, stable identifier ("PRD-P0005"), same idea as
+	 * `Task.id` — a project's own `title` can be renamed at any time, so a
+	 * saved/typed `projectKey:` query encodes this instead (see
+	 * `queryContext` in `query/context.ts`). Optional: this plugin's own
+	 * projects (file-backed, no per-workspace counter) have none, and
+	 * `queryContext` falls back to `title` when it's absent.
+	 */
+	id?: string;
 	/** Curated icon id (see `ui/components/Icon.tsx`); optional, falls back at render. */
 	icon?: string;
 	/** Reuses the Task status taxonomy — no separate system. `null` is "None". */

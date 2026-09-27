@@ -138,6 +138,12 @@ function resolvePerson(raw: string, context: QueryContext): Resolved {
 	const byId = people.find((person) => equalsCI(person.id, raw));
 	if (byId) return { value: byId.id };
 
+	// Before name: `email` is what `print.ts` now encodes a person as, so a
+	// saved/typed query built from that printed text has to resolve through
+	// this, not just the (possibly stale or duplicated) name.
+	const byEmail = people.find((person) => person.email && equalsCI(person.email, raw));
+	if (byEmail) return { value: byEmail.id };
+
 	const byName = people.find((person) => equalsCI(person.name, raw));
 	if (byName) return { value: byName.id };
 
