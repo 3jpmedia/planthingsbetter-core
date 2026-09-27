@@ -101,9 +101,14 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
+	// `task` reads better than the bare `id` token in a query someone typed
+	// by hand (PTB's own UI labels this filter "Task" for the same reason) --
+	// aliased, not renamed, so `id:` keeps working. No collision with
+	// `sort:id` (SORT_VALUES, above): that spelling is always prefixed, so a
+	// bare field token only ever means a filter.
 	id: {
 		token: "id",
-		aliases: [],
+		aliases: ["task"],
 		resolveAs: "task",
 		unsetIsVacuous: true,
 	},

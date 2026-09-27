@@ -1191,4 +1191,10 @@ describe("exclusion filters", () => {
 		expect(parsed.definition.filters.id).toEqual([taskPath]);
 		expect(parsed.definition.filters.excludeId).toEqual([project]);
 	});
+
+	it("accepts `task` as an alias for the `id:` token", () => {
+		const parsed = parseQuery(`task:${ctx.tasks[0].title}`, ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.id).toEqual([ctx.tasks[0].path]);
+	});
 });

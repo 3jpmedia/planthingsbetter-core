@@ -121,16 +121,26 @@ function candidatesFor(
 	if (entities) {
 		const entity = entities.find((candidate) => candidate.path === value);
 		if (entity) {
-			// A bare basename is the friendliest form, and `linksMatch` resolves
-			// it — but only when it's unambiguous, which verification decides.
-			pretty.push(basename(entity.path));
-			if (entity.title && entity.title !== basename(entity.path))
-				pretty.push(entity.title);
+			// `title` first, then the basename. These coincide for this plugin's
+			// own vault tasks, where `Task.id` *is* the filename stem -- but not
+			// for every caller: Plan Things Better's relation identity is an
+			// opaque Mongo ObjectId, and `basename()` of an ObjectId is the
+			// ObjectId. Putting the basename first meant the raw id round-tripped
+			// and won, so `parent:`/`root:`/`id:` printed `parent:6a1b2c3d…`
+			// where the key `SP-0042` was sitting right there in `title`.
+			//
+			// `title` is the better first choice anyway, and the same one the
+			// taxonomy/person branch below uses: it's the human name, and
+			// `resolveEntity` matches on it before the basename. Duplicates are
+			// dropped, so the shared-vault case still emits one candidate.
+			if (entity.title) pretty.push(entity.title);
+			const stem = basename(entity.path);
+			if (stem !== entity.title) pretty.push(stem);
 		}
-		// For an entity the stored value is a full vault path — the ugliest
-		// rendering there is — so try the basename/title *first*. `printValue`
-		// still verifies every candidate round-trips, so an ambiguous name is
-		// skipped and the path is used instead.
+		// The stored value for an entity is a full vault path — or, for some
+		// callers, a raw document id — so try the name *first*. `printValue`
+		// still verifies every candidate round-trips, so an ambiguous or
+		// unresolvable name is skipped and the raw value is used instead.
 		return [
 			...pretty.map((text) => ({ text, verbatim: false })),
 			{ text: value, verbatim: false },

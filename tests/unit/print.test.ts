@@ -5,6 +5,7 @@ import {
 	printFilters,
 	printQuery,
 	queryContext,
+	type QueryContext,
 } from "../../src/core/query";
 import { canonicalizeFilters, viewDefinition } from "../../src/core/views";
 import { defaultViews } from "../../src/core/views/defaults";
@@ -84,5 +85,51 @@ describe("printQuery is unchanged for the query bar", () => {
 		// see print.ts's candidatesFor, which now prefers a resolving name over
 		// the raw id, same as the entity (project/task) branch already did.
 		expect(printed.startsWith("type:Bug ")).toBe(true);
+	});
+});
+
+// Callers that store a task's relation identity as an opaque document id --
+// Plan Things Better uses a Mongo ObjectId -- rather than the human task key.
+// `basename()` of an ObjectId is the ObjectId, so an entity branch that tried
+// the basename first round-tripped the raw id and printed it instead of the
+// key that was sitting in `QueryEntity.title`.
+describe("printFilters prefers the task key over an opaque stored id", () => {
+	const key = ctx.tasks[0].title;
+	// Same task, re-keyed the way PTB stores it.
+	const stored = `6a1b2c3d4e5f6a7b8c9d0e1`;
+	const opaqueCtx: QueryContext = {
+		...ctx,
+		tasks: [{ path: stored, title: key }],
+	};
+
+	it("prints the key for parent, root and id", () => {
+		const printed = printFilters({ parent: [stored], root: [stored], id: [stored] }, opaqueCtx);
+		expect(printed).toBe(`parent:${key} root:${key} id:${key}`);
+		expect(printed).not.toContain(stored);
+	});
+
+	it("still round-trips back to the stored id", () => {
+		const parsed = parseQuery(printFilters({ id: [stored] }, opaqueCtx), opaqueCtx);
+		expect(parsed.issues.filter((i) => i.severity === "error")).toEqual([]);
+		expect(parsed.definition.filters).toEqual({ id: [stored] });
+	});
+
+	// Unchanged for this plugin's own vault, where `Task.id` *is* the filename
+	// stem: title and basename coincide, so only one candidate is emitted.
+	it("is unchanged when the key already is the basename", () => {
+		expect(printFilters({ parent: [ctx.tasks[0].path] }, ctx)).toBe(`parent:${key}`);
+	});
+
+	it("falls back to the raw value when the key doesn't round-trip", () => {
+		// Two entities sharing a title: `resolveEntity`'s soleMatch rejects an
+		// ambiguous key, so printValue must fall through to the stored value.
+		const ambiguous: QueryContext = {
+			...ctx,
+			tasks: [
+				{ path: "oid-one", title: "DUP-0001" },
+				{ path: "oid-two", title: "DUP-0001" },
+			],
+		};
+		expect(printFilters({ parent: ["oid-one"] }, ambiguous)).toBe("parent:oid-one");
 	});
 });
