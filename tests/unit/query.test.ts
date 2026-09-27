@@ -67,6 +67,12 @@ describe("round-trip (Invariant A)", () => {
 		["excludeRoot", withFilters({ excludeRoot: [taskPath] })],
 		["id", withFilters({ id: [taskPath] })],
 		["excludeId", withFilters({ excludeId: [taskPath] })],
+		["blocks", withFilters({ blocks: [taskPath] })],
+		["excludeBlocks", withFilters({ excludeBlocks: [taskPath] })],
+		["blockedBy", withFilters({ blockedBy: [taskPath] })],
+		["excludeBlockedBy", withFilters({ excludeBlockedBy: [taskPath] })],
+		["related", withFilters({ related: [taskPath] })],
+		["excludeRelated", withFilters({ excludeRelated: [taskPath] })],
 		["subtasks nested", def({ subtaskDisplay: "nested" })],
 		["subtasks hidden", def({ subtaskDisplay: "hidden" })],
 		["archived included", withFilters({ archived: "included" })],
@@ -1205,5 +1211,17 @@ describe("exclusion filters", () => {
 		const parsed = parseQuery(`task:${ctx.tasks[0].title}`, ctx);
 		expect(parsed.ok).toBe(true);
 		expect(parsed.definition.filters.id).toEqual([ctx.tasks[0].path]);
+	});
+
+	it("parses blocksTaskKey:/blockedByTaskKey:/relatedTaskKey:", () => {
+		const parsed = parseQuery(
+			`blocksTaskKey:="${taskPath}" -blocksTaskKey:="${project}" blockedByTaskKey:="${taskPath}" relatedTaskKey:="${taskPath}"`,
+			ctx,
+		);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.blocks).toEqual([taskPath]);
+		expect(parsed.definition.filters.excludeBlocks).toEqual([project]);
+		expect(parsed.definition.filters.blockedBy).toEqual([taskPath]);
+		expect(parsed.definition.filters.related).toEqual([taskPath]);
 	});
 });

@@ -116,6 +116,29 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "task",
 		unsetIsVacuous: true,
 	},
+	// Plain membership on a task's own blocks/blockedBy/related array (see
+	// matchesTaskLinks in views/filter.ts) -- not root's transitive scope.
+	// `blockedBy`/`blocks` name which array is checked, not which direction
+	// reads naturally as a sentence; PTB's own UI labels them "Blocked
+	// Task"/"Blocking Task" for that reason (see FilterControls.tsx).
+	blocks: {
+		token: "blocksTaskKey",
+		aliases: [],
+		resolveAs: "task",
+		unsetIsVacuous: false,
+	},
+	blockedBy: {
+		token: "blockedByTaskKey",
+		aliases: [],
+		resolveAs: "task",
+		unsetIsVacuous: false,
+	},
+	related: {
+		token: "relatedTaskKey",
+		aliases: [],
+		resolveAs: "task",
+		unsetIsVacuous: false,
+	},
 	dueDate: {
 		token: "due",
 		aliases: ["duedate", "due-date"],

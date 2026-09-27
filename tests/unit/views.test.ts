@@ -505,6 +505,50 @@ describe("id: filter", () => {
 	});
 });
 
+describe("blocks:/blockedBy:/related: filters", () => {
+	const release = task({
+		path: "release",
+		relations: { ...emptyRelations(), blocks: ["featureA"] },
+	});
+	const featureA = task({
+		path: "featureA",
+		relations: { ...emptyRelations(), blockedBy: ["release"] },
+	});
+	const unrelated = task({ path: "unrelated" });
+
+	it("blocks: matches a task whose own blocks list contains the value", () => {
+		expect(matchesFilters(release, { blocks: ["featureA"] }, context)).toBe(true);
+		expect(matchesFilters(featureA, { blocks: ["featureA"] }, context)).toBe(false);
+	});
+
+	it("blockedBy: matches a task whose own blockedBy list contains the value", () => {
+		expect(matchesFilters(featureA, { blockedBy: ["release"] }, context)).toBe(true);
+		expect(matchesFilters(release, { blockedBy: ["release"] }, context)).toBe(false);
+	});
+
+	it("related: matches a task whose own related list contains the value, OR'd", () => {
+		const a = task({ path: "a", relations: { ...emptyRelations(), related: ["b", "c"] } });
+		expect(matchesFilters(a, { related: ["b"] }, context)).toBe(true);
+		expect(matchesFilters(a, { related: ["z"] }, context)).toBe(false);
+		expect(matchesFilters(a, { related: ["z", "c"] }, context)).toBe(true);
+	});
+
+	it("excludeBlocks:/excludeBlockedBy:/excludeRelated: exclude matching tasks", () => {
+		expect(matchesFilters(release, { excludeBlocks: ["featureA"] }, context)).toBe(false);
+		expect(matchesFilters(featureA, { excludeBlocks: ["featureA"] }, context)).toBe(true);
+	});
+
+	it("NONE matches a task with an empty array, unlike id:", () => {
+		expect(matchesFilters(unrelated, { blocks: [NONE] }, context)).toBe(true);
+		expect(matchesFilters(release, { blocks: [NONE] }, context)).toBe(false);
+	});
+
+	it("plain membership, no transitive scope, unlike root:", () => {
+		const result = applyFilters([release, featureA, unrelated], { blocks: ["featureA"] }, context);
+		expect(result.map((t) => t.path)).toEqual(["release"]);
+	});
+});
+
 describe("date field filtering", () => {
 	it("matches an exact due date", () => {
 		const due = task({ path: "a", dueDate: "2026-09-19" });

@@ -74,6 +74,22 @@ function matchesId(actual: LinkTarget, allowed: string[] | undefined): boolean {
 	return allowed.some((value) => value === actual || linksMatch(actual, value));
 }
 
+/** OR-match a task's own array relation (`blocks`/`blockedBy`/`related`)
+ *  against an explicit list of task paths -- any shared task counts. Plain
+ *  membership like `matchesId`, not `root`'s traversal: a task's own
+ *  `related` list, say, is never walked transitively. `NONE` matches a
+ *  task with no entries in the field at all. */
+function matchesTaskLinks(
+	actual: LinkTarget[],
+	allowed: string[] | undefined,
+): boolean {
+	if (!allowed || allowed.length === 0) return true;
+	if (actual.length === 0) return allowed.includes(NONE);
+	return actual.some((value) =>
+		allowed.some((pattern) => pattern !== NONE && (pattern === value || linksMatch(value, pattern))),
+	);
+}
+
 /** Does `name` fall under the group named by a `"Parent/*"` pattern? */
 function matchesGroupPattern(name: string | null, pattern: string): boolean {
 	if (name == null || !pattern.endsWith("/*")) return false;
@@ -186,6 +202,9 @@ export function matchesFilters(
 		return false;
 	if (!matchesLink(task.parent, filters.parent)) return false;
 	if (!matchesId(task.path, filters.id)) return false;
+	if (!matchesTaskLinks(task.relations.blocks, filters.blocks)) return false;
+	if (!matchesTaskLinks(task.relations.blockedBy, filters.blockedBy)) return false;
+	if (!matchesTaskLinks(task.relations.related, filters.related)) return false;
 
 	if (!matchesDateExact(task.dueDate, filters.dueDate)) return false;
 	if (!matchesDateRange(task.dueDate, filters.dueDateBefore, filters.dueDateAfter))
@@ -258,6 +277,12 @@ export function matchesFilters(
 	if (filters.excludeParent?.length && matchesLink(task.parent, filters.excludeParent))
 		return false;
 	if (filters.excludeId?.length && matchesId(task.path, filters.excludeId)) return false;
+	if (filters.excludeBlocks?.length && matchesTaskLinks(task.relations.blocks, filters.excludeBlocks))
+		return false;
+	if (filters.excludeBlockedBy?.length && matchesTaskLinks(task.relations.blockedBy, filters.excludeBlockedBy))
+		return false;
+	if (filters.excludeRelated?.length && matchesTaskLinks(task.relations.related, filters.excludeRelated))
+		return false;
 
 	if (filters.excludeDueDate?.length && matchesDateExact(task.dueDate, filters.excludeDueDate))
 		return false;
@@ -381,6 +406,9 @@ export type ArrayFilterKey = Exclude<
 	| "excludeParent"
 	| "excludeRoot"
 	| "excludeId"
+	| "excludeBlocks"
+	| "excludeBlockedBy"
+	| "excludeRelated"
 	| "excludeDueDate"
 	| "excludeStartDate"
 	| "excludeCreatedAt"
@@ -399,6 +427,9 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"parent",
 	"root",
 	"id",
+	"blocks",
+	"blockedBy",
+	"related",
 	"dueDate",
 	"startDate",
 	"createdAt",
@@ -406,7 +437,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"completedAt",
 ];
 
-/** The 14 `ViewFilters` property names that hold excluded values. */
+/** The 17 `ViewFilters` property names that hold excluded values. */
 export type ExcludeFilterKey =
 	| "excludeStatus"
 	| "excludePriority"
@@ -418,6 +449,9 @@ export type ExcludeFilterKey =
 	| "excludeParent"
 	| "excludeRoot"
 	| "excludeId"
+	| "excludeBlocks"
+	| "excludeBlockedBy"
+	| "excludeRelated"
 	| "excludeDueDate"
 	| "excludeStartDate"
 	| "excludeCreatedAt"
@@ -441,6 +475,9 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	parent: "excludeParent",
 	root: "excludeRoot",
 	id: "excludeId",
+	blocks: "excludeBlocks",
+	blockedBy: "excludeBlockedBy",
+	related: "excludeRelated",
 	dueDate: "excludeDueDate",
 	startDate: "excludeStartDate",
 	createdAt: "excludeCreatedAt",
@@ -649,6 +686,12 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeRoot?.length &&
 		!filters.id?.length &&
 		!filters.excludeId?.length &&
+		!filters.blocks?.length &&
+		!filters.excludeBlocks?.length &&
+		!filters.blockedBy?.length &&
+		!filters.excludeBlockedBy?.length &&
+		!filters.related?.length &&
+		!filters.excludeRelated?.length &&
 		!filters.mentions?.length &&
 		!filters.text?.trim() &&
 		!filters.recurring &&

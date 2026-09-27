@@ -698,6 +698,15 @@ export interface ViewFilters {
 	 * filter.
 	 */
 	id?: string[];
+	/**
+	 * Plain membership on `task.relations.blocks`/`.blockedBy`/`.related` --
+	 * same non-transitive treatment as `id`, not `root`'s traversal: a task
+	 * matches only if one of the listed tasks is literally in that array.
+	 * OR'd across multiple values, like every other array filter.
+	 */
+	blocks?: string[];
+	blockedBy?: string[];
+	related?: string[];
 	/** `[SELF]` powers the "Mentions Me" saved view. */
 	mentions?: string[];
 	/** Free-text match against title. */
@@ -758,6 +767,9 @@ export interface ViewFilters {
 	excludeParent?: string[];
 	excludeRoot?: string[];
 	excludeId?: string[];
+	excludeBlocks?: string[];
+	excludeBlockedBy?: string[];
+	excludeRelated?: string[];
 	excludeDueDate?: string[];
 	excludeStartDate?: string[];
 	excludeCreatedAt?: string[];
