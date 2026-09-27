@@ -159,6 +159,25 @@ export function formatEntityKey(
 }
 
 /**
+ * `("PRD-P0005", "P")` → `{ prefix: "PRD", sequence: 5 }`, or `null` if
+ * malformed or the wrong type letter -- the inverse of `formatEntityKey`,
+ * same shape as `parseTaskId` but requiring the one extra type letter that
+ * tells entity kinds sharing a workspace's counters apart (a Project and a
+ * View can both be workspace #5).
+ */
+export function parseEntityKey(
+	id: string,
+	typeLetter: string,
+): { prefix: string; sequence: number } | null {
+	const letter = typeLetter.toUpperCase();
+	const match = new RegExp(`^([A-Z][A-Z0-9]*)-${letter}(\\d+)$`).exec(
+		id.trim().toUpperCase(),
+	);
+	if (!match) return null;
+	return { prefix: match[1], sequence: Number.parseInt(match[2], 10) };
+}
+
+/**
  * Next free ID for a workspace. Takes the max existing sequence rather than a
  * count, so deleting a task never causes a later task to reuse its ID.
  */
