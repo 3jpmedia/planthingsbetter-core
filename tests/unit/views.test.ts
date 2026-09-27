@@ -462,6 +462,49 @@ describe("root: filter scope", () => {
 	});
 });
 
+describe("id: filter", () => {
+	// Same fixture shape as "root: filter scope" -- reused here specifically
+	// to prove `id:` does NOT pull in descendants/blocks the way `root:`
+	// does, unlike every other assertion in this file which just checks one
+	// field in isolation.
+	const release = task({
+		path: "release",
+		relations: { ...emptyRelations(), blocks: ["featureA"] },
+	});
+	const featureA = task({
+		path: "featureA",
+		relations: { ...emptyRelations(), blockedBy: ["release"] },
+	});
+	const child = task({ path: "child", parent: "release" });
+	const unrelated = task({ path: "unrelated" });
+	const scope: HierarchyScope = {
+		tasks: [release, featureA, child, unrelated],
+		projects: [],
+	};
+	const idContext: typeof context = { ...context, scope };
+
+	it("matches only the exact listed task(s), OR'd", () => {
+		expect(matchesFilters(release, { id: ["release"] }, idContext)).toBe(true);
+		expect(matchesFilters(featureA, { id: ["release"] }, idContext)).toBe(false);
+		expect(matchesFilters(release, { id: ["release", "unrelated"] }, idContext)).toBe(true);
+		expect(matchesFilters(unrelated, { id: ["release", "unrelated"] }, idContext)).toBe(true);
+	});
+
+	it("does NOT pull in descendants or blocked/blocking tasks, unlike root:", () => {
+		const result = applyFilters(scope.tasks, { id: ["release"] }, idContext);
+		expect(result.map((t) => t.path)).toEqual(["release"]);
+	});
+
+	it("-id: excludes the exact listed task(s)", () => {
+		expect(matchesFilters(release, { excludeId: ["release"] }, idContext)).toBe(false);
+		expect(matchesFilters(featureA, { excludeId: ["release"] }, idContext)).toBe(true);
+	});
+
+	it("has no NONE semantics -- a task always has a path", () => {
+		expect(matchesFilters(release, { id: [NONE] }, idContext)).toBe(false);
+	});
+});
+
 describe("date field filtering", () => {
 	it("matches an exact due date", () => {
 		const due = task({ path: "a", dueDate: "2026-09-19" });
@@ -571,6 +614,11 @@ describe("exclusion filters", () => {
 	it("treats an exclude-only filter set as non-empty", () => {
 		expect(isEmptyFilterSet({ excludeStatus: ["done"] })).toBe(false);
 		expect(isEmptyFilterSet({ excludeParent: ["a"] })).toBe(false);
+		expect(isEmptyFilterSet({ excludeId: ["a"] })).toBe(false);
+	});
+
+	it("treats an id filter as non-empty", () => {
+		expect(isEmptyFilterSet({ id: ["a"] })).toBe(false);
 	});
 
 	it("keeps include and exclude independent, not complementary", () => {

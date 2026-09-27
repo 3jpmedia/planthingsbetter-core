@@ -66,6 +66,14 @@ function matchesLink(
 	);
 }
 
+/** OR-match a task's own path against an explicit list -- no `NONE` (a task
+ *  always has a path) and no traversal, unlike `root`: a task matches only
+ *  if it's literally one of the listed tasks. */
+function matchesId(actual: LinkTarget, allowed: string[] | undefined): boolean {
+	if (!allowed || allowed.length === 0) return true;
+	return allowed.some((value) => value === actual || linksMatch(actual, value));
+}
+
 /** Does `name` fall under the group named by a `"Parent/*"` pattern? */
 function matchesGroupPattern(name: string | null, pattern: string): boolean {
 	if (name == null || !pattern.endsWith("/*")) return false;
@@ -177,6 +185,7 @@ export function matchesFilters(
 	if (!matchesProject(task.project, filters.project, context.titles))
 		return false;
 	if (!matchesLink(task.parent, filters.parent)) return false;
+	if (!matchesId(task.path, filters.id)) return false;
 
 	if (!matchesDateExact(task.dueDate, filters.dueDate)) return false;
 	if (!matchesDateRange(task.dueDate, filters.dueDateBefore, filters.dueDateAfter))
@@ -248,6 +257,7 @@ export function matchesFilters(
 		return false;
 	if (filters.excludeParent?.length && matchesLink(task.parent, filters.excludeParent))
 		return false;
+	if (filters.excludeId?.length && matchesId(task.path, filters.excludeId)) return false;
 
 	if (filters.excludeDueDate?.length && matchesDateExact(task.dueDate, filters.excludeDueDate))
 		return false;
@@ -370,6 +380,7 @@ export type ArrayFilterKey = Exclude<
 	| "excludeProject"
 	| "excludeParent"
 	| "excludeRoot"
+	| "excludeId"
 	| "excludeDueDate"
 	| "excludeStartDate"
 	| "excludeCreatedAt"
@@ -387,6 +398,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"project",
 	"parent",
 	"root",
+	"id",
 	"dueDate",
 	"startDate",
 	"createdAt",
@@ -394,7 +406,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"completedAt",
 ];
 
-/** The 13 `ViewFilters` property names that hold excluded values. */
+/** The 14 `ViewFilters` property names that hold excluded values. */
 export type ExcludeFilterKey =
 	| "excludeStatus"
 	| "excludePriority"
@@ -405,6 +417,7 @@ export type ExcludeFilterKey =
 	| "excludeProject"
 	| "excludeParent"
 	| "excludeRoot"
+	| "excludeId"
 	| "excludeDueDate"
 	| "excludeStartDate"
 	| "excludeCreatedAt"
@@ -427,6 +440,7 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	project: "excludeProject",
 	parent: "excludeParent",
 	root: "excludeRoot",
+	id: "excludeId",
 	dueDate: "excludeDueDate",
 	startDate: "excludeStartDate",
 	createdAt: "excludeCreatedAt",
@@ -633,6 +647,8 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.parent?.length &&
 		!filters.root?.length &&
 		!filters.excludeRoot?.length &&
+		!filters.id?.length &&
+		!filters.excludeId?.length &&
 		!filters.mentions?.length &&
 		!filters.text?.trim() &&
 		!filters.recurring &&

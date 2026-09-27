@@ -673,6 +673,13 @@ export interface ViewFilters {
 	 * OR'd across multiple roots, like every other array filter.
 	 */
 	root?: string[];
+	/**
+	 * Plain membership on `task.path` -- unlike `root`, no hierarchy/relation
+	 * traversal at all: a task matches only if it's literally one of the
+	 * listed tasks. OR'd across multiple values, like every other array
+	 * filter.
+	 */
+	id?: string[];
 	/** `[SELF]` powers the "Mentions Me" saved view. */
 	mentions?: string[];
 	/** Free-text match against title. */
@@ -732,6 +739,7 @@ export interface ViewFilters {
 	excludeProject?: string[];
 	excludeParent?: string[];
 	excludeRoot?: string[];
+	excludeId?: string[];
 	excludeDueDate?: string[];
 	excludeStartDate?: string[];
 	excludeCreatedAt?: string[];

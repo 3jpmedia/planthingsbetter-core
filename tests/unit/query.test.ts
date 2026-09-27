@@ -65,6 +65,8 @@ describe("round-trip (Invariant A)", () => {
 		["parent", withFilters({ parent: [taskPath] })],
 		["root", withFilters({ root: [taskPath] })],
 		["excludeRoot", withFilters({ excludeRoot: [taskPath] })],
+		["id", withFilters({ id: [taskPath] })],
+		["excludeId", withFilters({ excludeId: [taskPath] })],
 		["subtasks nested", def({ subtaskDisplay: "nested" })],
 		["subtasks hidden", def({ subtaskDisplay: "hidden" })],
 		["archived included", withFilters({ archived: "included" })],
@@ -207,7 +209,7 @@ describe("round-trip (generative)", () => {
 	];
 	const arrayKeys = [
 		"status", "priority", "taskType", "labels", "assignee",
-		"mentions", "project", "parent",
+		"mentions", "project", "parent", "id",
 	] as const;
 
 	it("survives 400 random definitions", () => {
@@ -1181,5 +1183,12 @@ describe("exclusion filters", () => {
 		expect(parsed.ok).toBe(true);
 		expect(parsed.definition.filters.root).toEqual([taskPath]);
 		expect(parsed.definition.filters.excludeRoot).toEqual([project]);
+	});
+
+	it("parses id:/-id: like parent:/-parent:", () => {
+		const parsed = parseQuery(`id:="${taskPath}" -id:="${project}"`, ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.id).toEqual([taskPath]);
+		expect(parsed.definition.filters.excludeId).toEqual([project]);
 	});
 });

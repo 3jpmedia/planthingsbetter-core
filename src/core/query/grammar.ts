@@ -101,6 +101,12 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
+	id: {
+		token: "id",
+		aliases: [],
+		resolveAs: "task",
+		unsetIsVacuous: true,
+	},
 	dueDate: {
 		token: "due",
 		aliases: ["duedate", "due-date"],
