@@ -140,8 +140,6 @@ function candidatesFor(
 
 	const taxonomy = taxonomyFor(spec, context);
 	if (taxonomy) {
-		// Ids are slug-shaped, so they read better and never need quoting.
-		// The name is only a fallback for a value whose id doesn't resolve.
 		const found = getValue(taxonomy, value);
 		if (found) pretty.push(found.name);
 	} else if (spec.resolveAs === "person") {
@@ -149,9 +147,14 @@ function candidatesFor(
 		if (person) pretty.push(person.name);
 	}
 
+	// The name reads better than the raw id whenever one resolves — same
+	// ordering the entity branch above already uses. Falls back to the id
+	// itself (and finally its verbatim form) only when no name is found, or
+	// the name is ambiguous and fails to round-trip (`printValue` verifies
+	// every candidate before accepting it).
 	return [
-		{ text: value, verbatim: false },
 		...pretty.map((text) => ({ text, verbatim: false })),
+		{ text: value, verbatim: false },
 		{ text: value, verbatim: true },
 	];
 }

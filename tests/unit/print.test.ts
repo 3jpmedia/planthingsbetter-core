@@ -80,6 +80,9 @@ describe("printQuery is unchanged for the query bar", () => {
 			{ ...viewDefinition(defaultViews()[0]), filters: { taskType: ["bug"] } },
 			ctx,
 		);
-		expect(printed.startsWith("type:bug ")).toBe(true);
+		// The taxonomy value's name ("Bug") prints in place of its id ("bug") --
+		// see print.ts's candidatesFor, which now prefers a resolving name over
+		// the raw id, same as the entity (project/task) branch already did.
+		expect(printed.startsWith("type:Bug ")).toBe(true);
 	});
 });
