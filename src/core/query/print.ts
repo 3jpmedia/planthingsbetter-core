@@ -27,6 +27,7 @@ import type { QueryContext, QueryEntity } from "./context";
 import {
 	CANVAS_DIRECTION_VALUES,
 	CANVAS_LAYOUT_VALUES,
+	TIMELINE_ZOOM_VALUES,
 	DATE_BOUND_FIELDS,
 	DATE_FIELD_VALUES,
 	EMPTY_VALUES,
@@ -344,6 +345,12 @@ export function printQuery(
 		canvasDirection !== DEFAULT_DEFINITION.canvasDirection
 	) {
 		parts.push(`canvas-direction:${CANVAS_DIRECTION_VALUES[canvasDirection].token}`);
+	}
+	// Timeline-only, like the canvas clauses above: printed on a timeline
+	// view, and only when it isn't the default zoom.
+	const timelineZoom = canonical.timelineZoom ?? DEFAULT_DEFINITION.timelineZoom;
+	if (canonical.viewType === "timeline" && timelineZoom !== DEFAULT_DEFINITION.timelineZoom) {
+		parts.push(`zoom:${TIMELINE_ZOOM_VALUES[timelineZoom].token}`);
 	}
 	const canvasHiddenRelationKinds = canonical.canvasHiddenRelationKinds ?? [];
 	if (canonical.viewType === "canvas" && canvasHiddenRelationKinds.length > 0) {

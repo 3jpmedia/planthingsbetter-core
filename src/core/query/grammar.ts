@@ -10,6 +10,7 @@
 
 import type {
 	CanvasArrangement,
+	TimelineZoom,
 	CanvasDirection,
 	CanvasRelationKind,
 	EmptyColumnBehavior,
@@ -262,6 +263,16 @@ export const DATE_BOUND_FIELDS: Record<
 	completedAtAfter: { token: "completed-after", aliases: [] },
 };
 
+/** Timeline-only: the zoom level (`zoom:` clause). */
+export const TIMELINE_ZOOM_VALUES: Record<TimelineZoom, EnumValueSpec> = {
+	day: { token: "day", aliases: ["days"] },
+	week: { token: "week", aliases: ["weeks"] },
+	month: { token: "month", aliases: ["months"] },
+	quarter: { token: "quarter", aliases: ["quarters"] },
+	year: { token: "year", aliases: ["years"] },
+	all: { token: "all", aliases: ["fit"] },
+};
+
 /** Canvas-only: the arrangement algorithm (`canvas-layout:` clause). */
 export const CANVAS_LAYOUT_VALUES: Record<CanvasArrangement, EnumValueSpec> = {
 	flow: { token: "flow", aliases: ["layered", "dependency"] },
@@ -433,6 +444,10 @@ export const DATE_BOUND_FIELD_BY_TOKEN = indexBy(
 		EnumValueSpec,
 	][],
 ) as Map<string, keyof typeof DATE_BOUND_FIELDS>;
+
+export const TIMELINE_ZOOM_BY_TOKEN = indexBy(
+	Object.entries(TIMELINE_ZOOM_VALUES) as [TimelineZoom, EnumValueSpec][],
+) as Map<string, TimelineZoom>;
 
 export const CANVAS_LAYOUT_BY_TOKEN = indexBy(
 	Object.entries(CANVAS_LAYOUT_VALUES) as [CanvasArrangement, EnumValueSpec][],

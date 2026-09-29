@@ -604,6 +604,10 @@ export interface WorkspaceConfig {
 export type ViewType = "list" | "board" | "table" | "timeline" | "calendar" | "canvas";
 
 export type CanvasArrangement = "flow" | "tree";
+
+/** Timeline zoom level: a fixed pixels-per-day step, or `all` to fit every
+ *  scheduled task (see views/timeline-scale.ts). */
+export type TimelineZoom = "day" | "week" | "month" | "quarter" | "year" | "all";
 export type CanvasDirection = "right" | "down";
 
 export type GroupByField =
@@ -894,6 +898,11 @@ export interface SavedView {
 	 */
 	canvasArrangement?: CanvasArrangement;
 	/**
+	 * Timeline zoom level (`zoom:` clause). Optional like the canvas settings
+	 * -- a view saved before it existed is the default, `week`.
+	 */
+	timelineZoom?: TimelineZoom;
+	/**
 	 * Canvas layout direction: `"right"` left-to-right (default) or `"down"`
 	 * top-to-bottom. Stored in the query string for canvas views; legacy
 	 * frontmatter values `"LR"` and `"TB"` are normalized to `"right"` and
@@ -960,6 +969,7 @@ export type ViewDefinition = Pick<
 	| "subtaskDisplay"
 	| "calendarDateField"
 	| "canvasArrangement"
+	| "timelineZoom"
 	| "canvasDirection"
 	| "canvasHiddenRelationKinds"
 	| "recurringPreview"

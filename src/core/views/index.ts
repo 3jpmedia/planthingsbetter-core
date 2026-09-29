@@ -7,4 +7,5 @@ export * from "./evaluate";
 export * from "./defaults";
 export * from "./seed";
 export * from "./timeline";
+export * from "./timeline-scale";
 export * from "./calendar";

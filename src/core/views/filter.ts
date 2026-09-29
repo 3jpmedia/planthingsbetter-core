@@ -627,6 +627,7 @@ export function viewDefinition(view: SavedView): ViewDefinition {
 		subtaskDisplay: view.subtaskDisplay,
 		calendarDateField: view.calendarDateField,
 		canvasArrangement: view.canvasArrangement,
+		timelineZoom: view.timelineZoom,
 		canvasDirection: view.canvasDirection,
 		canvasHiddenRelationKinds: view.canvasHiddenRelationKinds,
 		recurringPreview: view.recurringPreview,
@@ -652,6 +653,7 @@ export function canonicalizeDefinition(
 		// (the round-trip invariant) needs those as explicit values.
 		canvasArrangement:
 			definition.canvasArrangement ?? DEFAULT_DEFINITION.canvasArrangement,
+		timelineZoom: definition.timelineZoom ?? DEFAULT_DEFINITION.timelineZoom,
 		canvasDirection:
 			definition.canvasDirection ?? DEFAULT_DEFINITION.canvasDirection,
 		// A *hidden* list, like `hiddenFields` — absent or empty means "show all

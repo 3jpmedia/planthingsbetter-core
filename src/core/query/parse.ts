@@ -13,6 +13,7 @@
 
 import type {
 	CanvasArrangement,
+	TimelineZoom,
 	CanvasDirection,
 	CanvasRelationKind,
 	EmptyColumnBehavior,
@@ -33,6 +34,7 @@ import {
 	ALL_FIELD_TOKENS,
 	CANVAS_DIRECTION_BY_TOKEN,
 	CANVAS_LAYOUT_BY_TOKEN,
+	TIMELINE_ZOOM_BY_TOKEN,
 	DATE_BOUND_FIELD_BY_TOKEN,
 	DATE_FIELD_BY_TOKEN,
 	EMPTY_BY_TOKEN,
@@ -107,6 +109,7 @@ export function parseQuery(
 	let canvasArrangement: CanvasArrangement =
 		DEFAULT_DEFINITION.canvasArrangement;
 	let canvasDirection: CanvasDirection = DEFAULT_DEFINITION.canvasDirection;
+	let timelineZoom: TimelineZoom = DEFAULT_DEFINITION.timelineZoom;
 	const canvasHiddenRelationKinds: CanvasRelationKind[] = [
 		...DEFAULT_DEFINITION.canvasHiddenRelationKinds,
 	];
@@ -236,7 +239,8 @@ export function parseQuery(
 			field === "date" ||
 			field === "subtasks" ||
 			field === "canvas-layout" ||
-			field === "canvas-direction"
+			field === "canvas-direction" ||
+			field === "zoom"
 		) {
 			const value = soleValue(token);
 			if (!value) continue;
@@ -266,6 +270,10 @@ export function parseQuery(
 				const match = LAYOUT_BY_TOKEN.get(raw);
 				if (!match) fail("unknown-value", `"${raw}" isn't a layout`, value.span);
 				else viewType = match;
+			} else if (field === "zoom") {
+				const match = TIMELINE_ZOOM_BY_TOKEN.get(raw);
+				if (!match) fail("unknown-value", `"${raw}" isn't a timeline zoom`, value.span);
+				else timelineZoom = match;
 			} else if (field === "canvas-layout") {
 				const match = CANVAS_LAYOUT_BY_TOKEN.get(raw);
 				if (!match) {
@@ -445,6 +453,7 @@ export function parseQuery(
 		canvasArrangement,
 		canvasDirection,
 		canvasHiddenRelationKinds,
+		timelineZoom,
 		recurringPreview,
 		tableSort,
 	});

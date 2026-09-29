@@ -305,6 +305,7 @@ function parseViewValue(
 		calendarDateField: def.calendarDateField,
 		recurringPreview: def.recurringPreview,
 		canvasArrangement: def.canvasArrangement,
+		timelineZoom: def.timelineZoom,
 		// The query string owns `canvasDirection`; the legacy frontmatter key
 		// (LR/TB) still wins when present so pre-query files migrate in place.
 		canvasDirection:

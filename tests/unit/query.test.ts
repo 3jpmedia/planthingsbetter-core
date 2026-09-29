@@ -304,7 +304,7 @@ describe("canonicalisation", () => {
 			"calendarDateField", "canvasArrangement", "canvasDirection",
 			"canvasHiddenRelationKinds", "emptyColumnBehavior", "filters", "groupBy",
 			"hiddenFields", "recurringPreview", "sortBy", "sortDirection",
-			"subtaskDisplay", "tableSort", "viewType",
+			"subtaskDisplay", "tableSort", "timelineZoom", "viewType",
 		]);
 	});
 
