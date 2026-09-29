@@ -18,3 +18,4 @@ export * from "./color";
 export * from "./workspace-color";
 export * from "./tabs";
 export * from "./canvas";
+export * from "./dashboards";
