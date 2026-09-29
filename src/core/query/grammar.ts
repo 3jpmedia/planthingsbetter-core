@@ -172,10 +172,12 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 };
 
 /** The free-text field (a task's title). Not in `FILTER_FIELDS` — its value
- *  isn't a list. Printed as `title:` -- always labelled, never bare words,
- *  though bare words still parse as it. `taskTitle` (its name for a while)
- *  stays an alias so nothing already typed or saved breaks. */
-export const TEXT_FIELD = { token: "title", aliases: ["taskTitle", "text", "search"] };
+ *  isn't a list. Printed as `taskTitle:` -- always labelled, never bare
+ *  words, though bare words still parse as it -- self-describing like the
+ *  other tokens, leaving room for other titles (a view's, ...) later.
+ *  `title`, `text` and `search` stay aliases so nothing already typed or
+ *  saved breaks. */
+export const TEXT_FIELD = { token: "taskTitle", aliases: ["title", "text", "search"] };
 
 export interface EnumValueSpec {
 	token: string;

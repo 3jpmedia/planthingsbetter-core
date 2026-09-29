@@ -203,10 +203,10 @@ function printValue(
 }
 
 /**
- * Free text, always labelled with its field (`title:accent`) -- never as
+ * Free text, always labelled with its field (`taskTitle:accent`) -- never as
  * bare words, even though bare words still parse as free text when typed.
  * The value goes unquoted when it lexes straight back as that one value,
- * else quoted (`title:"two words"`).
+ * else quoted (`taskTitle:"two words"`).
  */
 function printText(text: string): string {
 	const unquoted = `${TEXT_FIELD.token}:${text}`;

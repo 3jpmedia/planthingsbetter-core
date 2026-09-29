@@ -159,25 +159,26 @@ describe("printFilters prefers a person's email over their name", () => {
 	});
 });
 
-describe("title (free text) always prints with its field", () => {
+describe("task title (free text) always prints with its field", () => {
 	const printText = (text: string) => printFilters({ text }, ctx)
 
 	it("labels a single word instead of printing it bare", () => {
-		expect(printText("accent")).toBe("title:accent");
+		expect(printText("accent")).toBe("taskTitle:accent");
 	});
 
 	it("quotes a value that wouldn't lex back as one value", () => {
-		expect(printText("two words")).toBe('title:"two words"');
-		expect(printText("a,b")).toBe('title:"a,b"');
-		expect(printText("=exact")).toBe('title:"=exact"');
+		expect(printText("two words")).toBe('taskTitle:"two words"');
+		expect(printText("a,b")).toBe('taskTitle:"a,b"');
+		expect(printText("=exact")).toBe('taskTitle:"=exact"');
 	});
 
-	it("round-trips, and bare words and old spellings still parse as title", () => {
+	it("round-trips, and bare words and other spellings still parse as it", () => {
 		for (const text of ["accent", "two words", "a,b", 'say "hi"']) {
 			expect(parseQuery(printText(text), ctx).definition.filters.text).toBe(text);
 		}
-		expect(printText(parseQuery("accent", ctx).definition.filters.text!)).toBe("title:accent");
-		expect(parseQuery("taskTitle:accent", ctx).definition.filters.text).toBe("accent");
-		expect(parseQuery("search:accent", ctx).definition.filters.text).toBe("accent");
+		expect(printText(parseQuery("accent", ctx).definition.filters.text!)).toBe("taskTitle:accent");
+		for (const field of ["title", "text", "search", "tasktitle"]) {
+			expect(parseQuery(`${field}:accent`, ctx).definition.filters.text).toBe("accent");
+		}
 	});
 });
