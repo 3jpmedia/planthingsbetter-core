@@ -171,11 +171,11 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 	},
 };
 
-/** The free-text field. Not in `FILTER_FIELDS` — its value isn't a list. */
-// Renamed from bare `title` for the same reason as `taskKey`/etc. above --
-// PTB's UI labels this filter "Task Title", and the old spelling stays as
-// an alias so nothing already typed or saved breaks.
-export const TEXT_FIELD = { token: "taskTitle", aliases: ["title", "text", "search"] };
+/** The free-text field (a task's title). Not in `FILTER_FIELDS` — its value
+ *  isn't a list. Printed as `title:` -- always labelled, never bare words,
+ *  though bare words still parse as it. `taskTitle` (its name for a while)
+ *  stays an alias so nothing already typed or saved breaks. */
+export const TEXT_FIELD = { token: "title", aliases: ["taskTitle", "text", "search"] };
 
 export interface EnumValueSpec {
 	token: string;

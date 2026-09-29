@@ -202,16 +202,25 @@ function printValue(
 	return valueSource({ text: value, verbatim: true });
 }
 
-/** Bare words when they survive a round-trip, else an explicit `title:"…"`. */
+/**
+ * Free text, always labelled with its field (`title:accent`) -- never as
+ * bare words, even though bare words still parse as free text when typed.
+ * The value goes unquoted when it lexes straight back as that one value,
+ * else quoted (`title:"two words"`).
+ */
 function printText(text: string): string {
-	const lexed = lex(text);
-	const bare = lexed.tokens.every((token) => token.kind === "bare");
-	if (lexed.issues.length === 0 && lexed.tokens.length > 0 && bare) {
-		const joined = lexed.tokens
-			.map((token) => (token.kind === "bare" ? token.value.text : ""))
-			.join(" ");
-		if (joined === text) return text;
-	}
+	const unquoted = `${TEXT_FIELD.token}:${text}`;
+	const lexed = lex(unquoted);
+	const [token] = lexed.tokens;
+	if (
+		lexed.issues.length === 0 &&
+		lexed.tokens.length === 1 &&
+		token.kind === "clause" &&
+		token.values.length === 1 &&
+		!token.values[0].verbatim &&
+		token.values[0].text === text
+	)
+		return unquoted;
 	return `${TEXT_FIELD.token}:${quote(text)}`;
 }
 
