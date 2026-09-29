@@ -12,6 +12,8 @@
  */
 
 import type {
+	CalendarDateField,
+	CalendarMode,
 	CanvasArrangement,
 	TimelineZoom,
 	CanvasDirection,
@@ -37,6 +39,7 @@ import {
 	TIMELINE_ZOOM_BY_TOKEN,
 	DATE_BOUND_FIELD_BY_TOKEN,
 	DATE_FIELD_BY_TOKEN,
+	CALENDAR_MODE_BY_TOKEN,
 	EMPTY_BY_TOKEN,
 	FIELD_BY_TOKEN,
 	FILTER_FIELDS,
@@ -106,6 +109,8 @@ export function parseQuery(
 	const hiddenFields: TaskField[] = [...DEFAULT_DEFINITION.hiddenFields];
 	let subtaskDisplay: SubtaskDisplay = DEFAULT_DEFINITION.subtaskDisplay;
 	let calendarDateField = DEFAULT_DEFINITION.calendarDateField;
+	let calendarEndField: CalendarDateField | null = DEFAULT_DEFINITION.calendarEndField;
+	let calendarMode: CalendarMode = DEFAULT_DEFINITION.calendarMode;
 	let canvasArrangement: CanvasArrangement =
 		DEFAULT_DEFINITION.canvasArrangement;
 	let canvasDirection: CanvasDirection = DEFAULT_DEFINITION.canvasDirection;
@@ -231,12 +236,37 @@ export function parseQuery(
 
 		/* -- presentation enums -- */
 
+		// `date:` takes one date or two (`date:start,due` -- a span from the
+		// earlier to the later), unlike the single-valued clauses below.
+		if (field === "date") {
+			noteDuplicate(field, token.span);
+			if (token.values.length === 0) {
+				fail("empty-value", `"date" needs a value`, token.span);
+				continue;
+			}
+			if (token.values.length > 2) {
+				fail("unknown-value", "the calendar plots at most two dates", token.values[2].span);
+			}
+			const picked: CalendarDateField[] = [];
+			for (const value of token.values.slice(0, 2)) {
+				const raw = value.text.trim().toLowerCase();
+				const match = DATE_FIELD_BY_TOKEN.get(raw);
+				if (!match) fail("unknown-value", `"${raw}" isn't a calendar date field`, value.span);
+				else if (!picked.includes(match)) picked.push(match);
+			}
+			if (picked.length > 0) {
+				calendarDateField = picked[0];
+				calendarEndField = picked[1] ?? null;
+			}
+			continue;
+		}
+
 		if (
 			field === "group" ||
 			field === "sort" ||
 			field === "layout" ||
 			field === "empty" ||
-			field === "date" ||
+			field === "calendar" ||
 			field === "subtasks" ||
 			field === "canvas-layout" ||
 			field === "canvas-direction" ||
@@ -292,15 +322,10 @@ export function parseQuery(
 						value.span,
 					);
 				} else canvasDirection = match;
-			} else if (field === "date") {
-				const match = DATE_FIELD_BY_TOKEN.get(raw);
-				if (!match) {
-					fail(
-						"unknown-value",
-						`"${raw}" isn't a calendar date field`,
-						value.span,
-					);
-				} else calendarDateField = match;
+			} else if (field === "calendar") {
+				const match = CALENDAR_MODE_BY_TOKEN.get(raw);
+				if (!match) fail("unknown-value", `"${raw}" isn't a calendar layout`, value.span);
+				else calendarMode = match;
 			} else if (field === "subtasks") {
 				const match = SUBTASK_BY_TOKEN.get(raw);
 				if (!match) {
@@ -450,6 +475,8 @@ export function parseQuery(
 		hiddenFields,
 		subtaskDisplay,
 		calendarDateField,
+		calendarEndField,
+		calendarMode,
 		canvasArrangement,
 		canvasDirection,
 		canvasHiddenRelationKinds,

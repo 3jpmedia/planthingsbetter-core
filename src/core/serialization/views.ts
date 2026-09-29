@@ -83,6 +83,9 @@ const CANVAS_RELATION_KIND_SET = new Set<string>(CANVAS_RELATION_KINDS);
 const CALENDAR_DATE_FIELDS: SavedView["calendarDateField"][] = [
 	"dueDate",
 	"startDate",
+	"createdAt",
+	"updatedAt",
+	"completedAt",
 ];
 
 /** Fallback pixels-per-day when a timeline block is present but `scale` isn't. */
@@ -303,6 +306,8 @@ function parseViewValue(
 		hiddenFields: def.hiddenFields,
 		subtaskDisplay: def.subtaskDisplay,
 		calendarDateField: def.calendarDateField,
+		calendarEndField: def.calendarEndField,
+		calendarMode: def.calendarMode,
 		recurringPreview: def.recurringPreview,
 		canvasArrangement: def.canvasArrangement,
 		timelineZoom: def.timelineZoom,

@@ -301,7 +301,7 @@ describe("canonicalisation", () => {
 
 	it("viewDefinition drops identity and column state", () => {
 		expect(Object.keys(viewDefinition(defaultViews()[0])).sort()).toEqual([
-			"calendarDateField", "canvasArrangement", "canvasDirection",
+			"calendarDateField", "calendarEndField", "calendarMode", "canvasArrangement", "canvasDirection",
 			"canvasHiddenRelationKinds", "emptyColumnBehavior", "filters", "groupBy",
 			"hiddenFields", "recurringPreview", "sortBy", "sortDirection",
 			"subtaskDisplay", "tableSort", "timelineZoom", "viewType",

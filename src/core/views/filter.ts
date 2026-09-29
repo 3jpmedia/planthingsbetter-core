@@ -626,6 +626,8 @@ export function viewDefinition(view: SavedView): ViewDefinition {
 		hiddenFields: view.hiddenFields,
 		subtaskDisplay: view.subtaskDisplay,
 		calendarDateField: view.calendarDateField,
+		calendarEndField: view.calendarEndField,
+		calendarMode: view.calendarMode,
 		canvasArrangement: view.canvasArrangement,
 		timelineZoom: view.timelineZoom,
 		canvasDirection: view.canvasDirection,
@@ -648,6 +650,12 @@ export function canonicalizeDefinition(
 		hiddenFields: canonicalizeHiddenFields(definition.hiddenFields),
 		subtaskDisplay: definition.subtaskDisplay,
 		calendarDateField: definition.calendarDateField,
+		// A second date equal to the first is just one date.
+		calendarEndField:
+			definition.calendarEndField && definition.calendarEndField !== definition.calendarDateField
+				? definition.calendarEndField
+				: null,
+		calendarMode: definition.calendarMode ?? DEFAULT_DEFINITION.calendarMode,
 		// Canvas arrangement/direction resolve to their defaults when absent —
 		// a pre-arrangement view note carries neither, and canonical canonicity
 		// (the round-trip invariant) needs those as explicit values.

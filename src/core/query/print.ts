@@ -30,6 +30,7 @@ import {
 	TIMELINE_ZOOM_VALUES,
 	DATE_BOUND_FIELDS,
 	DATE_FIELD_VALUES,
+	CALENDAR_MODE_VALUES,
 	EMPTY_VALUES,
 	FIELD_VALUES,
 	FILTER_FIELDS,
@@ -363,8 +364,15 @@ export function printQuery(
 	// Calendar-only, but printed whenever non-default regardless of layout —
 	// `hide:` and `empty:` follow the same "keep the clause even if this layout
 	// ignores it" rule, so switching layouts never silently drops the setting.
-	if (canonical.calendarDateField !== DEFAULT_DEFINITION.calendarDateField) {
+	const calendarEndField = canonical.calendarEndField ?? null;
+	if (calendarEndField) {
+		parts.push(`date:${DATE_FIELD_VALUES[canonical.calendarDateField].token},${DATE_FIELD_VALUES[calendarEndField].token}`);
+	} else if (canonical.calendarDateField !== DEFAULT_DEFINITION.calendarDateField) {
 		parts.push(`date:${DATE_FIELD_VALUES[canonical.calendarDateField].token}`);
+	}
+	const calendarMode = canonical.calendarMode ?? DEFAULT_DEFINITION.calendarMode;
+	if (calendarMode !== DEFAULT_DEFINITION.calendarMode) {
+		parts.push(`calendar:${CALENDAR_MODE_VALUES[calendarMode].token}`);
 	}
 	// Printed whenever non-default, like `hide:` — kept even when the layout
 	// ignores it, so switching layouts never silently drops the setting.

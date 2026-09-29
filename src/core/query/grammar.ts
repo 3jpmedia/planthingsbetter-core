@@ -9,6 +9,8 @@
  */
 
 import type {
+	CalendarDateField,
+	CalendarMode,
 	CanvasArrangement,
 	TimelineZoom,
 	CanvasDirection,
@@ -223,13 +225,23 @@ export const LAYOUT_VALUES: Record<ViewType, EnumValueSpec> = {
 	canvas: { token: "canvas", aliases: [] },
 };
 
-/** Calendar-only: which date field the month grid buckets by (`date:` clause). */
-export const DATE_FIELD_VALUES: Record<
-	"dueDate" | "startDate",
-	EnumValueSpec
-> = {
+/** Calendar-only: the date (or two, `date:start,due`) the calendar plots
+ *  tasks by (`date:` clause). */
+export const DATE_FIELD_VALUES: Record<CalendarDateField, EnumValueSpec> = {
 	dueDate: { token: "due", aliases: ["duedate", "due-date"] },
 	startDate: { token: "start", aliases: ["startdate", "start-date"] },
+	createdAt: { token: "created", aliases: ["createdat", "created-at"] },
+	updatedAt: { token: "updated", aliases: ["updatedat", "updated-at"] },
+	completedAt: { token: "completed", aliases: ["completedat", "completed-at", "done"] },
+};
+
+/** Calendar-only: how time is laid out (`calendar:` clause). */
+export const CALENDAR_MODE_VALUES: Record<CalendarMode, EnumValueSpec> = {
+	month: { token: "month", aliases: [] },
+	week: { token: "week", aliases: [] },
+	"2weeks": { token: "2weeks", aliases: ["two-weeks", "fortnight"] },
+	"4weeks": { token: "4weeks", aliases: ["four-weeks"] },
+	schedule: { token: "schedule", aliases: ["agenda"] },
 };
 
 /**
@@ -432,11 +444,12 @@ export const LAYOUT_BY_TOKEN = indexBy(
 ) as Map<string, ViewType>;
 
 export const DATE_FIELD_BY_TOKEN = indexBy(
-	Object.entries(DATE_FIELD_VALUES) as [
-		"dueDate" | "startDate",
-		EnumValueSpec,
-	][],
-) as Map<string, "dueDate" | "startDate">;
+	Object.entries(DATE_FIELD_VALUES) as [CalendarDateField, EnumValueSpec][],
+) as Map<string, CalendarDateField>;
+
+export const CALENDAR_MODE_BY_TOKEN = indexBy(
+	Object.entries(CALENDAR_MODE_VALUES) as [CalendarMode, EnumValueSpec][],
+) as Map<string, CalendarMode>;
 
 export const DATE_BOUND_FIELD_BY_TOKEN = indexBy(
 	Object.entries(DATE_BOUND_FIELDS) as [
@@ -486,6 +499,7 @@ export const LAYOUT_ONLY_CLAUSES: ReadonlySet<string> = new Set([
 	"table-sort",
 	"hide",
 	"date",
+	"calendar",
 	"subtasks",
 	"empty",
 	"canvas-layout",
@@ -504,6 +518,7 @@ export const ALL_FIELD_TOKENS: readonly string[] = [
 	"empty",
 	"hide",
 	"date",
+	"calendar",
 	"subtasks",
 	"canvas-layout",
 	"canvas-direction",

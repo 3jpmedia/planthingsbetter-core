@@ -820,6 +820,13 @@ export interface ViewTimelineState {
  * on `SavedView`, which is definitional (it changes what the view shows) and
  * flows through the normal draft/Save cycle.
  */
+/** The task dates a Calendar can plot (`date:` clause). Created, updated
+ *  and completed are set by the system -- shown, never dragged. */
+export type CalendarDateField = "dueDate" | "startDate" | "createdAt" | "updatedAt" | "completedAt";
+
+/** The Calendar's layouts (`calendar:` clause). */
+export type CalendarMode = "month" | "week" | "2weeks" | "4weeks" | "schedule";
+
 export interface ViewCalendarState {
 	visibleMonth: IsoDate | null;
 }
@@ -884,7 +891,20 @@ export interface SavedView {
 	 * changes what the view shows), so it participates in `ViewDefinition` and
 	 * the draft/Save cycle — not furniture like `calendar` below.
 	 */
-	calendarDateField: "dueDate" | "startDate";
+	calendarDateField: CalendarDateField;
+	/**
+	 * A second date for the Calendar (`date:start,due`): each task then spans
+	 * from the earlier of its two dates to the later. Absent or null = one
+	 * date, each task on the day `calendarDateField` names. Definitional,
+	 * like `calendarDateField`.
+	 */
+	calendarEndField?: CalendarDateField | null;
+	/**
+	 * How the Calendar lays out time (`calendar:` clause): a month grid, one
+	 * or several weeks, or a day-by-day schedule. Optional like
+	 * `timelineZoom` -- a view saved before it existed is a month.
+	 */
+	calendarMode?: CalendarMode;
 	/**
 	 * Table-only multi-column sort. Independent of `sortBy`/`sortDirection` —
 	 * List and Board never read this. Empty array = fall back to `rank` order.
@@ -968,6 +988,8 @@ export type ViewDefinition = Pick<
 	| "hiddenFields"
 	| "subtaskDisplay"
 	| "calendarDateField"
+	| "calendarEndField"
+	| "calendarMode"
 	| "canvasArrangement"
 	| "timelineZoom"
 	| "canvasDirection"
