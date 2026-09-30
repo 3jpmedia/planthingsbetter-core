@@ -24,6 +24,8 @@ export const ACTIVITY_KINDS = [
 	"taskType",
 	"member",
 	"workspace",
+	"doc",
+	"docStatus",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -57,6 +59,11 @@ export type ActivityVerb = (typeof ACTIVITY_VERBS)[number];
  * (the charts edited -- retitled, a different kind or data), `chartLayout`
  * (moved or resized, recorded without values) and `filter` (its query
  * text, before and after).
+ *
+ * A doc's: `body` (recorded without values, like `description`),
+ * `docType`, `docStatus` (named apart from a task's `status`, since doc
+ * statuses are their own list), `parentDoc` (moved in the tree) and `task`
+ * (the task it's attached to).
  */
 export const ACTIVITY_FIELDS = [
 	"title",
@@ -91,6 +98,12 @@ export const ACTIVITY_FIELDS = [
 	"chart",
 	"chartLayout",
 	"filter",
+	"body",
+	"docType",
+	"docStatus",
+	"parentDoc",
+	"task",
+	"defaultNewDocStatus",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

@@ -54,6 +54,8 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	taskType: { token: "type", aliases: ["types", "tasktype", "task-type"] },
 	member: { token: "member", aliases: ["members", "person", "people"] },
 	workspace: { token: "workspace", aliases: ["settings"] },
+	doc: { token: "doc", aliases: ["docs", "document", "documents"] },
+	docStatus: { token: "doc-status", aliases: ["docstatus", "doc-statuses"] },
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {
@@ -98,6 +100,12 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	chart: { token: "chart", aliases: ["widget"] },
 	chartLayout: { token: "chart-layout", aliases: ["chartlayout", "arrangement"] },
 	filter: { token: "filter", aliases: ["filters"] },
+	body: { token: "body", aliases: ["content"] },
+	docType: { token: "doc-type", aliases: ["doctype"] },
+	docStatus: { token: "doc-status", aliases: ["docstatus"] },
+	parentDoc: { token: "parent-doc", aliases: ["parentdoc"] },
+	task: { token: "task", aliases: [] },
+	defaultNewDocStatus: { token: "default-doc-status", aliases: ["defaultnewdocstatus"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's
