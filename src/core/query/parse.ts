@@ -77,10 +77,13 @@ function editDistance(a: string, b: string): number {
 	return previous[b.length];
 }
 
-function nearestField(word: string): string | undefined {
+export function nearestField(
+	word: string,
+	extra: readonly string[] = [],
+): string | undefined {
 	let best: string | undefined;
 	let bestDistance = 3; // only suggest within edit distance 2
-	for (const candidate of ALL_FIELD_TOKENS) {
+	for (const candidate of [...ALL_FIELD_TOKENS, ...extra]) {
 		const distance = editDistance(word, candidate);
 		if (distance < bestDistance) {
 			bestDistance = distance;
@@ -97,6 +100,23 @@ export function parseQuery(
 	context: QueryContext,
 ): ParsedQuery {
 	const { tokens, issues } = lex(source);
+	return parseQueryTokens(tokens, issues, context);
+}
+
+/**
+ * `parseQuery` over tokens someone else already lexed -- how a query that
+ * mixes in clauses of its own (the Activity page's `activity…:` clauses, see
+ * `core/activity`) hands the task clauses here with their source spans
+ * intact. `extraFieldTokens` joins the "did you mean…" pool, so a typo of one
+ * of the caller's own fields still gets a suggestion.
+ */
+export function parseQueryTokens(
+	tokens: readonly LexedToken[],
+	lexIssues: readonly QueryIssue[],
+	context: QueryContext,
+	extraFieldTokens: readonly string[] = [],
+): ParsedQuery {
+	const issues: QueryIssue[] = [...lexIssues];
 
 	const filters: ViewFilters = {};
 	const textParts: string[] = [];
@@ -433,7 +453,7 @@ export function parseQuery(
 				"unknown-field",
 				`"${token.field}" isn't a field`,
 				token.fieldSpan,
-				nearestField(token.field),
+				nearestField(token.field, extraFieldTokens),
 			);
 			continue;
 		}

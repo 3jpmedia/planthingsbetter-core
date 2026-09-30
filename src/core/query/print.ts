@@ -180,7 +180,7 @@ function candidatesFor(
 	];
 }
 
-function printValue(
+export function printValue(
 	spec: FilterFieldSpec,
 	value: string,
 	context: QueryContext,
