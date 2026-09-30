@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/core/index.d.ts",
       "import": "./dist/core/index.js"
+    },
+    "./templates": {
+      "types": "./dist/core/templates/index.d.ts",
+      "import": "./dist/core/templates/index.js"
     }
   },
   "files": [
