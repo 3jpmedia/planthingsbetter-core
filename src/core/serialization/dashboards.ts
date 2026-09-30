@@ -16,6 +16,7 @@ import {
 	type DashboardConfig,
 	type DashboardFieldMapping,
 	type DashboardGroupingField,
+	type DashboardMetric,
 	type DashboardScope,
 	type DashboardWidget,
 	type DashboardWidgetLayout,
@@ -85,6 +86,13 @@ function parseScope(raw: unknown): DashboardScope | null {
 	return { field, value };
 }
 
+/** A bar's or line's measure: absent (or a count) means a count. */
+function optionalMetric(raw: unknown, log: IssueLog): DashboardMetric | undefined {
+	if (raw == null) return undefined;
+	const metric = pickEnum(raw, DASHBOARD_METRICS, "count", log, "metric");
+	return metric === "count" ? undefined : metric;
+}
+
 function parseFieldMapping(
 	chartType: ChartType,
 	raw: unknown,
@@ -95,14 +103,14 @@ function parseFieldMapping(
 
 	switch (chartType) {
 		case "bar":
-		case "pie":
-			mapping = {
-				chartType,
-				groupBy: isGrouping(asString(record.groupBy))
-					? (asString(record.groupBy) as DashboardGroupingField)
-					: "status",
-			};
+		case "pie": {
+			const groupBy = isGrouping(asString(record.groupBy))
+				? (asString(record.groupBy) as DashboardGroupingField)
+				: "status";
+			const metric = chartType === "bar" ? optionalMetric(record.metric, log) : undefined;
+			mapping = metric ? { chartType: "bar", groupBy, metric } : { chartType, groupBy };
 			break;
+		}
 		case "line":
 		case "timeline": {
 			const groupByRaw = asString(record.groupBy);
@@ -126,6 +134,8 @@ function parseFieldMapping(
 					? groupByRaw
 					: null,
 			};
+			const metric = chartType === "line" ? optionalMetric(record.metric, log) : undefined;
+			if (metric && mapping.chartType === "line") mapping.metric = metric;
 			break;
 		}
 		case "kpi":
@@ -321,9 +331,16 @@ function serializeFieldMapping(
 ): Record<string, unknown> {
 	switch (mapping.chartType) {
 		case "bar":
+			return compact({ groupBy: mapping.groupBy, metric: mapping.metric });
 		case "pie":
 			return { groupBy: mapping.groupBy };
 		case "line":
+			return compact({
+				xField: mapping.xField,
+				bucket: mapping.bucket,
+				groupBy: mapping.groupBy ?? undefined,
+				metric: mapping.metric,
+			});
 		case "timeline":
 			return compact({
 				xField: mapping.xField,

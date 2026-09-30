@@ -90,6 +90,7 @@ export function resolveDisplayRecord(
 		createdAt: task.createdAt,
 		updatedAt: task.updatedAt,
 		archivedAt: date(task.archivedAt),
+		startedAt: date(task.startedAt),
 		completedAt: date(task.completedAt),
 
 		description: lookups.descriptions?.[task.id] ?? "",

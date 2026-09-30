@@ -366,6 +366,14 @@ export interface Task {
 	createdAt: IsoDate;
 	updatedAt: IsoDate;
 	/**
+	 * When work on the task began: stamped the first time it enters a
+	 * `"started"`-category status, and kept through completion, cancellation
+	 * and reopening -- cleared only if it goes back to a backlog or unstarted
+	 * status (it wasn't really started). Never hand-set. With `completedAt`
+	 * it gives the task's cycle time.
+	 */
+	startedAt: IsoDate | null;
+	/**
 	 * When the task last crossed into a `"completed"`-category status, or `null`
 	 * if it isn't currently completed. Auto-stamped/cleared by `Mutations.updateTask`
 	 * on a status change — never hand-set, and (like `updatedAt`) excluded from
@@ -1052,6 +1060,7 @@ export type DashboardTemporalField =
 	| "startDate"
 	| "createdAt"
 	| "updatedAt"
+	| "startedAt"
 	| "completedAt";
 
 export const DASHBOARD_TEMPORAL_FIELDS: readonly DashboardTemporalField[] = [
@@ -1059,6 +1068,7 @@ export const DASHBOARD_TEMPORAL_FIELDS: readonly DashboardTemporalField[] = [
 	"startDate",
 	"createdAt",
 	"updatedAt",
+	"startedAt",
 	"completedAt",
 ] as const;
 
@@ -1072,16 +1082,25 @@ export const DASHBOARD_TIME_BUCKETS: readonly DashboardTimeBucket[] = [
 ] as const;
 
 /**
- * What a KPI widget measures. `count` is the task count; the two `estimate`
- * aggregates sum/average the plain `estimate` number — the plugin does no
- * other math on it.
+ * What a KPI (or a bar's or line's height) measures. `count` is the task
+ * count; the two `estimate` aggregates sum/average the plain `estimate`
+ * number — the plugin does no other math on it. The two `cycleTime` ones
+ * are the days from `startedAt` to `completedAt`, over the tasks that have
+ * both (a task done without ever being started has no cycle time).
  */
-export type DashboardMetric = "count" | "estimateSum" | "estimateAvg";
+export type DashboardMetric =
+	| "count"
+	| "estimateSum"
+	| "estimateAvg"
+	| "cycleTimeAvg"
+	| "cycleTimeMedian";
 
 export const DASHBOARD_METRICS: readonly DashboardMetric[] = [
 	"count",
 	"estimateSum",
 	"estimateAvg",
+	"cycleTimeAvg",
+	"cycleTimeMedian",
 ] as const;
 
 /**
@@ -1097,6 +1116,8 @@ export interface DashboardScope {
 export interface BarFieldMapping {
 	chartType: "bar";
 	groupBy: DashboardGroupingField;
+	/** What each bar's height measures. Absent: the task count. */
+	metric?: DashboardMetric;
 }
 
 export interface PieFieldMapping {
@@ -1110,6 +1131,8 @@ export interface LineFieldMapping {
 	bucket: DashboardTimeBucket;
 	/** Optional secondary split into one series per discrete value. */
 	groupBy: DashboardGroupingField | null;
+	/** What each point measures. Absent: the task count. */
+	metric?: DashboardMetric;
 }
 
 export interface TimelineFieldMapping {

@@ -70,6 +70,10 @@ function isMetric(value: unknown): value is DashboardMetric {
 export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 	switch (mapping.chartType) {
 		case "bar":
+			return (
+				isGroupingField(mapping.groupBy) &&
+				(mapping.metric === undefined || isMetric(mapping.metric))
+			);
 		case "pie":
 			return isGroupingField(mapping.groupBy);
 		case "line":
@@ -77,7 +81,10 @@ export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 			return (
 				isTemporalField(mapping.xField) &&
 				isTimeBucket(mapping.bucket) &&
-				(mapping.groupBy === null || isGroupingField(mapping.groupBy))
+				(mapping.groupBy === null || isGroupingField(mapping.groupBy)) &&
+				(mapping.chartType === "timeline" ||
+					mapping.metric === undefined ||
+					isMetric(mapping.metric))
 			);
 		case "kpi":
 			return (
@@ -119,22 +126,44 @@ export function defaultFieldMapping(chartType: ChartType): DashboardFieldMapping
 	}
 }
 
+/** Which chart types measure something other than a count: a bar's or
+ *  line's height can be any metric; a pie's slices and a timeline's running
+ *  total must add up, and a KPI always names its own. */
+export function measuresMetric(chartType: ChartType): boolean {
+	return chartType === "bar" || chartType === "line";
+}
+
+/** The metric a mapping measures (a count unless it says otherwise). */
+function metricOf(from: DashboardFieldMapping): DashboardMetric | undefined {
+	return "metric" in from && from.metric && from.metric !== "count" && isMetric(from.metric)
+		? from.metric
+		: undefined;
+}
+
 /**
  * Re-shape an existing mapping onto a new chart type, keeping whatever still
  * applies (a grouping field survives bar↔pie; a temporal field survives
- * line↔timeline) and filling the rest from `defaultFieldMapping`.
+ * line↔timeline; a measure survives among bar, line and KPI) and filling
+ * the rest from `defaultFieldMapping`.
  */
 export function retargetFieldMapping(
 	from: DashboardFieldMapping,
 	chartType: ChartType,
 ): DashboardFieldMapping {
 	const base = defaultFieldMapping(chartType);
+	const metric = metricOf(from);
+	const withMetric = <T extends DashboardFieldMapping>(mapping: T): T =>
+		metric && measuresMetric(chartType) ? { ...mapping, metric } : mapping;
+
+	if (chartType === "kpi") {
+		return metric ? { chartType, metric, scope: null } : base;
+	}
 
 	if ((chartType === "bar" || chartType === "pie") && "groupBy" in from) {
 		const groupBy = from.groupBy;
 		if (groupBy && isGroupingField(groupBy)) {
 			return chartType === "bar"
-				? { chartType, groupBy }
+				? withMetric({ chartType, groupBy })
 				: { chartType, groupBy };
 		}
 	}
@@ -150,9 +179,9 @@ export function retargetFieldMapping(
 				: null;
 		const bucket = isTimeBucket(from.bucket) ? from.bucket : "week";
 		return chartType === "line"
-			? { chartType, xField: from.xField, bucket, groupBy }
+			? withMetric({ chartType, xField: from.xField, bucket, groupBy })
 			: { chartType, xField: from.xField, bucket, groupBy };
 	}
 
-	return base;
+	return withMetric(base);
 }

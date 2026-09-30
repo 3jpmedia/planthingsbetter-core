@@ -20,7 +20,7 @@ import type { ViewContext } from "../views/context";
 import { displayColor } from "../taxonomy/engine";
 import { COLOR_PALETTE } from "../color";
 import { linksMatch } from "../links";
-import { valueLabel } from "./title";
+import { metricLabel, valueLabel } from "./title";
 
 const NONE_COLOR = "#94a3b8";
 
@@ -37,15 +37,26 @@ export interface SeriesMeta {
 	color: string;
 }
 
+/**
+ * How a chart's numbers read: decimals to show, and a unit when they aren't
+ * plain counts ("days" for cycle time).
+ */
+export interface Measure {
+	decimals: number;
+	unit?: "days";
+}
+
 export type WidgetData =
-	| { kind: "kpi"; value: number; decimals: number; empty: boolean }
-	| { kind: "categorical"; data: CategoricalDatum[]; empty: boolean }
-	| {
+	| ({ kind: "kpi"; value: number; empty: boolean } & Measure)
+	| ({ kind: "categorical"; data: CategoricalDatum[]; empty: boolean } & Measure)
+	| ({
 			kind: "series";
+			/** A bucket with nothing to measure (no task finished that week, for
+			 *  an average) leaves its series' key out -- a gap, not a zero. */
 			data: Array<Record<string, number | string>>;
 			series: SeriesMeta[];
 			empty: boolean;
-	  };
+	  } & Measure);
 
 // ---------------------------------------------------------------------------
 // Discrete grouping
@@ -145,16 +156,8 @@ function ymd(date: Date): string {
 
 /** Normalise a task's temporal field to a `Date` at UTC midnight, or null. */
 function temporalValue(task: Task, field: DashboardTemporalField): Date | null {
-	const raw =
-		field === "dueDate"
-			? task.dueDate
-			: field === "startDate"
-				? task.startDate
-				: field === "createdAt"
-					? task.createdAt
-					: field === "updatedAt"
-						? task.updatedAt
-						: task.completedAt;
+	// Each temporal field is the task property of the same name.
+	const raw = task[field];
 	if (!raw) return null;
 	const date = new Date(raw);
 	if (Number.isNaN(date.getTime())) return null;
@@ -190,8 +193,48 @@ function bucketLabel(iso: string, bucket: DashboardTimeBucket): string {
 // Entry point
 // ---------------------------------------------------------------------------
 
-function estimateAggregate(tasks: Task[], metric: DashboardMetric): number {
+const DAY_MS = 86400000;
+
+/** Days from a task's start to its completion, or null without both (or
+ *  with a completion before its start). */
+export function cycleTimeDays(task: Task): number | null {
+	if (!task.startedAt || !task.completedAt) return null;
+	const start = new Date(task.startedAt).getTime();
+	const end = new Date(task.completedAt).getTime();
+	if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+	return (end - start) / DAY_MS;
+}
+
+function isCycleTime(metric: DashboardMetric): boolean {
+	return metric === "cycleTimeAvg" || metric === "cycleTimeMedian";
+}
+
+/** How a metric's numbers read. */
+export function measureOf(metric: DashboardMetric): Measure {
+	if (isCycleTime(metric)) return { decimals: 1, unit: "days" };
+	return { decimals: metric === "estimateAvg" ? 1 : 0 };
+}
+
+function median(values: number[]): number {
+	const sorted = values.slice().sort((a, b) => a - b);
+	const mid = Math.floor(sorted.length / 2);
+	return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * A metric over some tasks. `null` when there's nothing to measure: no task
+ * among them has a cycle time. (An estimate average over tasks without
+ * estimates stays 0, as it always has.)
+ */
+export function aggregateMetric(tasks: Task[], metric: DashboardMetric): number | null {
 	if (metric === "count") return tasks.length;
+	if (isCycleTime(metric)) {
+		const days = tasks.map(cycleTimeDays).filter((n): n is number => n != null);
+		if (days.length === 0) return null;
+		return metric === "cycleTimeMedian"
+			? median(days)
+			: days.reduce((acc, n) => acc + n, 0) / days.length;
+	}
 	const values = tasks
 		.map((t) => t.estimate)
 		.filter((n): n is number => typeof n === "number" && Number.isFinite(n));
@@ -211,40 +254,60 @@ export function computeWidgetData(
 		const scoped = mapping.scope
 			? tasks.filter((t) => matchesScope(t, mapping.scope as DashboardScope))
 			: tasks;
-		const value = estimateAggregate(scoped, mapping.metric);
+		const value = aggregateMetric(scoped, mapping.metric);
 		return {
 			kind: "kpi",
-			value,
-			decimals: mapping.metric === "estimateAvg" ? 1 : 0,
-			empty: scoped.length === 0,
+			value: value ?? 0,
+			...measureOf(mapping.metric),
+			empty: scoped.length === 0 || value == null,
 		};
 	}
 
 	if (mapping.chartType === "bar" || mapping.chartType === "pie") {
-		const counts = new Map<string, number>();
+		// A pie's slices must add up to its whole, so it only ever counts.
+		const metric: DashboardMetric =
+			mapping.chartType === "bar" ? (mapping.metric ?? "count") : "count";
+		const members = new Map<string, Task[]>();
 		for (const task of tasks) {
 			for (const key of groupKeys(task, mapping.groupBy)) {
-				counts.set(key, (counts.get(key) ?? 0) + 1);
+				let list = members.get(key);
+				if (!list) members.set(key, (list = []));
+				list.push(task);
 			}
 		}
-		const keys = orderedKeys(mapping.groupBy, counts, context);
+		// A group with nothing to measure (no finished task, for cycle time)
+		// gets no bar.
+		const values = new Map<string, number>();
+		for (const [key, list] of members) {
+			const value = aggregateMetric(list, metric);
+			if (value != null) values.set(key, value);
+		}
+		const keys = orderedKeys(mapping.groupBy, values, context);
 		const data: CategoricalDatum[] = keys.map((key, index) => ({
 			key,
 			label: valueLabel(mapping.groupBy, key, context),
-			value: counts.get(key) ?? 0,
+			value: values.get(key) ?? 0,
 			color: colorFor(mapping.groupBy, key, index, context),
 		}));
-		return { kind: "categorical", data, empty: data.length === 0 };
+		return {
+			kind: "categorical",
+			data,
+			...measureOf(metric),
+			empty: data.length === 0,
+		};
 	}
 
-	// line / timeline — temporal buckets, optionally split into series.
+	// line / timeline — temporal buckets, optionally split into series. A
+	// running total only adds up, so a timeline only ever counts.
 	const cumulative = mapping.chartType === "timeline";
+	const metric: DashboardMetric = cumulative ? "count" : (mapping.metric ?? "count");
+	const measure = measureOf(metric);
 	const dated = tasks
 		.map((task) => ({ task, date: temporalValue(task, mapping.xField) }))
 		.filter((row): row is { task: Task; date: Date } => row.date != null);
 
 	if (dated.length === 0) {
-		return { kind: "series", data: [], series: [], empty: true };
+		return { kind: "series", data: [], series: [], ...measure, empty: true };
 	}
 
 	const starts = dated
@@ -269,7 +332,9 @@ export function computeWidgetData(
 		key,
 		label:
 			key === "__all__"
-				? "Tasks"
+				? metric === "count"
+					? "Tasks"
+					: metricLabel(metric)
 				: valueLabel(mapping.groupBy as DashboardGroupingField, key, context),
 		color:
 			key === "__all__"
@@ -277,14 +342,16 @@ export function computeWidgetData(
 				: colorFor(mapping.groupBy as DashboardGroupingField, key, index, context),
 	}));
 
-	// Per-bucket, per-series counts.
-	const perBucket = new Map<string, Map<string, number>>();
+	// Per-bucket, per-series tasks.
+	const perBucket = new Map<string, Map<string, Task[]>>();
 	for (const { task, date } of dated) {
 		const iso = ymd(bucketStart(date, mapping.bucket));
 		let bucket = perBucket.get(iso);
-		if (!bucket) perBucket.set(iso, (bucket = new Map<string, number>()));
+		if (!bucket) perBucket.set(iso, (bucket = new Map<string, Task[]>()));
 		for (const key of rowKeys(task)) {
-			bucket.set(key, (bucket.get(key) ?? 0) + 1);
+			let list = bucket.get(key);
+			if (!list) bucket.set(key, (list = []));
+			list.push(task);
 		}
 	}
 
@@ -302,16 +369,17 @@ export function computeWidgetData(
 			label: bucketLabel(iso, mapping.bucket),
 		};
 		for (const meta of series) {
-			const delta = bucket?.get(meta.key) ?? 0;
+			const members = bucket?.get(meta.key) ?? [];
 			if (cumulative) {
-				running.set(meta.key, (running.get(meta.key) ?? 0) + delta);
+				running.set(meta.key, (running.get(meta.key) ?? 0) + members.length);
 				row[meta.key] = running.get(meta.key) ?? 0;
 			} else {
-				row[meta.key] = delta;
+				const value = aggregateMetric(members, metric);
+				if (value != null) row[meta.key] = value;
 			}
 		}
 		data.push(row);
 	}
 
-	return { kind: "series", data, series, empty: false };
+	return { kind: "series", data, series, ...measure, empty: false };
 }

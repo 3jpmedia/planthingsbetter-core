@@ -311,6 +311,7 @@ export function parseTask(
 
 	const createdAt = asDateTime(fm.createdAt);
 	const updatedAt = asDateTime(fm.updatedAt);
+	const startedAt = asDateTime(fm.startedAt) ?? null;
 	const completedAt = asDateTime(fm.completedAt) ?? null;
 	const archived = asBoolean(fm.archived, false);
 	const archivedAt = asDateTime(fm.archivedAt);
@@ -339,6 +340,7 @@ export function parseTask(
 		relations: parseRelations(fm.relations),
 		createdAt: createdAt ?? nowIso(),
 		updatedAt: updatedAt ?? createdAt ?? nowIso(),
+		startedAt,
 		completedAt,
 		path: options.path,
 		mentions: options.mentions ?? [],
@@ -402,6 +404,7 @@ export function serializeTask(task: Task): Record<string, unknown> {
 		archivedAt: task.archivedAt,
 		createdAt: task.createdAt,
 		updatedAt: task.updatedAt,
+		startedAt: task.startedAt,
 		completedAt: task.completedAt,
 	});
 
@@ -444,5 +447,6 @@ export const TASK_FIELD_ORDER: readonly string[] = [
 	"relations",
 	"createdAt",
 	"updatedAt",
+	"startedAt",
 	"completedAt",
 ] as const;

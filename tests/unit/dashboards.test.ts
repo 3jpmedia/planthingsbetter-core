@@ -11,7 +11,9 @@ import {
 } from "../../src/core/serialization/dashboards";
 import {
 	CHART_META,
+	autoTitle,
 	computeWidgetData,
+	cycleTimeDays,
 	defaultFieldMapping,
 	firstOpenSlot,
 	isFieldMappingValid,
@@ -22,6 +24,7 @@ import {
 import type {
 	DashboardConfig,
 	DashboardWidget,
+	Task,
 } from "../../src/core/types";
 
 const snapshot = sampleSnapshot();
@@ -376,6 +379,117 @@ describe("computeWidgetData", () => {
 		);
 		if (data.kind !== "series") throw new Error("expected series");
 		expect(data.series.length).toBeGreaterThan(1);
+	});
+});
+
+describe("cycle time", () => {
+	const base = snapshot.tasks[0];
+	const day = (d: number, h = 0) => new Date(Date.UTC(2026, 8, d, h)).toISOString();
+	/** A task started on day `start` and finished on day `end` of Sept 2026. */
+	const ran = (id: string, start: number | null, end: number | null, status = base.status): Task => ({
+		...base,
+		id,
+		path: id,
+		status,
+		startedAt: start == null ? null : day(start),
+		completedAt: end == null ? null : day(end),
+	});
+	const tasks = [ran("a", 1, 3), ran("b", 1, 5), ran("c", 2, 12), ran("d", null, 4), ran("e", 7, null)];
+
+	it("measures only tasks that were both started and finished", () => {
+		expect(cycleTimeDays(ran("x", 1, 3))).toBe(2);
+		expect(cycleTimeDays(ran("x", null, 3))).toBeNull();
+		expect(cycleTimeDays(ran("x", 3, null))).toBeNull();
+		// A completion before the start is nonsense, not a negative time.
+		expect(cycleTimeDays(ran("x", 5, 3))).toBeNull();
+	});
+
+	it("averages and takes the median for a KPI, in days", () => {
+		const kpi = (metric: "cycleTimeAvg" | "cycleTimeMedian") =>
+			computeWidgetData(widget({ id: "k", chartType: "kpi", fieldMapping: { chartType: "kpi", metric, scope: null } }), tasks, context);
+		expect(kpi("cycleTimeAvg")).toMatchObject({ kind: "kpi", value: (2 + 4 + 10) / 3, decimals: 1, unit: "days", empty: false });
+		expect(kpi("cycleTimeMedian")).toMatchObject({ value: 4, unit: "days" });
+	});
+
+	it("is empty when no task has a cycle time", () => {
+		const data = computeWidgetData(
+			widget({ id: "k", chartType: "kpi", fieldMapping: { chartType: "kpi", metric: "cycleTimeAvg", scope: null } }),
+			[ran("d", null, 4)],
+			context,
+		);
+		expect(data.empty).toBe(true);
+	});
+
+	it("gives a bar per group with something to measure", () => {
+		const data = computeWidgetData(
+			widget({ id: "b", chartType: "bar", fieldMapping: { chartType: "bar", groupBy: "status", metric: "cycleTimeAvg" } }),
+			[ran("a", 1, 3, "done"), ran("b", 1, 5, "done"), ran("e", 7, null, "todo")],
+			context,
+		);
+		if (data.kind !== "categorical") throw new Error("expected categorical");
+		expect(data.unit).toBe("days");
+		expect(data.data.map((d) => [d.key, d.value])).toEqual([["done", 3]]);
+	});
+
+	it("plots cycle time by completion week, leaving gaps where nothing finished", () => {
+		const data = computeWidgetData(
+			widget({
+				id: "l",
+				chartType: "line",
+				fieldMapping: { chartType: "line", xField: "completedAt", bucket: "week", groupBy: null, metric: "cycleTimeMedian" },
+			}),
+			[ran("a", 1, 1), ran("b", 1, 3), ran("c", 2, 23)],
+			context,
+		);
+		if (data.kind !== "series") throw new Error("expected series");
+		// Weeks of Aug 31, Sep 7, Sep 14 and Sep 21: nothing finished in the middle two.
+		expect(data.data.map((row) => row.__all__)).toEqual([1, undefined, undefined, 21]);
+	});
+
+	it("keeps a timeline a running count, whatever it's asked", () => {
+		const data = computeWidgetData(
+			widget({
+				id: "t",
+				chartType: "timeline",
+				fieldMapping: { chartType: "timeline", xField: "completedAt", bucket: "month", groupBy: null },
+			}),
+			tasks,
+			context,
+		);
+		expect(data).toMatchObject({ kind: "series", decimals: 0 });
+	});
+
+	it("names what a chart measures in its title, and keeps the measure across chart types", () => {
+		const bar = { chartType: "bar", groupBy: "assignee", metric: "cycleTimeMedian" } as const;
+		expect(autoTitle(bar, context)).toBe("Median cycle time by Assignee");
+		expect(autoTitle({ chartType: "bar", groupBy: "assignee" }, context)).toBe("Tasks by Assignee");
+		expect(retargetFieldMapping(bar, "kpi")).toEqual({ chartType: "kpi", metric: "cycleTimeMedian", scope: null });
+		expect(retargetFieldMapping(bar, "pie")).toEqual({ chartType: "pie", groupBy: "assignee" });
+		const line = retargetFieldMapping({ chartType: "kpi", metric: "cycleTimeAvg", scope: null }, "line");
+		expect(line).toMatchObject({ chartType: "line", metric: "cycleTimeAvg" });
+		expect(isFieldMappingValid(line)).toBe(true);
+	});
+
+	it("round-trips a bar's and a line's measure through the note", () => {
+		const source: DashboardConfig = {
+			type: "vertex-flow-dashboard",
+			path: "",
+			id: "flow",
+			name: "Flow",
+			icon: "gauge",
+			filters: {},
+			widgets: [
+				widget({ id: "w1", chartType: "bar", fieldMapping: { chartType: "bar", groupBy: "assignee", metric: "cycleTimeAvg" } }),
+				widget({
+					id: "w2",
+					chartType: "line",
+					fieldMapping: { chartType: "line", xField: "completedAt", bucket: "week", groupBy: null, metric: "cycleTimeMedian" },
+				}),
+				widget({ id: "w3", chartType: "bar", fieldMapping: { chartType: "bar", groupBy: "status" } }),
+			],
+		};
+		const { value } = parseDashboard(serializeDashboard(source), { path: "" });
+		expect(value.widgets.map((w) => w.fieldMapping)).toEqual(source.widgets.map((w) => w.fieldMapping));
 	});
 });
 

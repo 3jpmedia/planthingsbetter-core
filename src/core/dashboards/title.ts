@@ -32,6 +32,7 @@ const TEMPORAL_LABEL: Record<DashboardTemporalField, string> = {
   startDate: "Start date",
   createdAt: "Created date",
   updatedAt: "Updated date",
+  startedAt: "Started date",
   completedAt: "Completed date",
 };
 
@@ -39,6 +40,8 @@ const METRIC_LABEL: Record<DashboardMetric, string> = {
   count: "Task count",
   estimateSum: "Estimate sum",
   estimateAvg: "Average estimate",
+  cycleTimeAvg: "Average cycle time",
+  cycleTimeMedian: "Median cycle time",
 };
 
 export function groupingFieldLabel(field: DashboardGroupingField): string {
@@ -84,6 +87,11 @@ function describeScope(scope: DashboardScope, context: ViewContext): string {
   return `${GROUPING_LABEL[scope.field]} is ${valueLabel(scope.field, scope.value, context)}`;
 }
 
+/** What a bar or line measures, as a title's head: "Tasks" for a count. */
+function measured(metric: DashboardMetric | undefined): string {
+  return !metric || metric === "count" ? "Tasks" : METRIC_LABEL[metric];
+}
+
 export function autoTitle(
   mapping: DashboardFieldMapping,
   context: ViewContext,
@@ -91,13 +99,13 @@ export function autoTitle(
   switch (mapping.chartType) {
     case "bar":
     case "pie":
-      return `Tasks by ${GROUPING_LABEL[mapping.groupBy]}`;
+      return `${measured(mapping.chartType === "bar" ? mapping.metric : undefined)} by ${GROUPING_LABEL[mapping.groupBy]}`;
     case "line":
     case "timeline": {
       const head =
         mapping.chartType === "timeline"
           ? `Cumulative tasks by ${TEMPORAL_LABEL[mapping.xField]}`
-          : `Tasks by ${TEMPORAL_LABEL[mapping.xField]}`;
+          : `${measured(mapping.metric)} by ${TEMPORAL_LABEL[mapping.xField]}`;
       return mapping.groupBy
         ? `${head}, split by ${GROUPING_LABEL[mapping.groupBy]}`
         : head;
