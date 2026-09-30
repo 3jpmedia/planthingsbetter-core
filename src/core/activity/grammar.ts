@@ -94,6 +94,10 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	defaultNewTaskStatus: { token: "default-status", aliases: ["defaultnewtaskstatus"], resolveAs: "status" },
 	defaultNewTaskType: { token: "default-type", aliases: ["defaultnewtasktype"], resolveAs: "taskType" },
 	trashRetentionDays: { token: "trash-retention", aliases: ["trashretentiondays"] },
+	charts: { token: "charts", aliases: ["widgets"] },
+	chart: { token: "chart", aliases: ["widget"] },
+	chartLayout: { token: "chart-layout", aliases: ["chartlayout", "arrangement"] },
+	filter: { token: "filter", aliases: ["filters"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's

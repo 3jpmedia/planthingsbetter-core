@@ -52,6 +52,11 @@ export type ActivityVerb = (typeof ACTIVITY_VERBS)[number];
  *
  * `memberStatus` is a membership's own invited/active/removed state, named
  * apart from a task's `status` so a query on one never matches the other.
+ *
+ * A dashboard's: `charts` (the list, for charts added and removed), `chart`
+ * (the charts edited -- retitled, a different kind or data), `chartLayout`
+ * (moved or resized, recorded without values) and `filter` (its query
+ * text, before and after).
  */
 export const ACTIVITY_FIELDS = [
 	"title",
@@ -82,6 +87,10 @@ export const ACTIVITY_FIELDS = [
 	"defaultNewTaskStatus",
 	"defaultNewTaskType",
 	"trashRetentionDays",
+	"charts",
+	"chart",
+	"chartLayout",
+	"filter",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

@@ -139,3 +139,12 @@ describe("activityListDelta", () => {
 		expect(activityListDelta(null, [a])).toEqual({ added: [a], removed: [] });
 	});
 });
+
+describe("dashboard fields", () => {
+	it("parse and print", () => {
+		const parsed = parseActivityQuery("activityItem:dashboard activityField:charts,chart,chart-layout,filter", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query.activity.field).toEqual(["charts", "chart", "chartLayout", "filter"]);
+		expectRoundTrip(parsed.query);
+	});
+});
