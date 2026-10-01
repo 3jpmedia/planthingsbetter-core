@@ -106,6 +106,11 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	parentDoc: { token: "parent-doc", aliases: ["parentdoc"] },
 	task: { token: "task", aliases: [] },
 	defaultNewDocStatus: { token: "default-doc-status", aliases: ["defaultnewdocstatus"] },
+	rows: { token: "rows", aliases: ["row"] },
+	cell: { token: "cell", aliases: ["cells"] },
+	columns: { token: "columns", aliases: [] },
+	column: { token: "column", aliases: [] },
+	tableViews: { token: "table-views", aliases: ["tableviews", "table-view"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's

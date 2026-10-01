@@ -45,6 +45,12 @@ describe("parseActivityQuery", () => {
 		expect(parsed.ok).toBe(true);
 	});
 
+	it("knows a table's fields", () => {
+		const parsed = parseActivityQuery("activityField:rows,cells,column,table-views", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query.activity.field).toEqual(["rows", "cell", "column", "tableViews"]);
+	});
+
 	it("excludes with a leading minus", () => {
 		const parsed = parseActivityQuery("-activityBy:me -activityItem:label", ctx);
 		expect(parsed.query.activity).toEqual({ notBy: [SELF], notKind: ["label"] });

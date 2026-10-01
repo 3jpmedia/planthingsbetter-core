@@ -64,6 +64,12 @@ export type ActivityVerb = (typeof ACTIVITY_VERBS)[number];
  * `docType`, `docStatus` (named apart from a task's `status`, since doc
  * statuses are their own list), `parentDoc` (moved in the tree) and `task`
  * (the task it's attached to).
+ *
+ * A table doc's (a small database): `rows` (the list, for rows added and
+ * removed), `cell` (one row's value in one column -- the change names the
+ * row and the column), `columns` (the list, for columns added and
+ * removed), `column` (a column renamed, given another type or options) and
+ * `tableViews` (its saved views, added, removed or changed).
  */
 export const ACTIVITY_FIELDS = [
 	"title",
@@ -104,6 +110,11 @@ export const ACTIVITY_FIELDS = [
 	"parentDoc",
 	"task",
 	"defaultNewDocStatus",
+	"rows",
+	"cell",
+	"columns",
+	"column",
+	"tableViews",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 
@@ -136,6 +147,10 @@ export interface ActivityChange {
 	field: ActivityField;
 	from?: ActivityValue;
 	to?: ActivityValue;
+	/** A table's `cell`: the row it's in, as it was named then. */
+	row?: ActivityRef;
+	/** A table's `cell`: its column's name then. */
+	column?: string;
 }
 
 /** What the Activity page's query narrows entries with, beyond the task
