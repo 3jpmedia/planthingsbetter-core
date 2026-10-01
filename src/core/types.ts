@@ -387,6 +387,13 @@ export interface Task {
 	path: LinkTarget;
 	/** `Person.id`s @mentioned in the body/comments — powers `mentions: self`. */
 	mentions: string[];
+	/**
+	 * How many comments it has -- filled where the app knows it (the web
+	 * app's comments, the plugin's body-read pass). Optional because a
+	 * `Task` literal (parse, mutation, a projected occurrence) doesn't;
+	 * read as 0 when absent.
+	 */
+	commentCount?: number;
 
 	/**
 	 * A speculative future occurrence of a recurring series, synthesised by
@@ -643,7 +650,9 @@ export type SortField =
 	| "assignee"
 	| "labels"
 	| "progress"
-	| "relations";
+	| "relations"
+	| "comments"
+	| "subtasks";
 
 export type SortDirection = "asc" | "desc";
 

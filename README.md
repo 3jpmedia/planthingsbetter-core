@@ -11,6 +11,8 @@ Covers:
 - The filter/query grammar used by saved views and dashboards
 - Sub-task hierarchy, blocks/blocked-by relations, and cycle detection
 - Recurrence, activity history, and workspace templates
+- The MCP servers' JSON payloads (tasks, projects, views, dashboards,
+  counts, summaries, `run_view`), with each app supplying its own links
 - Frontmatter-shaped (de)serialization helpers for the two products' storage
   layers to build on
 

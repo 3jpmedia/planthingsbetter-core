@@ -169,6 +169,8 @@ const SORT_FIELDS: SortField[] = [
 	"labels",
 	"progress",
 	"relations",
+	"comments",
+	"subtasks",
 ];
 const EMPTY_BEHAVIORS: EmptyColumnBehavior[] = [
 	"show-normal",
