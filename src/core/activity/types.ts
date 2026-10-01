@@ -26,6 +26,7 @@ export const ACTIVITY_KINDS = [
 	"workspace",
 	"doc",
 	"docStatus",
+	"folder",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -70,6 +71,9 @@ export type ActivityVerb = (typeof ACTIVITY_VERBS)[number];
  * row and the column), `columns` (the list, for columns added and
  * removed), `column` (a column renamed, given another type or options) and
  * `tableViews` (its saved views, added, removed or changed).
+ *
+ * Folders: `folder` (a project, view, dashboard or label moved into another
+ * folder, or out of any) and `parentFolder` (a folder moved inside another).
  */
 export const ACTIVITY_FIELDS = [
 	"title",
@@ -115,6 +119,8 @@ export const ACTIVITY_FIELDS = [
 	"columns",
 	"column",
 	"tableViews",
+	"folder",
+	"parentFolder",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 
