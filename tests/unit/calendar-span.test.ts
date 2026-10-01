@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseQuery, printQuery } from "../../src/core/query";
+import { parseQuery, printQuery, queryContext } from "../../src/core/query";
 import {
 	calendarAnchorDate,
 	calendarDays,
@@ -9,6 +9,7 @@ import {
 	startOfWeek,
 	unscheduledForCalendar,
 } from "../../src/core/views/calendar";
+import { sampleSnapshot } from "../../src/core/templates/instantiate";
 import { task } from "./fixtures";
 
 describe("calendarSpan", () => {
@@ -86,23 +87,25 @@ describe("calendar layouts", () => {
 	});
 });
 
+const ctx = queryContext(sampleSnapshot());
+
 describe("date: and calendar: clauses", () => {
 	it("reads and prints one date or two, and the layout", () => {
-		const { definition, ok } = parseQuery("layout:calendar date:start,due calendar:2weeks");
+		const { definition, ok } = parseQuery("layout:calendar date:start,due calendar:2weeks", ctx);
 		expect(ok).toBe(true);
 		expect(definition.calendarDateField).toBe("startDate");
 		expect(definition.calendarEndField).toBe("dueDate");
 		expect(definition.calendarMode).toBe("2weeks");
-		expect(printQuery(definition)).toContain("date:start,due");
-		expect(printQuery(definition)).toContain("calendar:2weeks");
+		expect(printQuery(definition, ctx)).toContain("date:start,due");
+		expect(printQuery(definition, ctx)).toContain("calendar:2weeks");
 	});
 
 	it("accepts the new dates, drops a repeated one, and rejects a third", () => {
-		expect(parseQuery("date:created,completed").definition.calendarEndField).toBe("completedAt");
-		const same = parseQuery("date:due,due").definition;
+		expect(parseQuery("date:created,completed", ctx).definition.calendarEndField).toBe("completedAt");
+		const same = parseQuery("date:due,due", ctx).definition;
 		expect(same.calendarEndField).toBeNull();
-		expect(printQuery(same)).not.toContain("date:");
-		expect(parseQuery("date:start,due,created").ok).toBe(false);
-		expect(parseQuery("calendar:year").ok).toBe(false);
+		expect(printQuery(same, ctx)).not.toContain("date:");
+		expect(parseQuery("date:start,due,created", ctx).ok).toBe(false);
+		expect(parseQuery("calendar:year", ctx).ok).toBe(false);
 	});
 });
