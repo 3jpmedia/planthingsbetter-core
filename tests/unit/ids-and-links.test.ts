@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
 	derivePrefix,
 	disambiguatePrefix,
+	formatKey,
 	formatTaskId,
 	newConfigId,
 	nextTaskId,
+	parseKey,
 	parseTaskId,
 	slugify,
 	suggestPrefix,
@@ -93,6 +95,34 @@ describe("task ids", () => {
 
 	it("ignores ids belonging to another workspace's prefix", () => {
 		expect(nextTaskId("PRD", ["MKT-0099", "PRD-0001"])).toBe("PRD-0002");
+	});
+});
+
+describe("entity keys", () => {
+	it("formats a letter and a padded number, no workspace prefix", () => {
+		expect(formatKey("task", 42)).toBe("T-0042");
+		expect(formatKey("project", 5)).toBe("P-0005");
+		expect(formatKey("doc", 4)).toBe("N-0004");
+		expect(formatKey("task", 12345)).toBe("T-12345");
+	});
+
+	it("round-trips every kind", () => {
+		for (const kind of ["task", "project", "view", "dashboard", "doc", "label", "member", "channel"] as const) {
+			expect(parseKey(formatKey(kind, 7), kind)).toBe(7);
+		}
+	});
+
+	it("is case-insensitive and padding-optional", () => {
+		expect(parseKey("t-42", "task")).toBe(42);
+		expect(parseKey(" T-0042 ", "task")).toBe(42);
+	});
+
+	it("rejects another kind's key and old prefixed keys", () => {
+		expect(parseKey("P-0005", "task")).toBeNull();
+		expect(parseKey("T-0005", "project")).toBeNull();
+		expect(parseKey("SP-0042", "task")).toBeNull();
+		expect(parseKey("SP-P0005", "project")).toBeNull();
+		expect(parseKey("T0042", "task")).toBeNull();
 	});
 });
 

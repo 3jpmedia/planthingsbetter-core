@@ -178,6 +178,42 @@ export function parseEntityKey(
 }
 
 /**
+ * The type letter in each kind of entity's display key -- `T-0042` is a
+ * task, `P-0005` a project. A database-backed app scopes keys to one
+ * workspace by context (the URL, the request), so unlike `formatTaskId`/
+ * `formatEntityKey` there's no workspace prefix: the letter alone is what
+ * tells two kinds sharing a number apart.
+ */
+export const ENTITY_KEY_LETTERS = {
+	task: "T",
+	project: "P",
+	view: "V",
+	dashboard: "D",
+	doc: "N",
+	label: "L",
+	member: "M",
+	channel: "C",
+} as const;
+
+export type KeyedEntity = keyof typeof ENTITY_KEY_LETTERS;
+
+/** `("task", 42)` → `"T-0042"`. */
+export function formatKey(kind: KeyedEntity, sequence: number): string {
+	return `${ENTITY_KEY_LETTERS[kind]}-${String(sequence).padStart(ID_DIGITS, "0")}`;
+}
+
+/**
+ * `("T-0042", "task")` → `42`, or `null` if malformed or another kind's
+ * key -- strict about the letter, so `"P-0005"` is never read as a task.
+ * Case-insensitive, and the padding is optional (`"t-42"` works).
+ */
+export function parseKey(key: string, kind: KeyedEntity): number | null {
+	const match = /^([A-Z])-(\d+)$/.exec(key.trim().toUpperCase());
+	if (!match || match[1] !== ENTITY_KEY_LETTERS[kind]) return null;
+	return Number.parseInt(match[2], 10);
+}
+
+/**
  * Next free ID for a workspace. Takes the max existing sequence rather than a
  * count, so deleting a task never causes a later task to reuse its ID.
  */
