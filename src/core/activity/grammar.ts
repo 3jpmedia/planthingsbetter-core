@@ -120,6 +120,7 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	visibility: { token: "visibility", aliases: [] },
 	plan: { token: "plan", aliases: [] },
 	subscriptionStatus: { token: "billing-status", aliases: ["subscription"] },
+	internal: { token: "internal", aliases: ["hidden-from-guests"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's

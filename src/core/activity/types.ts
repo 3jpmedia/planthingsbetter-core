@@ -132,6 +132,8 @@ export const ACTIVITY_FIELDS = [
 	// A workspace's plan and its subscription's state (PTB's billing).
 	"plan",
 	"subscriptionStatus",
+	// A task hidden from the workspace's guests.
+	"internal",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 
