@@ -12,6 +12,7 @@ import {
 	resizeStart,
 	shiftBar,
 	taskBar,
+	barFromDates,
 	type Bar,
 	type RangeBar,
 } from "../../src/core/views/timeline";
@@ -44,6 +45,21 @@ describe("day arithmetic", () => {
 	it("measures the gap between two dates", () => {
 		expect(daysBetween("2026-08-20", "2026-08-28")).toBe(8);
 		expect(daysBetween("2026-08-28", "2026-08-20")).toBe(-8);
+	});
+});
+
+/* -------------------------------------------------------- barFromDates ---- */
+
+describe("barFromDates", () => {
+	it("makes any two dates a bar, by which are set", () => {
+		expect(barFromDates("2026-08-20", "2026-08-28")).toEqual({ kind: "range", start: "2026-08-20", end: "2026-08-28" });
+		expect(barFromDates(null, "2026-08-28")).toEqual({ kind: "milestone", date: "2026-08-28" });
+		expect(barFromDates("2026-08-20", null)).toEqual({ kind: "open", start: "2026-08-20" });
+		expect(barFromDates(null, null)).toEqual({ kind: "unscheduled" });
+	});
+
+	it("draws a start after the end as one day, at the end", () => {
+		expect(barFromDates("2026-08-30", "2026-08-28")).toEqual({ kind: "range", start: "2026-08-28", end: "2026-08-28" });
 	});
 });
 

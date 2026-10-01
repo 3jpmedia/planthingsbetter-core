@@ -110,7 +110,12 @@ export function daysBetween(a: IsoDate, b: IsoDate): number {
 // Bar construction
 // ---------------------------------------------------------------------------
 
-function barFromDates(
+/**
+ * Any two dates as a `Bar`: both set is a range, just the end a milestone,
+ * just the start an open bar, neither unscheduled. Used for tasks and
+ * projects, and for any record with a start and an end (a database row).
+ */
+export function barFromDates(
 	startDate: IsoDate | null,
 	dueDate: IsoDate | null,
 ): Bar {
