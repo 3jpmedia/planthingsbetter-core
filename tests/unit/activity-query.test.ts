@@ -39,6 +39,11 @@ describe("parseActivityQuery", () => {
 		expect(parsed.query.activity).toEqual({ by: [SELF], action: ["trash", "restore"] });
 	});
 
+	it("reads making something private again", () => {
+		expect(parseActivityQuery("activityAction:unshared", ctx).query.activity.action).toEqual(["unshare"]);
+		expect(parseActivityQuery("activityAction:private", ctx).query.activity.action).toEqual(["unshare"]);
+	});
+
 	it("resolves people by email, name, `me` and `system`", () => {
 		const parsed = parseActivityQuery("activityBy:bea@example.com,Allan,system", ctx);
 		expect(parsed.query.activity.by).toEqual(["u2", "u1", NONE]);
@@ -111,6 +116,7 @@ describe("printActivityQuery", () => {
 			},
 		});
 		expectRoundTrip({ items: {}, activity: { action: ["delete"], notBy: [SELF] } });
+		expectRoundTrip({ items: {}, activity: { action: ["share", "unshare"] } });
 		expectRoundTrip({ items: {}, activity: {} });
 	});
 

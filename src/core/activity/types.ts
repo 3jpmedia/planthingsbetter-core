@@ -33,8 +33,8 @@ export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
 /**
  * What happened. `delete` is "deleted forever" -- moving something to the
- * Trash is `trash`. `share` is a private view or dashboard made
- * workspace-wide.
+ * Trash is `trash`. `share` is a private view, dashboard or doc made
+ * visible to everyone in its place; `unshare` is one made private again.
  */
 export const ACTIVITY_VERBS = [
 	"create",
@@ -44,6 +44,7 @@ export const ACTIVITY_VERBS = [
 	"restore",
 	"delete",
 	"share",
+	"unshare",
 ] as const;
 export type ActivityVerb = (typeof ACTIVITY_VERBS)[number];
 

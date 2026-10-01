@@ -41,6 +41,7 @@ export const ACTIVITY_VERB_VALUES: Record<ActivityVerb, EnumValueSpec> = {
 	restore: { token: "restored", aliases: ["restore"] },
 	delete: { token: "deleted", aliases: ["delete", "purged", "purge"] },
 	share: { token: "shared", aliases: ["share"] },
+	unshare: { token: "unshared", aliases: ["unshare", "made-private", "private"] },
 };
 
 export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
