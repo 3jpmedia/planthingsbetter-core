@@ -27,6 +27,7 @@ export const ACTIVITY_KINDS = [
 	"doc",
 	"docStatus",
 	"folder",
+	"space",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -74,6 +75,10 @@ export type ActivityVerb = (typeof ACTIVITY_VERBS)[number];
  *
  * Folders: `folder` (a project, view, dashboard or label moved into another
  * folder, or out of any) and `parentFolder` (a folder moved inside another).
+ *
+ * Spaces: `space` (anything moved into a Space, or out to the whole
+ * workspace), and a Space's own `people` (who was added or removed) and
+ * `visibility` (open to every member, or private to the people added).
  */
 export const ACTIVITY_FIELDS = [
 	"title",
@@ -121,6 +126,9 @@ export const ACTIVITY_FIELDS = [
 	"tableViews",
 	"folder",
 	"parentFolder",
+	"space",
+	"people",
+	"visibility",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

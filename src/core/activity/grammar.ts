@@ -57,6 +57,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	doc: { token: "doc", aliases: ["docs", "document", "documents"] },
 	docStatus: { token: "doc-status", aliases: ["docstatus", "doc-statuses"] },
 	folder: { token: "folder", aliases: ["folders"] },
+	space: { token: "space", aliases: ["spaces"] },
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {
@@ -114,6 +115,9 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	tableViews: { token: "table-views", aliases: ["tableviews", "table-view"] },
 	folder: { token: "folder", aliases: [] },
 	parentFolder: { token: "parent-folder", aliases: ["parentfolder"] },
+	space: { token: "space", aliases: [] },
+	people: { token: "people", aliases: ["person"], resolveAs: "person" },
+	visibility: { token: "visibility", aliases: [] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's

@@ -193,6 +193,7 @@ export const ENTITY_KEY_LETTERS = {
 	label: "L",
 	member: "M",
 	channel: "C",
+	space: "S",
 } as const;
 
 export type KeyedEntity = keyof typeof ENTITY_KEY_LETTERS;
