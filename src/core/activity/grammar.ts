@@ -118,6 +118,8 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	space: { token: "space", aliases: [] },
 	people: { token: "people", aliases: ["person"], resolveAs: "person" },
 	visibility: { token: "visibility", aliases: [] },
+	plan: { token: "plan", aliases: [] },
+	subscriptionStatus: { token: "billing-status", aliases: ["subscription"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's
