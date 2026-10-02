@@ -33,6 +33,16 @@ views:
     description: How the work connects - what's blocking what.
     icon: workflow
     type: canvas
+  - name: All open work
+    description: Everything still to do, by project - the most urgent first.
+    icon: list-checks
+    query: 'is:open'
+    groupBy: project
+    sortBy: priority
+  - name: Release calendar
+    description: What's due when - the beta, the store submission and everything before them.
+    icon: calendar
+    type: calendar
 
 dashboards:
   - name: Team Overview
