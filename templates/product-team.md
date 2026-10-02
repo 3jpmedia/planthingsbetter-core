@@ -42,6 +42,7 @@ dashboards:
       - [{type: kpi, title: In Progress, metric: count, scope: {field: status, value: In Progress}}, {type: kpi, title: Open Bugs, metric: count, scope: {field: taskType, value: Bug}}, {type: kpi, title: Customer Requests, metric: count, scope: {field: label, value: Customer request}}]
       - [{type: bar, title: Tasks by Status, groupBy: status, weight: 7}, {type: pie, title: Tasks by Type, groupBy: taskType, weight: 5}]
       - [{type: bar, title: Work by Person, groupBy: assignee, weight: 6}, {type: timeline, title: Due Dates by Week, xField: dueDate, bucket: week, groupBy: status, weight: 6}]
+      - [{type: line, title: Completed per Week, xField: completedAt, bucket: week}]
 ---
 
 # Projects
