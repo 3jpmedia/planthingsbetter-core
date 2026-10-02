@@ -194,6 +194,8 @@ export const ENTITY_KEY_LETTERS = {
 	member: "M",
 	channel: "C",
 	space: "S",
+	/** A support conversation ("Help"): someone in the workspace and support. */
+	support: "H",
 } as const;
 
 export type KeyedEntity = keyof typeof ENTITY_KEY_LETTERS;
