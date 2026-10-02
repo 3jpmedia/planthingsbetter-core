@@ -135,6 +135,8 @@ export const ACTIVITY_FIELDS = [
 	"subscriptionStatus",
 	// A task hidden from the workspace's guests.
 	"internal",
+	// Who a view, dashboard or doc belongs to -- its "Only me" when private.
+	"owner",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 
