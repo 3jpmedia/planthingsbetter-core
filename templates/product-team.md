@@ -22,8 +22,7 @@ views:
   - name: Bugs to fix
     description: Every open bug, the most urgent first.
     icon: bug
-    query: 'type:Bug is:open'
-    sortBy: priority
+    query: 'type:Bug is:open sort:priority'
   - name: Roadmap
     description: Everything with dates, on a timeline by project.
     icon: gantt-chart
@@ -36,9 +35,7 @@ views:
   - name: All open work
     description: Everything still to do, by project - the most urgent first.
     icon: list-checks
-    query: 'is:open'
-    groupBy: project
-    sortBy: priority
+    query: 'is:open group:project sort:priority'
   - name: Release calendar
     description: What's due when - the beta, the store submission and everything before them.
     icon: calendar
