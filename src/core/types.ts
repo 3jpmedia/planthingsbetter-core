@@ -297,6 +297,14 @@ export interface RecurrenceConfig {
 	onCloseStartDateMode?: OnCloseDateMode;
 	/** `on-close` only: same semantics as `onCloseStartDateMode`, for Due Date. */
 	onCloseDueDateMode?: OnCloseDateMode;
+	/**
+	 * `on-close` only: count the cadence from the day it's completed -- "every
+	 * week, after it's done". The next occurrence's `anchor` date lands one
+	 * cadence step (`freq` x `interval`, no day patterns) after completion,
+	 * and its other date keeps the source's gap; a source with no dates
+	 * yields one with none. When set, the two date modes above are unused.
+	 */
+	onCloseCadence?: boolean;
 	/** The status a spawned occurrence starts in; `null` = workspace default. */
 	newStatus: string | null;
 	/**

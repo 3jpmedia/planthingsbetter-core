@@ -95,6 +95,18 @@ function buildPlan(
 	day: IsoDate,
 	terminal: boolean,
 ): OccurrencePlan {
+	if (rule.trigger === "on-close" && rule.onCloseCadence) {
+		// "Every N <unit>, after it's done": one plain cadence step from the
+		// day it's completed, the source's start-to-due gap kept.
+		const plain: RecurrenceConfig = { ...rule, weekdays: [], dayOfMonth: null, weekdayOfMonth: null, monthOfYear: null };
+		const due = nextOccurrence(plain, day);
+		return {
+			sourcePath: node.path,
+			date: due,
+			...shiftOccurrenceDates(node, rule.anchor, due),
+			recurrence: terminal ? null : { ...rule },
+		};
+	}
 	if (rule.trigger === "on-close") {
 		// Status-driven: no cadence, so there's nothing to advance — only
 		// today's date and each field's own mode decide what lands. "shifted"

@@ -151,6 +151,14 @@ export function describeRecurrence(
 ): string {
 	// Status-driven series have no cadence to describe — the trigger (plus
 	// whatever dates it sets) is the whole story.
+	if (rule.trigger === "on-close" && rule.onCloseCadence) {
+		const unit = { daily: "day", weekly: "week", monthly: "month", yearly: "year" }[rule.freq];
+		const every = Math.max(1, rule.interval) === 1 ? `Every ${unit}` : `Every ${rule.interval} ${unit}s`;
+		const parts = [`${every} after it's ${rule.triggerStatus == null ? "done" : `set to ${statuses.find((value) => value.id === rule.triggerStatus)?.name ?? rule.triggerStatus}`}`];
+		if (rule.endsAfter != null) parts.push(`${rule.endsAfter} occurrences total`);
+		if (rule.endsOn) parts.push(`until ${rule.endsOn}`);
+		return parts.join(", ");
+	}
 	const parts =
 		rule.trigger === "on-close"
 			? [describeTrigger(rule, statuses), describeOnCloseDates(rule)].filter(

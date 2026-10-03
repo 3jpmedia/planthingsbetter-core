@@ -1053,3 +1053,33 @@ describe("copyFields serialization and default behavior", () => {
 		expect(r.copyFields).toBeNull();
 	});
 });
+describe("spawnPlans — on-close counted from completion", () => {
+	const doneStatus = () => sample.workspace.statuses.find((status) => status.category === "completed")!.id;
+
+	it("lands the due date one step after completion, keeping the start-to-due gap", () => {
+		const node = nodeTask({
+			status: doneStatus(),
+			startDate: "2026-09-01",
+			dueDate: "2026-09-03",
+			recurrence: rule({ trigger: "on-close", onCloseCadence: true, freq: "weekly", interval: 2 }),
+		});
+		const [plan] = spawnPlans(snapshotWith([node]), node, "2026-10-09");
+		expect(plan.dueDate).toBe("2026-10-23");
+		expect(plan.startDate).toBe("2026-10-21");
+		expect(plan.recurrence?.onCloseCadence).toBe(true);
+	});
+
+	it("gives a dateless task a dateless next one", () => {
+		const node = nodeTask({ status: doneStatus(), startDate: null, dueDate: null, recurrence: rule({ trigger: "on-close", onCloseCadence: true }) });
+		const [plan] = spawnPlans(snapshotWith([node]), node, "2026-10-09");
+		expect(plan.dueDate).toBeNull();
+		expect(plan.startDate).toBeNull();
+	});
+
+	it("reads as a sentence", () => {
+		expect(describeRecurrence(rule({ trigger: "on-close", onCloseCadence: true, freq: "weekly" }), sample.workspace.statuses)).toBe("Every week after it's done");
+		expect(describeRecurrence(rule({ trigger: "on-close", onCloseCadence: true, freq: "daily", interval: 3, endsAfter: 4 }), sample.workspace.statuses)).toBe(
+			"Every 3 days after it's done, 4 occurrences total",
+		);
+	});
+});
