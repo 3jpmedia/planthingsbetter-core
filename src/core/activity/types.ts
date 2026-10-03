@@ -28,7 +28,7 @@ export const ACTIVITY_KINDS = [
 	"docStatus",
 	"folder",
 	"space",
-	"taskTemplate",
+	"template",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -146,6 +146,10 @@ export const ACTIVITY_FIELDS = [
 	// whether its members may subscribe to calendar feeds.
 	"estimates",
 	"calendarFeeds",
+	// A template's own: the title a task made from it gets, and its list of
+	// sub-tasks.
+	"taskTitle",
+	"subtasks",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

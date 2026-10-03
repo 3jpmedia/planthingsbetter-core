@@ -196,6 +196,8 @@ export const ENTITY_KEY_LETTERS = {
 	space: "S",
 	/** A support conversation ("Help"): someone in the workspace and support. */
 	support: "H",
+	/** A template (task, and later project or Space): "X", since "T" is a task. */
+	template: "X",
 } as const;
 
 export type KeyedEntity = keyof typeof ENTITY_KEY_LETTERS;
