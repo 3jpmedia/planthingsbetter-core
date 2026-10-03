@@ -59,6 +59,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	docStatus: { token: "doc-status", aliases: ["docstatus", "doc-statuses"] },
 	folder: { token: "folder", aliases: ["folders"] },
 	space: { token: "space", aliases: ["spaces"] },
+	taskTemplate: { token: "template", aliases: ["templates", "task-template"] },
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {
@@ -123,6 +124,10 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	subscriptionStatus: { token: "billing-status", aliases: ["subscription"] },
 	internal: { token: "internal", aliases: ["hidden-from-guests"] },
 	owner: { token: "owner", aliases: ["owned-by"], resolveAs: "person" },
+	estimate: { token: "estimate", aliases: ["est", "points"] },
+	recurrence: { token: "repeat", aliases: ["recurrence", "recurring"] },
+	estimates: { token: "estimates", aliases: ["estimate-setting"] },
+	calendarFeeds: { token: "calendar-feeds", aliases: ["calendarfeeds", "ical"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's

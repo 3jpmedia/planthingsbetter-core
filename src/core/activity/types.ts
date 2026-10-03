@@ -28,6 +28,7 @@ export const ACTIVITY_KINDS = [
 	"docStatus",
 	"folder",
 	"space",
+	"taskTemplate",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -137,6 +138,14 @@ export const ACTIVITY_FIELDS = [
 	"internal",
 	// Who a view, dashboard or doc belongs to -- its "Only me" when private.
 	"owner",
+	// A task's estimate (a number, read through the workspace's
+	// `estimates` setting) and its repeat schedule (recorded without values).
+	"estimate",
+	"recurrence",
+	// A workspace's estimate setting (off, points on a scale, or time), and
+	// whether its members may subscribe to calendar feeds.
+	"estimates",
+	"calendarFeeds",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

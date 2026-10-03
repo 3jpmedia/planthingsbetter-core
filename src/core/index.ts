@@ -21,3 +21,5 @@ export * from "./tabs";
 export * from "./canvas";
 export * from "./dashboards";
 export * from "./mcp";
+export * from "./recurrence";
+export * from "./export";
