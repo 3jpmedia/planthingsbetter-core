@@ -196,8 +196,6 @@ export const ENTITY_KEY_LETTERS = {
 	space: "S",
 	/** A support conversation ("Help"): someone in the workspace and support. */
 	support: "H",
-	/** A template (task, and later project or Space): "X", since "T" is a task. */
-	template: "X",
 } as const;
 
 export type KeyedEntity = keyof typeof ENTITY_KEY_LETTERS;
@@ -264,4 +262,33 @@ export function slugify(input: string, taken: Iterable<string> = []): string {
 		if (!used.has(`${base}-${n}`)) return `${base}-${n}`;
 	}
 	throw new Error(`Unable to slugify "${input}"`);
+}
+
+/**
+ * A template's key: "T", then the letter of what it makes, then its number
+ * -- `TT-0012` is a task template, `TP-0003` a project template, `TS-0001`
+ * a Space template. It says what it is before it's opened, and a new kind
+ * of template needs no letter of its own: it borrows its entity's.
+ *
+ * Every kind shares one sequence (a workspace's templates are numbered
+ * together), so the number alone names a template: `parseTemplateKey`
+ * reads it whatever the second letter. Single-letter keys (`T-0012`, a
+ * task) never parse as a template, nor a template's as anything else.
+ */
+export type TemplateKind = Exclude<KeyedEntity, "member" | "channel" | "support">;
+
+export function formatTemplateKey(kind: TemplateKind, sequence: number): string {
+	return `T${ENTITY_KEY_LETTERS[kind]}-${String(sequence).padStart(ID_DIGITS, "0")}`;
+}
+
+/** `"TT-0012"` → `{ kind: "task", sequence: 12 }`, or `null` when it isn't a
+ *  template's key. Case-insensitive; the padding is optional. */
+export function parseTemplateKey(key: string): { kind: TemplateKind; sequence: number } | null {
+	const match = /^T([A-Z])-(\d+)$/.exec(key.trim().toUpperCase());
+	if (!match) return null;
+	const kind = (Object.keys(ENTITY_KEY_LETTERS) as KeyedEntity[]).find(
+		(entity) => ENTITY_KEY_LETTERS[entity] === match[1],
+	);
+	if (!kind || kind === "member" || kind === "channel" || kind === "support") return null;
+	return { kind, sequence: Number.parseInt(match[2], 10) };
 }

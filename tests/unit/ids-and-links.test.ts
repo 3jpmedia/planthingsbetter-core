@@ -10,6 +10,8 @@ import {
 	parseTaskId,
 	slugify,
 	suggestPrefix,
+	formatTemplateKey,
+	parseTemplateKey,
 } from "../../src/core/ids";
 import {
 	basename,
@@ -246,5 +248,25 @@ describe("linksMatch", () => {
 	it("is false when either side is missing", () => {
 		expect(linksMatch(null, "A")).toBe(false);
 		expect(linksMatch("A", null)).toBe(false);
+	});
+});
+
+describe("template keys", () => {
+	it("are T, then the letter of what they make, then the number", () => {
+		expect(formatTemplateKey("task", 12)).toBe("TT-0012");
+		expect(formatTemplateKey("project", 3)).toBe("TP-0003");
+		expect(formatTemplateKey("space", 1)).toBe("TS-0001");
+	});
+
+	it("read back, case-insensitively and without padding", () => {
+		expect(parseTemplateKey("TT-0012")).toEqual({ kind: "task", sequence: 12 });
+		expect(parseTemplateKey("tp-3")).toEqual({ kind: "project", sequence: 3 });
+	});
+
+	it("never mix with other keys", () => {
+		expect(parseTemplateKey("T-0012")).toBeNull();
+		expect(parseTemplateKey("TM-0001")).toBeNull();
+		expect(parseTemplateKey("TQ-0001")).toBeNull();
+		expect(parseKey("TT-0012", "task")).toBeNull();
 	});
 });
