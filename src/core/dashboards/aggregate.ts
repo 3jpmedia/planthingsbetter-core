@@ -47,7 +47,14 @@ export interface Measure {
 }
 
 export type WidgetData =
-	| ({ kind: "kpi"; value: number; empty: boolean } & Measure)
+	| ({
+			kind: "kpi";
+			value: number;
+			/** For a count of part of the dashboard's tasks (a scope): how many
+			 *  tasks the dashboard has in all, so it reads "6 of 25". */
+			of?: number;
+			empty: boolean;
+	  } & Measure)
 	| ({ kind: "categorical"; data: CategoricalDatum[]; empty: boolean } & Measure)
 	| ({
 			kind: "series";
@@ -261,6 +268,7 @@ export function computeWidgetData(
 		return {
 			kind: "kpi",
 			value: value ?? 0,
+			...(mapping.scope && mapping.metric === "count" ? { of: tasks.length } : {}),
 			...measureOf(mapping.metric),
 			empty: scoped.length === 0 || value == null,
 		};

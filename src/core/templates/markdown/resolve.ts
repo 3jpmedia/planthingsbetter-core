@@ -20,6 +20,7 @@
  */
 
 import { slugify } from "../../ids";
+import { chartMeta } from "../../dashboards/layout";
 import { joinPath } from "../../links";
 import { queryContext, type QueryContext } from "../../query/context";
 import { parseQuery } from "../../query/parse";
@@ -268,8 +269,9 @@ function filtersFromQuery(
 /** Row height. `kpi` widgets are a single big number and get the shorter box
  *  every hand-written template already gives them; everything else is a chart
  *  and takes the standard height. */
+/** A row is as tall as its tallest widget's default (dashboards/layout.ts). */
 function widgetHeight(chartType: ParsedWidget["chartType"]): number {
-	return chartType === "kpi" ? 3 : 4;
+	return chartMeta(chartType).defaultH;
 }
 
 const GRID_COLUMNS = 12;

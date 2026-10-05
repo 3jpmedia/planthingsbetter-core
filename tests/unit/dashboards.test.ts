@@ -318,6 +318,31 @@ describe("computeWidgetData", () => {
 		expect(scoped.kind).toBe("kpi");
 		if (scoped.kind !== "kpi") return;
 		expect(scoped.value).toBe(tasks.filter((t) => t.status === "done").length);
+		// Part of the whole: the tile reads "N of M".
+		expect(scoped.of).toBe(tasks.length);
+	});
+
+	it("gives a KPI over every task, or one that isn't a count, no whole to be part of", () => {
+		const all = computeWidgetData(
+			widget({ id: "w", chartType: "kpi", fieldMapping: { chartType: "kpi", metric: "count", scope: null } }),
+			tasks,
+			context,
+		);
+		expect(all.kind === "kpi" && all.of).toBeUndefined();
+		const estimate = computeWidgetData(
+			widget({
+				id: "w",
+				chartType: "kpi",
+				fieldMapping: { chartType: "kpi", metric: "estimateSum", scope: { field: "status", value: "done" } },
+			}),
+			tasks,
+			context,
+		);
+		expect(estimate.kind === "kpi" && estimate.of).toBeUndefined();
+	});
+
+	it("sizes a KPI compactly: two rows by default, down to one", () => {
+		expect(CHART_META.kpi).toMatchObject({ defaultH: 2, minH: 1 });
 	});
 
 	it("sums estimates for an estimate KPI", () => {

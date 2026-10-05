@@ -25,7 +25,8 @@ export interface ChartMeta {
 }
 
 export const CHART_META: Record<ChartType, ChartMeta> = {
-	kpi: { label: "KPI", icon: "gauge", minW: 2, minH: 2, defaultW: 3, defaultH: 3 },
+	// Compact: a number reads at one row; two rows add its share of the whole.
+	kpi: { label: "KPI", icon: "gauge", minW: 2, minH: 1, defaultW: 3, defaultH: 2 },
 	bar: {
 		label: "Bar chart",
 		icon: "chart-bar",
