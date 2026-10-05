@@ -131,6 +131,22 @@ function matchesProject(
 	);
 }
 
+/** OR-match milestone: exact path, or a live group-pattern match on the
+ *  milestone's current title. */
+function matchesMilestone(
+	actual: LinkTarget | null | undefined,
+	allowed: string[] | undefined,
+	context: ViewContext,
+): boolean {
+	if (!allowed || allowed.length === 0) return true;
+	if (actual == null) return allowed.includes(NONE);
+	return allowed.some(
+		(pattern) =>
+			(pattern !== NONE && (pattern === actual || linksMatch(actual, pattern))) ||
+			matchesGroupPattern(context.milestones?.get(actual)?.title ?? null, pattern),
+	);
+}
+
 /** OR-match an exact-day field, day-truncating a full timestamp. */
 function matchesDateExact(
 	actual: string | null,
@@ -200,6 +216,7 @@ export function matchesFilters(
 
 	if (!matchesProject(task.project, filters.project, context.titles))
 		return false;
+	if (!matchesMilestone(task.milestone, filters.milestone, context)) return false;
 	if (!matchesLink(task.parent, filters.parent)) return false;
 	if (!matchesId(task.path, filters.id)) return false;
 	if (!matchesTaskLinks(task.relations.blocks, filters.blocks)) return false;
@@ -273,6 +290,8 @@ export function matchesFilters(
 		filters.excludeProject?.length &&
 		matchesProject(task.project, filters.excludeProject, context.titles)
 	)
+		return false;
+	if (filters.excludeMilestone?.length && matchesMilestone(task.milestone, filters.excludeMilestone, context))
 		return false;
 	if (filters.excludeParent?.length && matchesLink(task.parent, filters.excludeParent))
 		return false;
@@ -403,6 +422,7 @@ export type ArrayFilterKey = Exclude<
 	| "excludeAssignee"
 	| "excludeMentions"
 	| "excludeProject"
+	| "excludeMilestone"
 	| "excludeParent"
 	| "excludeRoot"
 	| "excludeId"
@@ -424,6 +444,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"assignee",
 	"mentions",
 	"project",
+	"milestone",
 	"parent",
 	"root",
 	"id",
@@ -446,6 +467,7 @@ export type ExcludeFilterKey =
 	| "excludeAssignee"
 	| "excludeMentions"
 	| "excludeProject"
+	| "excludeMilestone"
 	| "excludeParent"
 	| "excludeRoot"
 	| "excludeId"
@@ -472,6 +494,7 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	assignee: "excludeAssignee",
 	mentions: "excludeMentions",
 	project: "excludeProject",
+	milestone: "excludeMilestone",
 	parent: "excludeParent",
 	root: "excludeRoot",
 	id: "excludeId",
@@ -607,11 +630,12 @@ export function canonicalizeHiddenRelationKinds(
 export function renderedHiddenFields(
 	view: Pick<SavedView, "filters" | "hiddenFields">,
 ): TaskField[] {
-	const projects = view.filters.project ?? [];
-	if (projects.length !== 1 || view.hiddenFields.includes("project")) {
-		return [...view.hiddenFields];
+	const hidden = [...view.hiddenFields];
+	// Same for a view of one milestone (a milestone's own page).
+	for (const field of ["project", "milestone"] as const) {
+		if ((view.filters[field] ?? []).length === 1 && !hidden.includes(field)) hidden.push(field);
 	}
-	return [...view.hiddenFields, "project"];
+	return hidden;
 }
 
 /** Strip a view down to what it *is*, dropping identity and column furniture. */
@@ -691,6 +715,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.labels?.length &&
 		!filters.assignee?.length &&
 		!filters.project?.length &&
+		!filters.milestone?.length &&
 		!filters.parent?.length &&
 		!filters.root?.length &&
 		!filters.excludeRoot?.length &&
@@ -728,6 +753,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeAssignee?.length &&
 		!filters.excludeMentions?.length &&
 		!filters.excludeProject?.length &&
+		!filters.excludeMilestone?.length &&
 		!filters.excludeParent?.length &&
 		!filters.excludeDueDate?.length &&
 		!filters.excludeStartDate?.length &&

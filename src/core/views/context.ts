@@ -6,6 +6,7 @@ import { scopeOf, type HierarchyScope } from "../hierarchy";
 import { workspaceTaxonomies, type WorkspaceTaxonomies } from "../taxonomy";
 import type {
 	LinkTarget,
+	Milestone,
 	Person,
 	WorkspaceConfig,
 	WorkspaceSnapshot,
@@ -28,6 +29,9 @@ export interface ViewContext {
 	 * than a full snapshot.
 	 */
 	titles?: Map<LinkTarget, string>;
+	/** Path → milestone, so grouping and sorting by milestone can name it and
+	 *  order it by its target date. Absent without a full snapshot. */
+	milestones?: Map<LinkTarget, Milestone>;
 	/**
 	 * Sub-task/project rollup scope, for sorts that read computed values
 	 * (`progress`). Absent when a caller builds a context from a bare config
@@ -64,6 +68,20 @@ export function snapshotContext(
 ): ViewContext {
 	const titles = new Map<LinkTarget, string>();
 	for (const project of snapshot.projects) titles.set(project.path, project.title);
+	const milestones = new Map<LinkTarget, Milestone>();
+	for (const milestone of snapshot.milestones ?? []) milestones.set(milestone.path, milestone);
 
-	return { ...viewContext(snapshot.workspace, me), titles, scope: scopeOf(snapshot) };
+	return { ...viewContext(snapshot.workspace, me), titles, milestones, scope: scopeOf(snapshot) };
+}
+
+/**
+ * Where a milestone sorts: by target date (undated last), then title -- the
+ * order milestones come due in, which is how a board's columns or a list's
+ * groups should read. `null` for no milestone.
+ */
+export function milestoneOrderKey(context: ViewContext, path: LinkTarget | null | undefined): string | null {
+	if (!path) return null;
+	const milestone = context.milestones?.get(path);
+	if (!milestone) return `9999-99-99\u0000${path}`;
+	return `${milestone.targetDate ?? "9999-99-99"}\u0000${milestone.title.toLowerCase()}`;
 }

@@ -35,6 +35,7 @@ const TASK_DIFF_FIELDS: ReadonlyArray<keyof Task> = [
 	"status",
 	"priority",
 	"project",
+	"milestone",
 	"parent",
 	"assignee",
 	"estimate",

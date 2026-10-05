@@ -29,6 +29,7 @@ export const ACTIVITY_KINDS = [
 	"folder",
 	"space",
 	"template",
+	"milestone",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -92,6 +93,7 @@ export const ACTIVITY_FIELDS = [
 	"labels",
 	"assignee",
 	"project",
+	"milestone",
 	"parentTask",
 	"dueDate",
 	"startDate",
@@ -150,6 +152,10 @@ export const ACTIVITY_FIELDS = [
 	// sub-tasks.
 	"taskTitle",
 	"subtasks",
+	// A milestone's own: when it's due, and where it is (planned, in
+	// progress, completed, canceled).
+	"targetDate",
+	"milestoneState",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

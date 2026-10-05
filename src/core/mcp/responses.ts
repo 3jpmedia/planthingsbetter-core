@@ -261,6 +261,8 @@ export interface McpTaskRow {
 	taskType: string | null;
 	assignee: string | null;
 	project: LinkTarget | null;
+	/** Present only where the host has milestones. */
+	milestone?: LinkTarget | null;
 	parent: LinkTarget | null;
 	labels: string[];
 	estimate: number | null;
@@ -301,6 +303,7 @@ export function taskRow(
 		taskType: task.taskType,
 		assignee: task.assignee,
 		project: task.project,
+		...(task.milestone !== undefined ? { milestone: task.milestone } : {}),
 		parent: task.parent,
 		labels: task.labels,
 		estimate: task.estimate,
@@ -402,6 +405,7 @@ export function taskDetail(
 	task: McpTaskRow & {
 		parentTitle?: string;
 		projectTitle?: string;
+		milestoneTitle?: string;
 		assigneeName?: string;
 		statusName?: string;
 		priorityName?: string;
@@ -471,6 +475,9 @@ export function taskDetail(
 				: undefined,
 			projectTitle: task.project
 				? titlesByPath.get(task.project) ?? task.project
+				: undefined,
+			milestoneTitle: task.milestone
+				? (snapshot.milestones ?? []).find((m) => m.path === task.milestone)?.title ?? task.milestone
 				: undefined,
 			assigneeName: task.assignee
 				? snapshot.workspace.people.find((p) => p.id === task.assignee)?.name
@@ -725,6 +732,7 @@ export interface McpCounts {
 	byLabel?: McpNameCount[];
 	byAssignee?: McpNameCount[];
 	byProject?: McpNameCount[];
+	byMilestone?: McpNameCount[];
 }
 
 export type McpCountBy =
@@ -733,7 +741,8 @@ export type McpCountBy =
 	| "taskType"
 	| "label"
 	| "assignee"
-	| "project";
+	| "project"
+	| "milestone";
 
 function aggregateByName(
 	tasks: Task[],
@@ -840,6 +849,9 @@ export function countTasks(
 				break;
 			case "project":
 				add("project", (t) => t.project, projectTitles);
+				break;
+			case "milestone":
+				add("milestone", (t) => t.milestone ?? null, new Map((snapshot.milestones ?? []).map((m) => [m.path, m.title])));
 				break;
 		}
 	}

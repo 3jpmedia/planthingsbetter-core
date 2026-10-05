@@ -32,6 +32,7 @@ export type ResolveAs =
 	| "label"
 	| "person"
 	| "project"
+	| "milestone"
 	| "task"
 	| "date";
 
@@ -97,6 +98,13 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		token: "projectKey",
 		aliases: ["project"],
 		resolveAs: "project",
+		unsetIsVacuous: false,
+	},
+	// Printed as the milestone's key ("PRD-R0030"); its title works on input.
+	milestone: {
+		token: "milestone",
+		aliases: ["milestonekey", "ms"],
+		resolveAs: "milestone",
 		unsetIsVacuous: false,
 	},
 	parent: {
@@ -195,6 +203,7 @@ export const GROUP_VALUES: Record<GroupByField, EnumValueSpec> = {
 	assignee: { token: "assignee", aliases: ["owner"] },
 	label: { token: "label", aliases: ["labels", "tag", "tags"] },
 	project: { token: "project", aliases: [] },
+	milestone: { token: "milestone", aliases: ["ms"] },
 };
 
 export const SORT_VALUES: Record<SortField, EnumValueSpec> = {
@@ -210,6 +219,7 @@ export const SORT_VALUES: Record<SortField, EnumValueSpec> = {
 	updatedAt: { token: "updated", aliases: ["updatedat"] },
 	taskType: { token: "type", aliases: ["tasktype", "kind"] },
 	project: { token: "project", aliases: [] },
+	milestone: { token: "milestone", aliases: ["ms"] },
 	assignee: { token: "assignee", aliases: ["owner"] },
 	labels: { token: "labels", aliases: ["label", "tag", "tags"] },
 	progress: { token: "progress", aliases: [] },
@@ -323,6 +333,7 @@ export const SUBTASK_VALUES: Record<SubtaskDisplay, EnumValueSpec> = {
 export const FIELD_VALUES: Record<TaskField, EnumValueSpec> = {
 	type: { token: "type", aliases: ["tasktype", "kind"] },
 	project: { token: "project", aliases: ["proj"] },
+	milestone: { token: "milestone", aliases: ["ms"] },
 	priority: { token: "priority", aliases: ["p"] },
 	assignee: { token: "assignee", aliases: ["owner", "assigned"] },
 	labels: { token: "labels", aliases: ["label", "tag", "tags"] },

@@ -225,6 +225,19 @@ export function newTaskProject(
 }
 
 /**
+ * The `milestone` a newly created task should get: unlike `project`, a
+ * sub-task always counts toward its parent's milestone (they finish
+ * together), so the parent's wins over anything else when there is one.
+ */
+export function newTaskMilestone(
+  explicit: LinkTarget | null | undefined,
+  parent: Task | null,
+): LinkTarget | null {
+  if (parent) return parent.milestone ?? null;
+  return explicit ?? null;
+}
+
+/**
  * The single primary parent of a task, as a tagged reference (Golden Rule:
  * exactly one). `parent` wins over `project` — a sub-task's real home is its
  * parent task.

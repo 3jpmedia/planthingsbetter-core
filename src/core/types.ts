@@ -256,6 +256,7 @@ export type TaskFieldKey =
 	| "labels"
 	| "description"
 	| "project"
+	| "milestone"
 	| "parent";
 
 export interface RecurrenceConfig {
@@ -345,6 +346,12 @@ export interface Task {
 	 */
 	project: LinkTarget | null;
 	parent: LinkTarget | null;
+	/**
+	 * The Milestone this task counts toward -- a dated target that can hold
+	 * tasks from any project (the "when" to a project's "what"). At most one.
+	 * Optional: hosts without milestones (the Obsidian plugin) leave it out.
+	 */
+	milestone?: LinkTarget | null;
 
 	/**
 	 * The task this occurrence was spawned from, when it's part of a recurring
@@ -482,6 +489,35 @@ export interface Project {
 	 * concern: older projects simply have none.
 	 */
 	view?: ProjectViewSettings | null;
+}
+
+// ---------------------------------------------------------------------------
+// Milestone
+// ---------------------------------------------------------------------------
+
+/** Where a milestone is: not started, under way, reached, or dropped. */
+export type MilestoneState = "planned" | "active" | "completed" | "canceled";
+
+export const MILESTONE_STATES: readonly MilestoneState[] = ["planned", "active", "completed", "canceled"] as const;
+
+/**
+ * A dated target -- a release, a launch, a handoff -- that tasks from any
+ * project count toward (`Task.milestone`). Projects say what the work is;
+ * milestones say when it's due.
+ */
+export interface Milestone {
+	title: string;
+	/** The display key ("PRD-R0030"); queries carry this, like `Project.id`. */
+	id?: string;
+	state: MilestoneState;
+	/** When it's due. */
+	targetDate: IsoDate | null;
+	startDate: IsoDate | null;
+	/** When it was marked completed. */
+	completedAt: IsoDate | null;
+	createdAt: IsoDate;
+	updatedAt: IsoDate;
+	path: LinkTarget;
 }
 
 /**
@@ -640,6 +676,7 @@ export type GroupByField =
 	| "taskType"
 	| "assignee"
 	| "project"
+	| "milestone"
 	| "label";
 
 export type SortField =
@@ -655,6 +692,7 @@ export type SortField =
 	| "updatedAt"
 	| "taskType"
 	| "project"
+	| "milestone"
 	| "assignee"
 	| "labels"
 	| "progress"
@@ -712,6 +750,7 @@ export interface ViewFilters {
 	labels?: string[];
 	assignee?: string[];
 	project?: string[];
+	milestone?: string[];
 	parent?: string[];
 	/**
 	 * Scope to a task and everything transitively connected to it via
@@ -793,6 +832,7 @@ export interface ViewFilters {
 	excludeAssignee?: string[];
 	excludeMentions?: string[];
 	excludeProject?: string[];
+	excludeMilestone?: string[];
 	excludeParent?: string[];
 	excludeRoot?: string[];
 	excludeId?: string[];
@@ -871,6 +911,7 @@ export interface ViewCalendarState {
 export const TASK_FIELDS = [
 	"type",
 	"project",
+	"milestone",
 	"priority",
 	"assignee",
 	"labels",
@@ -1060,7 +1101,8 @@ export type DashboardGroupingField =
 	| "taskType"
 	| "label"
 	| "assignee"
-	| "project";
+	| "project"
+	| "milestone";
 
 export const DASHBOARD_GROUPING_FIELDS: readonly DashboardGroupingField[] = [
 	"status",
@@ -1069,6 +1111,7 @@ export const DASHBOARD_GROUPING_FIELDS: readonly DashboardGroupingField[] = [
 	"label",
 	"assignee",
 	"project",
+	"milestone",
 ] as const;
 
 /** X-axis fields a line/timeline chart can plot against. */
@@ -1235,6 +1278,8 @@ export interface WorkspaceSnapshot {
 	workspace: WorkspaceConfig;
 	tasks: Task[];
 	projects: Project[];
+	/** Hosts without milestones leave this out. */
+	milestones?: Milestone[];
 	views: SavedView[];
 	dashboards: DashboardConfig[];
 	/** Items sitting in this workspace's `Trash/` folder (see `TrashedItem`). */

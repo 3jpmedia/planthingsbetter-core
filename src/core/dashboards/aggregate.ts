@@ -75,6 +75,8 @@ export function groupKeys(task: Task, field: DashboardGroupingField): string[] {
 			return [task.assignee ?? NONE];
 		case "project":
 			return [task.project ?? NONE];
+		case "milestone":
+			return [task.milestone ?? NONE];
 		case "label":
 			return task.labels.length > 0 ? task.labels.slice() : [NONE];
 	}
@@ -133,6 +135,7 @@ function orderedKeys(
 
 export function matchesScope(task: Task, scope: DashboardScope): boolean {
 	const keys = groupKeys(task, scope.field);
+	if (scope.field === "milestone" && scope.value === NONE) return task.milestone == null;
 	if (scope.field === "project") {
 		if (scope.value === NONE) return task.project == null;
 		return keys.some(

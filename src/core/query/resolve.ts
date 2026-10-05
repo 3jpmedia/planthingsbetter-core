@@ -60,6 +60,7 @@ function entitiesFor(
 	context: QueryContext,
 ): QueryEntity[] | null {
 	if (kind === "project") return context.projects;
+	if (kind === "milestone") return context.milestones ?? [];
 	if (kind === "task") return context.tasks;
 	return null;
 }
@@ -202,6 +203,19 @@ function resolveEntity(
 	}
 	if (byBasename) return { value: byBasename.path };
 
+	const byAlias = soleMatch(entities, (entity) => entity.alias != null && equalsCI(entity.alias, normalized));
+	if (byAlias === "ambiguous") {
+		return {
+			value: normalized,
+			issue: {
+				severity: "warning",
+				code: "unknown-value",
+				message: `More than one ${label} is called "${raw}" — use its key`,
+			},
+		};
+	}
+	if (byAlias) return { value: byAlias.path };
+
 	return {
 		value: normalized,
 		issue: {
@@ -290,7 +304,7 @@ export function resolveValue(
 
 	const entities = entitiesFor(spec.resolveAs, context);
 	if (entities) {
-		if (spec.resolveAs === "project") {
+		if (spec.resolveAs === "project" || spec.resolveAs === "milestone") {
 			const group = resolveGroupWildcard(
 				raw,
 				entities.map((e) => e.title),

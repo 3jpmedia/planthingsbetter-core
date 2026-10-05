@@ -19,6 +19,9 @@ export interface QueryEntity {
 	path: LinkTarget;
 	/** What a human would type. Tasks use their id, since that's what's memorable. */
 	title: string;
+	/** Another name it answers to on input -- a milestone's own title, beside
+	 *  its key in `title`. Never printed. */
+	alias?: string;
 }
 
 export interface QueryContext {
@@ -26,6 +29,9 @@ export interface QueryContext {
 	people: Person[];
 	selfId: string | null;
 	projects: QueryEntity[];
+	/** Milestones by key (title as an alias). Hosts without milestones leave
+	 *  it out. */
+	milestones?: QueryEntity[];
 	tasks: QueryEntity[];
 }
 
@@ -39,6 +45,7 @@ export function queryContext(
 		// file-backed projects don't), is the stable key -- same reasoning as
 		// tasks using `t.id` below instead of their own renameable title.
 		projects: snapshot.projects.map((p) => ({ path: p.path, title: p.id ?? p.title })),
+		milestones: (snapshot.milestones ?? []).map((m) => ({ path: m.path, title: m.id ?? m.title, alias: m.title })),
 		tasks: snapshot.tasks.map((t) => ({ path: t.path, title: t.id })),
 	};
 }

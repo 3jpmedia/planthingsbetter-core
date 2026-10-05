@@ -23,7 +23,7 @@ import {
 	type TaskGroup,
 	type ViewColumnState,
 } from "../types";
-import type { ViewContext } from "./context";
+import { milestoneOrderKey, type ViewContext } from "./context";
 
 const NO_VALUE_LABELS: Record<GroupByField, string> = {
 	none: "All",
@@ -32,6 +32,7 @@ const NO_VALUE_LABELS: Record<GroupByField, string> = {
 	taskType: "No Type",
 	assignee: "Unassigned",
 	project: "No Project",
+	milestone: "No Milestone",
 	label: "No Labels",
 };
 
@@ -50,6 +51,8 @@ function keysFor(task: Task, groupBy: GroupByField): string[] {
 			return [task.assignee ?? NONE];
 		case "project":
 			return [task.project ?? NONE];
+		case "milestone":
+			return [task.milestone ?? NONE];
 		case "label":
 			return task.labels.length > 0 ? task.labels.slice() : [NONE];
 	}
@@ -76,6 +79,8 @@ function labelFor(
 			// Titles come from the snapshot; fall back to the filename, which for
 			// projects *is* human-readable (only Tasks are named by ID).
 			return context.titles?.get(key) ?? basename(key);
+		case "milestone":
+			return context.milestones?.get(key)?.title ?? basename(key);
 		default:
 			return key;
 	}
@@ -132,6 +137,15 @@ function orderedKeys(
 		for (const key of present) {
 			if (key !== NONE && !keys.includes(key)) keys.push(key);
 		}
+		if (present.has(NONE)) keys.push(NONE);
+		return keys;
+	}
+
+	// Milestones: only what's in play, in the order they come due (undated
+	// last), with the "no value" bucket last.
+	if (groupBy === "milestone") {
+		const keys = [...present].filter((key) => key !== NONE);
+		keys.sort((a, b) => (milestoneOrderKey(context, a) ?? "").localeCompare(milestoneOrderKey(context, b) ?? ""));
 		if (present.has(NONE)) keys.push(NONE);
 		return keys;
 	}

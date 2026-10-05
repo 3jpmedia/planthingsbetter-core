@@ -19,6 +19,7 @@ export interface TaskSeed {
 	taskType?: string;
 	assignee?: string;
 	project?: string;
+	milestone?: string;
 	parent?: string;
 	labels?: string[];
 }
@@ -71,6 +72,10 @@ export function seedFromFilters(
 	const project = onlyValue(filters.project);
 	if (parent) seed.parent = parent;
 	else if (project) seed.project = project;
+
+	// A milestone isn't a parent, so it seeds alongside a project.
+	const milestone = onlyValue(filters.milestone);
+	if (milestone) seed.milestone = milestone;
 
 	// Labels are multi-select and additive, so every concrete label applies.
 	const labels = (filters.labels ?? []).filter((value) => value !== NONE);

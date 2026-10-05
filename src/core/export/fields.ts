@@ -24,6 +24,7 @@ export type FieldId =
   | "taskType"
   // context
   | "project"
+  | "milestone"
   | "parent"
   | "assignee"
   | "labels"
@@ -103,6 +104,13 @@ export const FIELDS: Record<FieldId, FieldSpec> = {
   project: {
     id: "project",
     label: "Project",
+    group: "context",
+    icalEligible: false,
+    needsDocument: false,
+  },
+  milestone: {
+    id: "milestone",
+    label: "Milestone",
     group: "context",
     icalEligible: false,
     needsDocument: false,
@@ -220,7 +228,7 @@ export const FIELD_GROUPS: FieldGroup[] = [
     id: "context",
     label: "Context",
     defaultOn: true,
-    fields: ["project", "parent", "assignee", "labels"],
+    fields: ["project", "milestone", "parent", "assignee", "labels"],
   },
   {
     id: "dates",

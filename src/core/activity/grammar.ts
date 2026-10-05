@@ -60,6 +60,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	folder: { token: "folder", aliases: ["folders"] },
 	space: { token: "space", aliases: ["spaces"] },
 	template: { token: "template", aliases: ["templates", "task-template"] },
+	milestone: { token: "milestone", aliases: ["milestones"] },
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {
@@ -81,6 +82,7 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	labels: { token: "labels", aliases: ["label", "tags"], resolveAs: "label" },
 	assignee: { token: "assignee", aliases: ["assigned"], resolveAs: "person" },
 	project: { token: "project", aliases: [], resolveAs: "project" },
+	milestone: { token: "milestone", aliases: ["ms"], resolveAs: "milestone" },
 	parentTask: { token: "parent", aliases: ["parenttask"], resolveAs: "task" },
 	dueDate: { token: "due", aliases: ["duedate"], resolveAs: "date" },
 	startDate: { token: "start", aliases: ["startdate"], resolveAs: "date" },
@@ -130,6 +132,8 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	calendarFeeds: { token: "calendar-feeds", aliases: ["calendarfeeds", "ical"] },
 	taskTitle: { token: "task-title", aliases: ["tasktitle"] },
 	subtasks: { token: "subtasks", aliases: ["sub-tasks"] },
+	targetDate: { token: "target", aliases: ["targetdate", "target-date"], resolveAs: "date" },
+	milestoneState: { token: "milestone-state", aliases: ["milestonestate"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's

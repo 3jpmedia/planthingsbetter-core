@@ -196,6 +196,8 @@ export const ENTITY_KEY_LETTERS = {
 	space: "S",
 	/** A support conversation ("Help"): someone in the workspace and support. */
 	support: "H",
+	/** A milestone: a dated target tasks count toward ("R" -- `M` is members). */
+	milestone: "R",
 } as const;
 
 export type KeyedEntity = keyof typeof ENTITY_KEY_LETTERS;
@@ -275,7 +277,7 @@ export function slugify(input: string, taken: Iterable<string> = []): string {
  * reads it whatever the second letter. Single-letter keys (`T-0012`, a
  * task) never parse as a template, nor a template's as anything else.
  */
-export type TemplateKind = Exclude<KeyedEntity, "member" | "channel" | "support">;
+export type TemplateKind = Exclude<KeyedEntity, "member" | "channel" | "support" | "milestone">;
 
 export function formatTemplateKey(kind: TemplateKind, sequence: number): string {
 	return `T${ENTITY_KEY_LETTERS[kind]}-${String(sequence).padStart(ID_DIGITS, "0")}`;
@@ -289,6 +291,6 @@ export function parseTemplateKey(key: string): { kind: TemplateKind; sequence: n
 	const kind = (Object.keys(ENTITY_KEY_LETTERS) as KeyedEntity[]).find(
 		(entity) => ENTITY_KEY_LETTERS[entity] === match[1],
 	);
-	if (!kind || kind === "member" || kind === "channel" || kind === "support") return null;
+	if (!kind || kind === "member" || kind === "channel" || kind === "support" || kind === "milestone") return null;
 	return { kind, sequence: Number.parseInt(match[2], 10) };
 }

@@ -81,6 +81,7 @@ export function resolveDisplayRecord(
 		taskType: displayName(tx.taskType, task.taskType),
 
 		project: projectTitle(task.project, lookups),
+		milestone: task.milestone ? (lookups.context.milestones?.get(task.milestone)?.title ?? basename(task.milestone)) : "",
 		parent: taskTitle(task.parent, lookups),
 		assignee: personName(task.assignee, lookups),
 		labels: task.labels.map((id) => displayName(tx.label, id)).join(", "),

@@ -11,7 +11,7 @@ import { childTasks, subtaskProgress } from "../hierarchy";
 import { compareTasksByRank } from "../ranking";
 import { getValue } from "../taxonomy/engine";
 import { relationCount, type SortDirection, type SortField, type TableSortKey, type Task } from "../types";
-import type { ViewContext } from "./context";
+import { milestoneOrderKey, type ViewContext } from "./context";
 
 /** Ordered-taxonomy position, or `Infinity` for unset/unknown values. */
 function taxonomyOrder(
@@ -97,6 +97,16 @@ export function compareField(
 			// context without `titles` falls back to the raw link.
 			const na = a.project ? (context.titles?.get(a.project) ?? a.project) : null;
 			const nb = b.project ? (context.titles?.get(b.project) ?? b.project) : null;
+			return {
+				value: compareNullable(na, nb, (x, y) => x.localeCompare(y)),
+				nullSkewed: na == null || nb == null,
+			};
+		}
+
+		case "milestone": {
+			// By target date, then title -- the order they come due in.
+			const na = milestoneOrderKey(context, a.milestone);
+			const nb = milestoneOrderKey(context, b.milestone);
 			return {
 				value: compareNullable(na, nb, (x, y) => x.localeCompare(y)),
 				nullSkewed: na == null || nb == null,
