@@ -74,7 +74,7 @@ describe("direct children", () => {
 	it("topLevelProjectTasks drops sub-tasks that carry the project link", () => {
 		const core = P("Projects/Core App Experience");
 		// SMP-0102 and SMP-0103 are sub-tasks of SMP-0101 but still carry
-		// `project: Core App Experience` — the denormalized link.
+		// `project: Core App Experience` - the denormalized link.
 		expect(projectTasks(scope, core).map((t) => t.id).sort()).toEqual([
 			"SMP-0101",
 			"SMP-0102",
@@ -294,7 +294,7 @@ describe("progress rollup", () => {
 		];
 		const progress = computeProgress(tasks, statuses);
 		expect(progress).toMatchObject({ total: 3, completed: 2, canceled: 1 });
-		// 2 of 2 real tasks are done — not 2 of 3.
+		// 2 of 2 real tasks are done - not 2 of 3.
 		expect(progress.percent).toBe(100);
 		expect(formatProgress(progress)).toBe("2/2");
 	});
@@ -377,7 +377,7 @@ describe("sub-task rollup (§7.2)", () => {
 describe("project progress (§7.1)", () => {
 	it("computes project progress from top-level tasks only", () => {
 		// Sub-tasks carry their parent's `project` link, but each is already
-		// counted in its own parent's §7.2 rollup — counting them again at the
+		// counted in its own parent's §7.2 rollup - counting them again at the
 		// project level would double them. So the project's progress is over its
 		// three top-level tasks (SMP-0101/0104/0105), not all five.
 		const progress = projectProgress(
@@ -410,7 +410,7 @@ describe("project progress (§7.1)", () => {
 
 	it("leaves the project's own status untouched by its progress", () => {
 		// The sample's launch project is deliberately still in the backlog while
-		// its tasks are moving — status and progress never auto-sync.
+		// its tasks are moving - status and progress never auto-sync.
 		const project = snapshot.projects.find((p) => p.title.startsWith("App Store"));
 		expect(project?.status).toBe("backlog");
 		expect(projectProgress(scope, project!.path, statuses).total).toBe(5);
@@ -438,7 +438,7 @@ describe("projectTaskBreakdown", () => {
 			// Sub-tasks carrying the project link.
 			task({ path: T("4"), project: P("Projects/X"), parent: T("1") }),
 			task({ path: T("5"), project: P("Projects/X"), parent: T("1"), archived: true }),
-			// A different project — not counted.
+			// A different project - not counted.
 			task({ path: T("6"), project: P("Projects/Y") }),
 		],
 	};

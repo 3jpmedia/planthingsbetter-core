@@ -3,12 +3,12 @@
  * loop into: `blocks`/`blockedBy` dependencies and `parent` hierarchy.
  *
  * Both check the **full** task set passed in, never a filtered/visible
- * subset — a cycle can close through a task that isn't currently on screen
+ * subset - a cycle can close through a task that isn't currently on screen
  * (e.g. Canvas's current filter), and checking only what's visible would miss
  * a real one. Callers (`Mutations.addDependency`, Canvas's drag-to-connect)
  * must pass the whole workspace's tasks, not `evaluated.tasks`.
  *
- * Pure and Obsidian-free (Golden Rule) — unit-tested in isolation.
+ * Pure and Obsidian-free (Golden Rule) - unit-tested in isolation.
  */
 
 import { linksMatch } from "../links";
@@ -24,7 +24,7 @@ function resolvePath(tasks: Task[], link: LinkTarget): string | null {
 
 /**
  * True if adding a `blocker` → `blocked` dependency (blocker must finish
- * before blocked) would close a cycle — i.e. `blocked` already, directly or
+ * before blocked) would close a cycle - i.e. `blocked` already, directly or
  * transitively, blocks `blocker`.
  */
 export function wouldCreateDependencyCycle(
@@ -59,7 +59,7 @@ export function wouldCreateDependencyCycle(
 
 /**
  * True if setting `child.parent = proposedParent` would create an ancestor
- * cycle — `proposedParent === child`, or `proposedParent` is already a
+ * cycle - `proposedParent === child`, or `proposedParent` is already a
  * descendant of `child` (walking up from it would eventually loop back).
  */
 export function wouldCreateHierarchyCycle(
@@ -76,7 +76,7 @@ export function wouldCreateHierarchyCycle(
 	while (current) {
 		if (current === childPath) return true;
 		// A pre-existing cycle elsewhere in a corrupted vault must not hang
-		// this walk — bail out rather than looping forever.
+		// this walk - bail out rather than looping forever.
 		if (seen.has(current)) return false;
 		seen.add(current);
 

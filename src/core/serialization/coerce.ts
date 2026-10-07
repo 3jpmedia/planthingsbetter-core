@@ -60,7 +60,7 @@ export function asBoolean(raw: unknown, fallback = false): boolean {
 }
 
 /**
- * Normalize to a string array. A bare scalar becomes a one-element array —
+ * Normalize to a string array. A bare scalar becomes a one-element array -
  * `labels: bug` is what a human writes, and refusing it would be pedantic.
  */
 export function asStringArray(raw: unknown): string[] {

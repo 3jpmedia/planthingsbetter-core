@@ -1,5 +1,5 @@
 /**
- * LexoRank — fractional indexing over lexicographically-sortable strings.
+ * LexoRank - fractional indexing over lexicographically-sortable strings.
  *
  * Format (Atlassian-compatible, matching the schema in `vault-schema.md`):
  *
@@ -11,8 +11,8 @@
  *
  * The sortable payload is `integer + ':' + decimal`. Because the integer part is
  * a fixed 6 characters, `':'` always lands at index 6, so a plain lexicographic
- * string comparison of the payload *is* the numeric ordering — that is the whole
- * point of the format. (`':'` is ASCII 58, above `0`–`9` and below `a`–`z`, so a
+ * string comparison of the payload *is* the numeric ordering - that is the whole
+ * point of the format. (`':'` is ASCII 58, above `0`-`9` and below `a`-`z`, so a
  * shorter decimal correctly sorts before a longer one that extends it.)
  *
  * Buckets exist in the format for future rebalancing. v1 writes bucket 0 only
@@ -78,7 +78,7 @@ function payload(value: string): string {
 }
 
 /**
- * Sort comparator. Ignores the bucket — v1 never mixes buckets, and comparing
+ * Sort comparator. Ignores the bucket - v1 never mixes buckets, and comparing
  * them would make a future rebalance's rotation change existing order.
  */
 export function compareRanks(a: string, b: string): number {
@@ -111,7 +111,7 @@ function compareDigits(a: number[], b: number[]): number {
 /**
  * Midpoint of two equal-length base-36 fixed-point digit arrays, where `a < b`.
  * If the two are adjacent (no room between them) the result gains one extra
- * digit — that is the "fractional" in fractional indexing.
+ * digit - that is the "fractional" in fractional indexing.
  */
 function midpointDigits(a: number[], b: number[]): number[] {
 	const len = Math.max(a.length, b.length);
@@ -214,7 +214,7 @@ export function ranksBetween(
 }
 
 /**
- * `count` evenly-spaced ranks across the whole space — used when seeding a
+ * `count` evenly-spaced ranks across the whole space - used when seeding a
  * workspace or importing tasks in bulk. Evenly spacing keeps plenty of room for
  * later insertions anywhere in the list.
  */
@@ -240,7 +240,7 @@ export function initialRanks(count: number): string[] {
 }
 
 /**
- * The rank an item should take to land at `toIndex` in `ordered` — the list of
+ * The rank an item should take to land at `toIndex` in `ordered` - the list of
  * the *other* items' ranks, already sorted ascending and with the moved item
  * removed.
  */

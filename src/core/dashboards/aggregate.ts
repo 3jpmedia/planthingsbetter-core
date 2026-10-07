@@ -107,7 +107,7 @@ function colorFor(
 			COLOR_PALETTE[index % COLOR_PALETTE.length]
 		);
 	}
-	// assignee / project have no taxonomy colour — cycle the taxonomy palette.
+	// assignee / project have no taxonomy colour - cycle the taxonomy palette.
 	return COLOR_PALETTE[index % COLOR_PALETTE.length];
 }
 
@@ -179,7 +179,7 @@ function bucketStart(date: Date, bucket: DashboardTimeBucket): Date {
 		return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 	}
 	if (bucket === "week") {
-		// ISO week — snap back to Monday.
+		// ISO week - snap back to Monday.
 		const day = (date.getUTCDay() + 6) % 7;
 		return new Date(date.getTime() - day * 86400000);
 	}
@@ -308,7 +308,7 @@ export function computeWidgetData(
 		};
 	}
 
-	// line / timeline — temporal buckets, optionally split into series. A
+	// line / timeline - temporal buckets, optionally split into series. A
 	// running total only adds up, so a timeline only ever counts.
 	const cumulative = mapping.chartType === "timeline";
 	const metric: DashboardMetric = cumulative ? "count" : (mapping.metric ?? "count");

@@ -67,7 +67,7 @@ const planDates = (plans: OccurrencePlan[]): IsoDate[] =>
 
 /* ---------------------------------------------------------------- engine -- */
 
-describe("nextOccurrence — cadence math", () => {
+describe("nextOccurrence - cadence math", () => {
 	it("daily advances by the interval", () => {
 		expect(nextOccurrence(rule({ freq: "daily" }), "2026-09-01")).toBe("2026-09-02");
 		expect(
@@ -227,7 +227,7 @@ describe("cadence point helpers", () => {
 
 /* -------------------------------------------------------------- spawning -- */
 
-describe("spawnPlans — on-date", () => {
+describe("spawnPlans - on-date", () => {
 	const snap = (n: Task) => snapshotWith([n]);
 
 	it("does nothing before nextDate", () => {
@@ -288,7 +288,7 @@ describe("spawnPlans — on-date", () => {
 		const plans = spawnPlans(snap(n), n, "2026-09-05");
 		expect(planDates(plans)).toEqual(["2026-09-04", "2026-09-05"]);
 		// Intermediate backfilled points never carry a live block, and the
-		// final one is the series terminus — both come out null.
+		// final one is the series terminus - both come out null.
 		expect(plans[0].recurrence).toBeNull();
 		expect(plans[1].recurrence).toBeNull();
 	});
@@ -334,7 +334,7 @@ describe("spawnPlans — on-date", () => {
 	});
 });
 
-describe("spawnPlans — on-close", () => {
+describe("spawnPlans - on-close", () => {
 	it("spawns on the first future cadence point whenever a completed status fires", () => {
 		const n = nodeTask({
 			status: "done",
@@ -382,7 +382,7 @@ describe("spawnPlans — on-close", () => {
 
 	it("is status-driven: lands on today with no dates, ignoring cadence", () => {
 		// A weekly on-close series whose nextDate is long behind still just
-		// fires on today when the status matches — no cadence math, no dates.
+		// fires on today when the status matches - no cadence math, no dates.
 		const n = nodeTask({
 			status: "done",
 			recurrence: rule({
@@ -525,7 +525,7 @@ describe("spawnPlans — on-close", () => {
 	});
 });
 
-describe("spawnPlans — idempotency and reconcile", () => {
+describe("spawnPlans - idempotency and reconcile", () => {
 	it("a node with an existing successor never spawns again", () => {
 		const n = nodeTask({ recurrence: rule({ nextDate: "2026-09-05" }) });
 		const next = nodeTask({
@@ -774,7 +774,7 @@ describe("recurringOverview", () => {
 		const snap = snapshotWith([alpha, betaNext, beta]);
 		const rows = recurringOverview(snap, "2026-09-05");
 
-		// The two Beta nodes are one chain — only its newest member surfaces.
+		// The two Beta nodes are one chain - only its newest member surfaces.
 		expect(rows.map((row) => row.task.title)).toEqual(["Alpha", "Beta"]);
 		expect(rows.map((row) => row.task.path)).toEqual([
 			"W/Tasks/TSK-9001",
@@ -957,7 +957,7 @@ describe("projectRecurrences", () => {
 	});
 });
 
-describe("evaluateView — recurring preview", () => {
+describe("evaluateView - recurring preview", () => {
 	const TODAY: IsoDate = "2026-09-10";
 	const recurringNode = nodeTask({
 		path: "W/Tasks/TSK-R",
@@ -1053,7 +1053,7 @@ describe("copyFields serialization and default behavior", () => {
 		expect(r.copyFields).toBeNull();
 	});
 });
-describe("spawnPlans — on-close counted from completion", () => {
+describe("spawnPlans - on-close counted from completion", () => {
 	const doneStatus = () => sample.workspace.statuses.find((status) => status.category === "completed")!.id;
 
 	it("lands the due date one step after completion, keeping the start-to-due gap", () => {

@@ -1,5 +1,5 @@
 /**
- * Speculative projection — the `show:recurring` preview.
+ * Speculative projection - the `show:recurring` preview.
  *
  * Given the live nodes of a workspace's recurring series, synthesise the ghost
  * occurrences a view can render *ahead* of the reconcile engine actually
@@ -9,9 +9,9 @@
  *
  * Only **on-date** series project:
  *
- * - **on-date** — the schedule is deterministic, so project every cadence point
+ * - **on-date** - the schedule is deterministic, so project every cadence point
  *   from today out to `PROJECTION_HORIZON_DAYS`, capped at `PROJECTION_MAX`.
- * - **on-close** — a pure status trigger with no cadence and no dates, so there
+ * - **on-close** - a pure status trigger with no cadence and no dates, so there
  *   is nothing to draw ahead of time; these series project nothing.
  *
  * `endsOn` / `endsAfter` are honoured: a finite series stops projecting once
@@ -33,7 +33,7 @@ export const PROJECTION_MAX = 12;
 /**
  * Ghost occurrences for every series a member of `matched` belongs to.
  *
- * `matched` is the post-filter task list — so a series only previews when one
+ * `matched` is the post-filter task list - so a series only previews when one
  * of its real notes already passes the view's filters. Each series is projected
  * once, from its newest chain member (the node the reconcile engine will
  * actually advance), regardless of which member matched.
@@ -67,7 +67,7 @@ export function projectSeries(
 ): Task[] {
 	const rule = source.recurrence;
 	if (!rule) return [];
-	// Status-driven series have no calendar date to project — there's
+	// Status-driven series have no calendar date to project - there's
 	// nothing to draw as a ghost occurrence on Calendar/Timeline.
 	if (rule.trigger === "on-close") return [];
 

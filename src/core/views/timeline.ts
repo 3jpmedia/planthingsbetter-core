@@ -1,9 +1,9 @@
 /**
- * Timeline (Gantt) view — pure geometry (phase 3).
+ * Timeline (Gantt) view - pure geometry (phase 3).
  *
  * Two jobs, both free of the DOM:
  *
- *   1. Turn a Task or Project into a `Bar` — the shape the view draws, deciding
+ *   1. Turn a Task or Project into a `Bar` - the shape the view draws, deciding
  *      range vs. milestone vs. open vs. unscheduled purely from which dates are
  *      set.
  *   2. Do the drag math. The interaction layer converts pixels to whole days
@@ -16,7 +16,7 @@
  * (start after end). Task and Project frontmatter still parse `startDate` and
  * `dueDate` independently with no ordering check (the forgiving-parse
  * precedent). `taskBar` / `projectBar` therefore never throw on hand-edited
- * frontmatter with start after due — they normalise it to the same zero-length
+ * frontmatter with start after due - they normalise it to the same zero-length
  * bar the clamp would produce.
  */
 
@@ -29,7 +29,7 @@ import type { IsoDate, Project, Task } from "../types";
 /**
  * Split tasks into those the Timeline can place on the chart (any date set)
  * and those it can't (the Unscheduled pane), preserving the incoming order
- * within each. The Timeline renders — and walks with the keyboard — scheduled
+ * within each. The Timeline renders - and walks with the keyboard - scheduled
  * rows first, then unscheduled, so this is the one definition of that order.
  */
 export function partitionScheduled(tasks: Task[]): {
@@ -52,7 +52,7 @@ export function partitionScheduled(tasks: Task[]): {
 export type Bar =
 	| { kind: "range"; start: IsoDate; end: IsoDate }
 	| { kind: "milestone"; date: IsoDate }
-	/** `startDate` set, no `dueDate` — an open-ended bar. */
+	/** `startDate` set, no `dueDate` - an open-ended bar. */
 	| { kind: "open"; start: IsoDate }
 	| { kind: "unscheduled" };
 
@@ -67,7 +67,7 @@ export const MS_PER_DAY = 86_400_000;
 
 /**
  * Day numbers are clamped to a four-digit-year window so every result still
- * formats as a plain `YYYY-MM-DD` — `Date#toISOString` switches to an expanded
+ * formats as a plain `YYYY-MM-DD` - `Date#toISOString` switches to an expanded
  * `±YYYYYY` year outside roughly ±271821, and even the ECMAScript limit would
  * corrupt the string `slice`. A runaway drag then degrades to the boundary
  * date instead of producing `Invalid Date` or a malformed string.
@@ -91,7 +91,7 @@ export function dayNumber(iso: IsoDate): number {
 	return Math.round(ms / MS_PER_DAY);
 }
 
-/** Inverse of `dayNumber` — always a bare `YYYY-MM-DD`. */
+/** Inverse of `dayNumber` - always a bare `YYYY-MM-DD`. */
 export function isoFromDay(day: number): IsoDate {
 	return new Date(clampDay(day) * MS_PER_DAY).toISOString().slice(0, 10);
 }
@@ -161,7 +161,7 @@ function endpointsOf(bar: Bar): IsoDate[] {
 
 /**
  * The min/max dates spanned by `bars`, ignoring unscheduled ones. `null` when
- * nothing is scheduled — the "All" zoom then has nothing to frame.
+ * nothing is scheduled - the "All" zoom then has nothing to frame.
  */
 export function dateRangeOf(bars: Bar[]): { min: IsoDate; max: IsoDate } | null {
 	let min: number | null = null;
@@ -183,7 +183,7 @@ export function dateRangeOf(bars: Bar[]): { min: IsoDate; max: IsoDate } | null 
 
 /**
  * Move a range bar's `start` by `deltaDays`, clamped so it never passes `end`
- * — it clamps to `end` itself, giving a zero-length bar rather than an
+ * - it clamps to `end` itself, giving a zero-length bar rather than an
  * inverted one.
  */
 export function resizeStart(bar: RangeBar, deltaDays: number): Bar {
@@ -251,7 +251,7 @@ export function shiftBar(bar: Bar, deltaDays: number): Bar {
 // ---------------------------------------------------------------------------
 
 /**
- * The `{ startDate, dueDate }` patch a bar represents — what the interaction
+ * The `{ startDate, dueDate }` patch a bar represents - what the interaction
  * layer hands to `updateTask` / `updateProject` once, on drag release.
  */
 export function barDates(bar: Bar): {

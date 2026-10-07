@@ -2,13 +2,13 @@
  * Task ID generation.
  *
  * Task filenames are IDs only, never titles (Golden Rule). Because the filename
- * *is* the ID, prefixes must be unique across the entire vault — two workspaces
+ * *is* the ID, prefixes must be unique across the entire vault - two workspaces
  * sharing a prefix would produce identically-named files in different folders
  * and break Obsidian's short-form `[[wikilink]]` resolution.
  */
 
 const VOWELS = /[aeiou]/i;
-/** Allows 3–4; 3 is the default, matching the spec's own `Product Team` → `PRD`. */
+/** Allows 3-4; 3 is the default, matching the spec's own `Product Team` → `PRD`. */
 const DEFAULT_PREFIX_LEN = 3;
 const MAX_PREFIX_LEN = 4;
 
@@ -73,7 +73,7 @@ export function suggestPrefix(
 
 /** One workspace's identity, as the index discovers it while scanning the vault. */
 export interface WorkspacePrefixEntry {
-	/** Vault path of the `_workspace.md` note — the key issues are reported against. */
+	/** Vault path of the `_workspace.md` note - the key issues are reported against. */
 	notePath: string;
 	name: string;
 	idPrefix: string;
@@ -90,10 +90,10 @@ export interface PrefixCollision {
  * Find workspaces that share an `idPrefix`.
  *
  * Creation-time disambiguation (`suggestPrefix`) only guards prefixes the plugin
- * mints itself — a workspace folder copied in from elsewhere, or restored from
+ * mints itself - a workspace folder copied in from elsewhere, or restored from
  * trash, can still collide. `linksMatch` leans on prefixes being unique
  * vault-wide to resolve short-form `[[wikilink]]`s, so a duplicate is a real
- * correctness bug, not a cosmetic one — but not a fatal one either: both
+ * correctness bug, not a cosmetic one - but not a fatal one either: both
  * workspaces still load, and the collision is surfaced as a note issue.
  *
  * Returns one entry per colliding workspace (so each `_workspace.md` gets its
@@ -142,11 +142,11 @@ export function parseTaskId(
 }
 
 /**
- * `("PRD", "P", 5)` → `"PRD-P0005"` — the same `{prefix}-{sequence}` shape
+ * `("PRD", "P", 5)` → `"PRD-P0005"` - the same `{prefix}-{sequence}` shape
  * `formatTaskId` uses, with one extra letter marking which kind of entity
  * this is. Needed once a workspace's per-entity-type counters (Project,
  * View, Dashboard, ...) can produce the same *number* for two different
- * kinds of thing at once — unlike Task, which is still the one kind that
+ * kinds of thing at once - unlike Task, which is still the one kind that
  * gets `formatTaskId`'s bare `{prefix}-{sequence}` with no letter, since
  * historically it never needed to be told apart from anything else.
  */
@@ -240,7 +240,7 @@ export function nextTaskId(prefix: string, existingIds: Iterable<string>): strin
  * rather than being their own vault file. Contrast with `nextTaskId`, which
  * is for things that ARE files: vault-wide unique, sequential, filename-safe.
  * `newConfigId` only needs to avoid colliding with its siblings in the same
- * config list, so timestamp + a random suffix is enough — timestamp alone
+ * config list, so timestamp + a random suffix is enough - timestamp alone
  * collides too easily when several are minted in one tick (duplicate, bulk
  * create, the onboarding sample-workspace generator).
  */

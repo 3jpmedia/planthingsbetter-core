@@ -1,5 +1,5 @@
 /**
- * Saved View grouping — the thing that turns a task list into Board columns.
+ * Saved View grouping - the thing that turns a task list into Board columns.
  *
  * Two behaviours here are board-specific and deliberate:
  *
@@ -9,7 +9,7 @@
  *    trailing "no value" group when relevant.
  * 2. Grouping by `label` is many-to-many: a task with two labels appears in two
  *    columns. Dragging between label columns therefore means *add/remove*, not
- *    *move* — the UI has to treat that case specially.
+ *    *move* - the UI has to treat that case specially.
  */
 
 import { basename } from "../links";

@@ -4,7 +4,7 @@
  * Hierarchy lives in frontmatter links (Golden Rule), so every parent/child
  * reference in this codebase passes through here. Links are stored in
  * frontmatter as `"[[Tasks/PRD-0104]]"` and normalized internally to the bare
- * target `"Tasks/PRD-0104"` — no brackets, no alias, no `.md`, no heading or
+ * target `"Tasks/PRD-0104"` - no brackets, no alias, no `.md`, no heading or
  * block anchor.
  */
 
@@ -56,13 +56,13 @@ export function formatLinkList(targets: LinkTarget[]): string[] {
 	return targets.map((t) => `[[${t}]]`);
 }
 
-/** The final path segment — `Tasks/PRD-0104` → `PRD-0104`. */
+/** The final path segment - `Tasks/PRD-0104` → `PRD-0104`. */
 export function basename(target: LinkTarget): string {
 	const slash = target.lastIndexOf("/");
 	return slash === -1 ? target : target.slice(slash + 1);
 }
 
-/** The containing folder — `Tasks/PRD-0104` → `Tasks`, top level → `""`. */
+/** The containing folder - `Tasks/PRD-0104` → `Tasks`, top level → `""`. */
 export function dirname(target: LinkTarget): string {
 	const slash = target.lastIndexOf("/");
 	return slash === -1 ? "" : target.slice(0, slash);
@@ -76,7 +76,7 @@ export function dirname(target: LinkTarget): string {
 export function sanitizeFileName(name: string): string {
 	// A "/" in a title (e.g. a sidebar group like `Application/UI`) becomes a
 	// hyphen rather than being dropped, so both segments stay legible in the
-	// vault filename — the frontmatter `title` keeps the original "/".
+	// vault filename - the frontmatter `title` keeps the original "/".
 	return (
 		name
 			.replace(/\//g, "-")
@@ -106,7 +106,7 @@ export function isWithin(target: LinkTarget, root: string): boolean {
  * Compare two link targets tolerantly. Obsidian permits short-form links
  * (`[[PRD-0104]]`) that resolve to a full path, so a stored short form must
  * still match the indexed full path. This is exactly why ID prefixes have to
- * be unique vault-wide — otherwise this comparison is ambiguous.
+ * be unique vault-wide - otherwise this comparison is ambiguous.
  */
 export function linksMatch(a: LinkTarget | null, b: LinkTarget | null): boolean {
 	if (!a || !b) return false;

@@ -143,7 +143,7 @@ function assertInside(box: PlacedBox, node: PlacedBox, id: string) {
   );
 }
 
-describe("grouped isolated grids — reserved inside ELK", () => {
+describe("grouped isolated grids - reserved inside ELK", () => {
   it("regression (5e076fa): a partially-isolated group never overlaps its sibling", async () => {
     // `todo` has connected A→B plus isolated C; `done` is fully connected.
     const laidOut = await layoutGrouped(
@@ -179,7 +179,7 @@ describe("grouped isolated grids — reserved inside ELK", () => {
   });
 
   it("regression (5e076fa): two fully-isolated groups get separate compound boxes", async () => {
-    // No layout edges at all — everything isolated, every group placeholder-only.
+    // No layout edges at all - everything isolated, every group placeholder-only.
     const laidOut = await layoutGrouped(
       [
         {
@@ -228,7 +228,7 @@ describe("grouped isolated grids — reserved inside ELK", () => {
   });
 });
 
-describe("flat root isolated grid — appended below the connected block", () => {
+describe("flat root isolated grid - appended below the connected block", () => {
   it("sits below the block when direction is right, clear of the strip", async () => {
     const connected = ["A1", "A2", "A3", "A4", "A5", "A6"].map(leaf);
     const isolated = ["C1", "C2", "C3"].map((id) => ({ id, task: {} }));

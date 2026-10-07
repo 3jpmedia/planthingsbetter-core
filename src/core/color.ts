@@ -19,7 +19,7 @@
  *   Row 2 Soft / Pastel · Row 3 Vibrant Mid-Tones · Row 4 Muted Chromatics
  *   Row 5 Deep / Dark · Row 6 Earths & Muted Darks
  *
- * The source of truth lives in `COLOR_PALETTE_ENTRIES` — `[name, hex]` pairs so
+ * The source of truth lives in `COLOR_PALETTE_ENTRIES` - `[name, hex]` pairs so
  * the friendly swatch names never drift from the values. `COLOR_PALETTE` and
  * `COLOR_PALETTE_NAMES` are derived from it and always stay the same length in
  * the same order.

@@ -1,7 +1,7 @@
 /**
  * Saved View filtering.
  *
- * Semantics: values within one filter are OR'd, filters are AND'd together —
+ * Semantics: values within one filter are OR'd, filters are AND'd together -
  * `status: [todo, in-progress], taskType: [bug]` means "a bug that is either
  * todo or in progress". This is the behaviour every issue tracker has, so it
  * needs no explanation in the UI.
@@ -33,7 +33,7 @@ function resolvePeople(values: string[], context: ViewContext): string[] {
 	const out: string[] = [];
 	for (const value of values) {
 		if (value === SELF) {
-			// No `me` is set in this workspace — a `self` filter then matches
+			// No `me` is set in this workspace - a `self` filter then matches
 			// nothing, which is honest. Silently matching everything would make
 			// "Assigned to Me" look like "All Tasks".
 			if (context.selfId) out.push(context.selfId);
@@ -483,7 +483,7 @@ export type ExcludeFilterKey =
 /**
  * `ArrayFilterKey` → the `ViewFilters` property holding its excluded
  * values. One exhaustive table (like `FILTER_FIELDS` in grammar.ts) so a
- * new filterable field can't silently skip exclusion support — adding it
+ * new filterable field can't silently skip exclusion support - adding it
  * to `ArrayFilterKey` forces an entry here too.
  */
 export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
@@ -515,7 +515,7 @@ export const EXCLUDE_ARRAY_FIELDS: readonly ExcludeFilterKey[] =
  * One filter set, one representation.
  *
  * `matchesFilters` already treats an empty array, a blank `text`, and a `false`
- * boolean as no-ops, so canonical form simply drops them — and fixes key order,
+ * boolean as no-ops, so canonical form simply drops them - and fixes key order,
  * which is what lets equality be a `JSON.stringify` comparison.
  *
  * Values are de-duplicated but deliberately **not sorted**: the query bar
@@ -579,7 +579,7 @@ export function filtersEqual(a: ViewFilters, b: ViewFilters): boolean {
  * `TASK_FIELDS` order so equality is a `JSON.stringify` comparison.
  *
  * Filter values stay unsorted (the query bar re-prints them under the user's
- * cursor), but a field checklist has no such concern — a fixed order also keeps
+ * cursor), but a field checklist has no such concern - a fixed order also keeps
  * a view's note diff stable when the same set is toggled in a different sequence.
  */
 export function canonicalizeHiddenFields(
@@ -616,14 +616,14 @@ export function canonicalizeHiddenRelationKinds(
 }
 
 /**
- * The hidden-field set a view's rows and cards should actually render with —
+ * The hidden-field set a view's rows and cards should actually render with -
  * the user's own choices plus anything the view's filters make redundant.
  *
  * Today that's the project chip inside a view already scoped to one project:
  * repeating the same project name on every row is noise, and the alternative
  * (seeding `project` into every existing view's `hiddenFields` on upgrade)
  * would be a migration that also takes the choice away from the user. This
- * suppression is presentation-only — it never touches the saved view, so
+ * suppression is presentation-only - it never touches the saved view, so
  * toggling the filter off brings the chip straight back, and the Fields
  * control still shows the field as "shown" because that's what's saved.
  */
@@ -680,7 +680,7 @@ export function canonicalizeDefinition(
 				? definition.calendarEndField
 				: null,
 		calendarMode: definition.calendarMode ?? DEFAULT_DEFINITION.calendarMode,
-		// Canvas arrangement/direction resolve to their defaults when absent —
+		// Canvas arrangement/direction resolve to their defaults when absent -
 		// a pre-arrangement view note carries neither, and canonical canonicity
 		// (the round-trip invariant) needs those as explicit values.
 		canvasArrangement:
@@ -688,7 +688,7 @@ export function canonicalizeDefinition(
 		timelineZoom: definition.timelineZoom ?? DEFAULT_DEFINITION.timelineZoom,
 		canvasDirection:
 			definition.canvasDirection ?? DEFAULT_DEFINITION.canvasDirection,
-		// A *hidden* list, like `hiddenFields` — absent or empty means "show all
+		// A *hidden* list, like `hiddenFields` - absent or empty means "show all
 		// three", so canonicalizing to `[]` when unset introduces no second
 		// meaning for "unset" between the Phase 3 toolbar and the query language.
 		canvasHiddenRelationKinds: canonicalizeHiddenRelationKinds(
@@ -706,7 +706,7 @@ export function definitionsEqual(a: ViewDefinition, b: ViewDefinition): boolean 
 	);
 }
 
-/** True when a view would show everything — used to label the empty state. */
+/** True when a view would show everything - used to label the empty state. */
 export function isEmptyFilterSet(filters: ViewFilters): boolean {
 	return (
 		!filters.status?.length &&

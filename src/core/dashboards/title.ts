@@ -2,7 +2,7 @@
  * Auto-generated widget titles (§Dashboards Phase 1).
  *
  * "Tasks by Status", "Estimate sum where Status is Done", etc. Once a user
- * renames a widget (`titleIsCustom`), these never overwrite it — the caller
+ * renames a widget (`titleIsCustom`), these never overwrite it - the caller
  * checks that flag, not this module.
  */
 

@@ -1,13 +1,13 @@
 /**
- * Whole-workspace deletion — the relation cleanup it triggers elsewhere.
+ * Whole-workspace deletion - the relation cleanup it triggers elsewhere.
  *
  * Deleting a single Task tidies the relations that pointed at it (see
  * `danglingRelationEdits` in `./cascade`). Deleting an entire Workspace removes
- * every Task in it at once, so the same tidy-up has to run **vault-wide** —
+ * every Task in it at once, so the same tidy-up has to run **vault-wide** -
  * a `blocks` / `blockedBy` / `related` / `duplicateOf` link living in *another*
  * workspace that points into the doomed one would otherwise be left dangling.
  *
- * This is still not hierarchy, so it stays silent — no prompt, same as the
+ * This is still not hierarchy, so it stays silent - no prompt, same as the
  * single-task path.
  */
 
@@ -20,7 +20,7 @@ import { danglingRelationEdits } from "./cascade";
  *
  * Builds one `HierarchyScope` spanning every workspace except the doomed one,
  * then reuses `danglingRelationEdits` with the doomed workspace's task paths as
- * the deleted set — so the matching rules are identical to the single-task
+ * the deleted set - so the matching rules are identical to the single-task
  * delete. Returns `[]` when `doomedRoot` names no known workspace.
  */
 export function danglingRelationEditsForWorkspaceDeletion(

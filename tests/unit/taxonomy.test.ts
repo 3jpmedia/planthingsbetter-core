@@ -75,7 +75,7 @@ describe("reading", () => {
 
 describe("status categories", () => {
 	it("drives logic from the category, not the name", () => {
-		// Rename "Done" to something else entirely — the category must still win.
+		// Rename "Done" to something else entirely - the category must still win.
 		const renamed = updateValue(statuses(), "done", { name: "Shipped 🚢" });
 		expect(displayName(renamed, "done")).toBe("Shipped 🚢");
 		expect(categoryOf(renamed, "done")).toBe("completed");

@@ -1,10 +1,10 @@
 /**
- * `Views/<id>.md` — one Saved View definition per note.
+ * `Views/<id>.md` - one Saved View definition per note.
  *
  * The whole definitional half of a view (`filters`, `viewType`, `groupBy`,
  * `sortBy`/`sortDirection`, `emptyColumnBehavior`, `hiddenFields`,
  * `subtaskDisplay`, `calendarDateField`, `recurringPreview`) is persisted as a
- * single `query:` string — the same text the Query Bar round-trips
+ * single `query:` string - the same text the Query Bar round-trips
  * (`core/query`'s `printQuery`/`parseQuery`). Identity (`name`/`icon`/
  * `description`) and per-session chrome (`columns`/`timeline`/`calendar`) keep
  * their own keys.
@@ -110,7 +110,7 @@ function parseTimeline(raw: unknown): ViewTimelineState | undefined {
 
 /**
  * Parse the optional per-session Calendar chrome. Absent (or empty) block →
- * `undefined`, mirroring `parseTimeline` — it never lands in serialized
+ * `undefined`, mirroring `parseTimeline` - it never lands in serialized
  * frontmatter until the view is opened as a calendar and paged off its default
  * month.
  */
@@ -124,7 +124,7 @@ function parseCalendar(raw: unknown): ViewCalendarState | undefined {
 
 /**
  * Table-only column order. Unknown fields (e.g. a field renamed since this was
- * written) are silently dropped, not an error — same convention as
+ * written) are silently dropped, not an error - same convention as
  * `pickAll`. Absent/empty → `undefined`, never a bare `[]`.
  */
 function parseColumnOrder(raw: unknown, log: IssueLog): TaskField[] | undefined {
@@ -192,7 +192,7 @@ function pick<T extends string>(
 	return fallback;
 }
 
-/** `pick` for a closed-enum *list* — drops unknown members and logs each. */
+/** `pick` for a closed-enum *list* - drops unknown members and logs each. */
 function pickAll<T extends string>(
 	raw: unknown,
 	allowed: readonly T[],
@@ -225,7 +225,7 @@ function listFilter(raw: unknown): string[] | undefined {
 
 /**
  * The `archived` tri-state, tolerating the legacy `includeArchived: true`
- * boolean that older view files carry — it reads as `"included"`.
+ * boolean that older view files carry - it reads as `"included"`.
  */
 function parseArchived(record: Record<string, unknown>): ViewFilters["archived"] {
 	const value = asString(record.archived);
@@ -256,7 +256,7 @@ export interface ViewParseOptions {
 	path: string;
 	/**
 	 * Resolves the `query:` string's names into stored ids. A workspace-only
-	 * context (taxonomies + people, no project/task lists) is enough — an
+	 * context (taxonomies + people, no project/task lists) is enough - an
 	 * unresolved project path or task id is preserved verbatim by the resolver.
 	 * Omitted means "resolve nothing", i.e. keep every value verbatim.
 	 */
@@ -275,8 +275,8 @@ export function compactFilters(filters: ViewFilters): ViewFilters {
 }
 
 /**
- * The definitional half of a view — everything but the `type`/`path`
- * discriminants — read from the `query:` string plus the identity/chrome keys.
+ * The definitional half of a view - everything but the `type`/`path`
+ * discriminants - read from the `query:` string plus the identity/chrome keys.
  */
 function parseViewValue(
 	record: Record<string, unknown>,
@@ -411,7 +411,7 @@ function parseLegacyViewValue(
 }
 
 /**
- * Canvas (DAG) layout direction — normalised from the legacy frontmatter
+ * Canvas (DAG) layout direction - normalised from the legacy frontmatter
  * spellings `"LR"`/`"TB"` and the current `"right"`/`"down"` into the latter.
  * Absent or unrecognised parses to `undefined` (readers apply the `"right"`
  * default); it never fails validation.
@@ -426,7 +426,7 @@ function parseCanvasDirection(
 
 /**
  * Legacy plain frontmatter reader for canvas relation kinds hidden from this
- * view — from before the `relations:` query clause existed. Unknown entries
+ * view - from before the `relations:` query clause existed. Unknown entries
  * are dropped; an empty result becomes `undefined` (the "show all" default),
  * same shape as `parseCanvasDirection`.
  */
@@ -475,7 +475,7 @@ export function parseLegacyViewDefinition(
 }
 
 /**
- * Parse the retired shared `_views.md` array. Migration-only — see the module
+ * Parse the retired shared `_views.md` array. Migration-only - see the module
  * header. The `path` is left blank: these objects are transient, read once to be
  * re-written as individual files (and `serializeView` never emits `path`).
  */
@@ -544,7 +544,7 @@ export function serializeView(
 		description: view.description,
 		query: printQuery(viewDefinition(view), context) || undefined,
 		// `canvasDirection` and `canvasHiddenRelationKinds` now ride in the
-		// `query:` string (as `canvas-direction:`/`relations:`) — neither is
+		// `query:` string (as `canvas-direction:`/`relations:`) - neither is
 		// written as a separate frontmatter key any more. Their legacy plain
 		// keys are still *read* (see `parseCanvasDirection`/
 		// `parseCanvasHiddenRelationKinds`), purely so old view notes migrate
@@ -572,7 +572,7 @@ export function serializeView(
 }
 
 /**
- * Parse a Project's own `view:` frontmatter block — a `query:` string plus group
+ * Parse a Project's own `view:` frontmatter block - a `query:` string plus group
  * collapse/hide (`columns`), which (unlike a `Views/<id>.md` note) is the only
  * per-session furniture it carries. No id/name/icon.
  */
@@ -597,7 +597,7 @@ export function parseProjectView(
 
 /**
  * Read the retired structured shape of a Project's `view:` block into a
- * `ProjectViewSettings`. Migration-only — see `parseLegacyViewDefinition`.
+ * `ProjectViewSettings`. Migration-only - see `parseLegacyViewDefinition`.
  */
 export function parseLegacyProjectView(raw: unknown): ProjectViewSettings {
 	const record = asRecord(raw);
@@ -630,7 +630,7 @@ export function serializeProjectView(
 /**
  * Serialize a view in the retired structured shape (top-level `viewType`/
  * `filters`/… keys). The plural `_views.md` array used this format on disk, so
- * `serializeViews` still emits it — the pair models the retired file, read and
+ * `serializeViews` still emits it - the pair models the retired file, read and
  * written. The live per-file path is `serializeView` (a `query:` string).
  */
 export function serializeLegacyView(view: SavedView): Record<string, unknown> {

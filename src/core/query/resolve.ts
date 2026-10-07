@@ -1,5 +1,5 @@
 /**
- * Value resolution — the one place a typed word becomes a stored id.
+ * Value resolution - the one place a typed word becomes a stored id.
  *
  * Every path ends in a stored value, never a failure: an unmatched word is kept
  * **verbatim** with a warning rather than dropped. Saved views routinely
@@ -25,7 +25,7 @@ import {
 } from "./grammar";
 import type { QueryIssue } from "./types";
 
-/** An issue without its span — the caller knows where the value came from. */
+/** An issue without its span - the caller knows where the value came from. */
 export type SpanlessIssue = Omit<QueryIssue, "span">;
 
 export interface Resolved {
@@ -65,7 +65,7 @@ function entitiesFor(
 	return null;
 }
 
-/** Exactly one match, or nothing — never a guess. */
+/** Exactly one match, or nothing - never a guess. */
 function soleMatch(
 	entities: QueryEntity[],
 	predicate: (entity: QueryEntity) => boolean,
@@ -94,7 +94,7 @@ function resolveTaxonomyValue(
 		issue: {
 			severity: "warning",
 			code: "unknown-value",
-			message: `No ${label} named "${raw}" — keeping it as written`,
+			message: `No ${label} named "${raw}" - keeping it as written`,
 		},
 	};
 }
@@ -103,7 +103,7 @@ const GROUP_WILDCARD_SUFFIX = "/*";
 
 /**
  * A `"Parent/*"` group pattern resolves to itself (verbatim) rather than
- * to a concrete id/path — matching happens live, at evaluation time,
+ * to a concrete id/path - matching happens live, at evaluation time,
  * against whatever currently exists under that prefix. `names` is every
  * current display name/title for the field being resolved, just for the
  * "does anything match" warning below.
@@ -125,7 +125,7 @@ function resolveGroupWildcard(
 			: {
 					severity: "warning",
 					code: "unknown-value",
-					message: `No ${fieldLabel} start with "${prefix}" — keeping it as written`,
+					message: `No ${fieldLabel} start with "${prefix}" - keeping it as written`,
 				},
 	};
 }
@@ -158,7 +158,7 @@ function resolvePerson(raw: string, context: QueryContext): Resolved {
 		issue: {
 			severity: "warning",
 			code: "unknown-value",
-			message: `Nobody named "${raw}" in this workspace — keeping it as written`,
+			message: `Nobody named "${raw}" in this workspace - keeping it as written`,
 		},
 	};
 }
@@ -182,7 +182,7 @@ function resolveEntity(
 			issue: {
 				severity: "warning",
 				code: "unknown-value",
-				message: `More than one ${label} is called "${raw}" — use the full path`,
+				message: `More than one ${label} is called "${raw}" - use the full path`,
 			},
 		};
 	}
@@ -197,7 +197,7 @@ function resolveEntity(
 			issue: {
 				severity: "warning",
 				code: "unknown-value",
-				message: `More than one ${label} is called "${raw}" — use the full path`,
+				message: `More than one ${label} is called "${raw}" - use the full path`,
 			},
 		};
 	}
@@ -210,7 +210,7 @@ function resolveEntity(
 			issue: {
 				severity: "warning",
 				code: "unknown-value",
-				message: `More than one ${label} is called "${raw}" — use its key`,
+				message: `More than one ${label} is called "${raw}" - use its key`,
 			},
 		};
 	}
@@ -221,7 +221,7 @@ function resolveEntity(
 		issue: {
 			severity: "warning",
 			code: "unknown-value",
-			message: `No ${label} named "${raw}" — keeping it as written`,
+			message: `No ${label} named "${raw}" - keeping it as written`,
 		},
 	};
 }
@@ -242,8 +242,8 @@ export function resolveValue(
 
 	const lowered = raw.trim().toLowerCase();
 
-	// Reserved keywords always win over taxonomy values. The alternative —
-	// letting a value shadow them — means a query silently changes meaning the
+	// Reserved keywords always win over taxonomy values. The alternative -
+	// letting a value shadow them - means a query silently changes meaning the
 	// day somebody adds a label called "unset". `=` is the escape.
 	if (UNSET_KEYWORDS.includes(lowered as (typeof UNSET_KEYWORDS)[number])) {
 		return {
@@ -282,7 +282,7 @@ export function resolveValue(
 			issue: {
 				severity: "warning",
 				code: "unknown-value",
-				message: `"${raw}" isn't a valid date (expected YYYY-MM-DD) — keeping it as written`,
+				message: `"${raw}" isn't a valid date (expected YYYY-MM-DD) - keeping it as written`,
 			},
 		};
 	}

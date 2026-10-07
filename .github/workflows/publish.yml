@@ -1,6 +1,6 @@
 name: Publish @planthingsbetter/core
 
-# Tag push, matching vertex-flow-obsidian's release convention — tag with the
+# Tag push, matching vertex-flow-obsidian's release convention - tag with the
 # same version as package.json (e.g. "0.1.0", no "v" prefix) and push the tag.
 on:
   push:

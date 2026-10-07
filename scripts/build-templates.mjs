@@ -5,7 +5,7 @@
  *
  * Unlike `build-help.mjs`, this script deliberately does **not** understand the
  * files it reads. Template markdown is parsed by `parseTemplateMarkdown()` in
- * `src/core/templates/markdown/` — one parser, shared by the build-time
+ * `src/core/templates/markdown/` - one parser, shared by the build-time
  * templates baked in here and (later) user-authored ones discovered in a vault.
  * All this script does is inline each file's raw text so the plugin bundle can
  * reach it without a filesystem.
@@ -33,16 +33,16 @@ const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
  * `parseTemplateMarkdown` / `resolveTemplateContent` are TypeScript and this
  * script is plain ESM run before `tsc`, so they're bundled to a throwaway
  * module here and imported. That's a few hundred milliseconds, and it buys the
- * thing a duplicated validator could never give: every rule in the grammar —
+ * thing a duplicated validator could never give: every rule in the grammar -
  * unresolvable anchors, contradictory relations, unknown taxonomy names, bad
- * `query:` strings — enforced at build time, from one implementation.
+ * `query:` strings - enforced at build time, from one implementation.
  *
  * Without this the parser would only run when the plugin loads, which means a
  * typo'd anchor would ship green and fail in someone's vault.
  */
 async function loadParser() {
 	// Bundled inside the repo, not the OS temp dir, so `yaml` stays external
-	// and resolves from node_modules the normal way — bundling it produces
+	// and resolves from node_modules the normal way - bundling it produces
 	// `require()` calls an ESM import can't execute.
 	const outfile = join(
 		mkdtempSync(join(__dirname, "..", ".template-validate-")),
@@ -78,7 +78,7 @@ function validationContext() {
 const SUPPORTED_SCHEMA = 1;
 
 function problem(fileName, message) {
-	console.error(`\n[templates] templates/${fileName} — ${message}\n`);
+	console.error(`\n[templates] templates/${fileName} - ${message}\n`);
 	process.exit(1);
 }
 
@@ -103,7 +103,7 @@ function validateFileName(fileName, raw) {
 	if (data.id !== undefined && data.id !== expectedId) {
 		problem(
 			fileName,
-			`declares "id: ${data.id}" but the file is named "${expectedId}.md" — they must match`,
+			`declares "id: ${data.id}" but the file is named "${expectedId}.md" - they must match`,
 		);
 	}
 	return expectedId;
@@ -127,16 +127,16 @@ try {
 			if (parsed.meta.id !== id) {
 				problem(
 					name,
-					`declares "id: ${parsed.meta.id}" but the file is named "${id}.md" — they must match`,
+					`declares "id: ${parsed.meta.id}" but the file is named "${id}.md" - they must match`,
 				);
 			}
 			for (const warning of parsed.warnings) {
-				console.warn(`[templates] templates/${name} — ${warning}`);
+				console.warn(`[templates] templates/${name} - ${warning}`);
 			}
 			parser.resolveTemplateContent(parsed, ctx);
 		} catch (error) {
 			// A grammar error already says which field and value is wrong, and
-			// often which line — prefix the file and print that, not a stack.
+			// often which line - prefix the file and print that, not a stack.
 			if (error?.name === "TemplateParseError") {
 				const at = error.line !== undefined ? `:${error.line}` : "";
 				problem(name.replace(/\.md$/, `.md${at}`), error.message);
@@ -154,7 +154,7 @@ try {
 }
 
 const source = `/*
- * GENERATED FILE — do not edit by hand.
+ * GENERATED FILE - do not edit by hand.
  * Source: the markdown files under templates/
  * Regenerated automatically by esbuild.config.mjs (or run
  * \\\`node scripts/build-templates.mjs\\\` directly).

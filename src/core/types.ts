@@ -1,5 +1,5 @@
 /**
- * Vertex Flow — core domain types.
+ * Vertex Flow - core domain types.
  *
  * CLAUDE.md Golden Rule: nothing under `src/core/` may import the Obsidian API.
  * These types describe the *data*, not the files it lives in. The Obsidian glue
@@ -44,7 +44,7 @@ export const LEGACY_ENTITY_TYPE: Record<string, string> = {
  * Every file-backed thing the vault index classifies into a `WorkspaceSnapshot`.
  *
  * Lives here rather than in `src/obsidian/index-store.ts` because it's a domain
- * concept, not a glue-layer detail — the index importing it from core is the
+ * concept, not a glue-layer detail - the index importing it from core is the
  * correct dependency direction. Views and Dashboards became file-backed (one
  * Markdown note each, under `Views/` / `Dashboards/`) alongside Tasks and
  * Projects; before that they were array entries inside shared config notes.
@@ -53,7 +53,7 @@ export type EntityKind = "task" | "project" | "view" | "dashboard";
 
 /**
  * The two synthetic, non-file items that still behave as first-class parts of
- * the model — the permanent "All Tasks" and "Untriaged" System Views. They're
+ * the model - the permanent "All Tasks" and "Untriaged" System Views. They're
  * injected into every workspace and never written to disk.
  */
 export type SystemItemKind = "all-tasks" | "untriaged";
@@ -62,7 +62,7 @@ export type SystemItemKind = "all-tasks" | "untriaged";
 export type ItemKind = EntityKind | SystemItemKind;
 
 /**
- * One item sitting in a workspace's `Trash/` folder — a Task/Project/View/
+ * One item sitting in a workspace's `Trash/` folder - a Task/Project/View/
  * Dashboard whose deletion moved its file into `Workspace/Trash/<Kind>/` (with a
  * `vf-trashedAt` stamp) rather than into Obsidian's own trash. Lives here beside
  * `EntityKind` for the same reason: it's a domain concept the index populates,
@@ -73,7 +73,7 @@ export interface TrashedItem {
 	/** ISO datetime the item was moved into Trash (`vf-trashedAt`). */
 	trashedAt: IsoDate;
 	/**
-	 * The fully parsed entity — the same `Task` / `Project` / `SavedView` /
+	 * The fully parsed entity - the same `Task` / `Project` / `SavedView` /
 	 * `DashboardConfig` shape it had while live, so the Trash hub can hand it
 	 * straight to the card components the other hubs use.
 	 */
@@ -91,13 +91,13 @@ export type LinkTarget = string;
 export type IsoDate = string;
 
 // ---------------------------------------------------------------------------
-// Taxonomy — one engine, four configurations
+// Taxonomy - one engine, four configurations
 // ---------------------------------------------------------------------------
 
 /**
  * The fixed Status category enum. Invisible to users; drives all logic
  * (progress calculation, "is this active" filtering, board grouping). Users may
- * rename and recolor their statuses freely — the category underneath never
+ * rename and recolor their statuses freely - the category underneath never
  * changes. A category may legitimately have zero statuses.
  */
 export type StatusCategory =
@@ -144,10 +144,10 @@ export type TaskTypeValue = TaxonomyValue;
 export type LabelValue = TaxonomyValue;
 
 /**
- * Lightweight register for `@mentions` and `assignee`. No auth —
+ * Lightweight register for `@mentions` and `assignee`. No auth -
  * just names and aliases. *Who "me" is* is not stored here, and is not a global
  * plugin setting: it's a per-device, per-workspace `personId` held in the app's
- * own `localStorage` (never in the vault) — see `src/obsidian/me-storage.ts` —
+ * own `localStorage` (never in the vault) - see `src/obsidian/me-storage.ts` -
  * that resolves against this roster by id.
  */
 export interface Person {
@@ -169,7 +169,7 @@ export interface Person {
 // Task
 // ---------------------------------------------------------------------------
 
-/** Task relations — cross-cutting association without multiple parents. */
+/** Task relations - cross-cutting association without multiple parents. */
 export interface TaskRelations {
 	blocks: LinkTarget[];
 	blockedBy: LinkTarget[];
@@ -183,7 +183,7 @@ export function emptyRelations(): TaskRelations {
 
 /**
  * How many relations a task has, counted exactly the way `RelationBadge`
- * renders it — `duplicateOf` included. Shared so the Relations column's
+ * renders it - `duplicateOf` included. Shared so the Relations column's
  * badge and its sort can never disagree about what the number means.
  */
 export function relationCount(task: Pick<Task, "relations">): number {
@@ -215,7 +215,7 @@ export type RecurrenceAnchor = "dueDate" | "startDate";
 export type OnCloseDateMode = "none" | "immediate" | "shifted";
 
 /**
- * Lowercase short weekday names — the canonical encoding for a weekly
+ * Lowercase short weekday names - the canonical encoding for a weekly
  * cadence. `["mon", "wed", "fri"]` reads better in frontmatter than day
  * numbers, and a human can hand-edit it without a decoder ring.
  */
@@ -239,7 +239,7 @@ export const WEEKDAYS: readonly Weekday[] = [
 ] as const;
 
 /**
- * The flat, durable recurrence definition — a data block with a documented
+ * The flat, durable recurrence definition - a data block with a documented
  * frontmatter shape rather than an object graph, because it's carried forward,
  * node by node, down a chain of spawned notes.
  *
@@ -267,7 +267,7 @@ export interface RecurrenceConfig {
 	 */
 	triggerStatus: string | null;
 	freq: RecurrenceFrequency;
-	/** Cadence multiplier — every `interval` days, weeks, months or years. */
+	/** Cadence multiplier - every `interval` days, weeks, months or years. */
 	interval: number;
 	/**
 	 * Weekly-only: the weekdays within each week that can carry an occurrence.
@@ -280,7 +280,7 @@ export interface RecurrenceConfig {
 	dayOfMonth: number | null;
 	/** Monthly "on the Nth <weekday> of the month" (1-based). */
 	weekdayOfMonth: number | null;
-	/** Yearly: the month an annual recurrence lands in (1–12). */
+	/** Yearly: the month an annual recurrence lands in (1-12). */
 	monthOfYear: number | null;
 	/**
 	 * Which date field the occurrence day drives. With both dates set, the
@@ -289,7 +289,7 @@ export interface RecurrenceConfig {
 	anchor: RecurrenceAnchor;
 	/**
 	 * `on-close` only: how the spawned occurrence's Start Date is set. Optional
-	 * only because notes written before this field existed have no key at all —
+	 * only because notes written before this field existed have no key at all -
 	 * `migrateOnCloseDateModes` (see `src/obsidian/index-store.ts`) backfills
 	 * every such note to `"immediate"` on the next rebuild, so `undefined`
 	 * should not persist in practice. New rules authored via the Repeat editor
@@ -322,7 +322,7 @@ export interface RecurrenceConfig {
 	 * Which fields to copy from the source task when spawning the next
 	 * occurrence. `null` (the default, and the value for all pre-existing
 	 * blocks) means "copy everything." Title, Project, and Parent are never
-	 * toggleable — they are always copied. Only the fields listed in
+	 * toggleable - they are always copied. Only the fields listed in
 	 * `TaskFieldKey` can be opted out of.
 	 */
 	copyFields: TaskFieldKey[] | null;
@@ -336,7 +336,7 @@ export interface Task {
 	/** Status id. `null` when the workspace has no configured status. */
 	status: string | null;
 	priority: string | null;
-	/** LexoRank — global default order. Always present. */
+	/** LexoRank - global default order. Always present. */
 	rank: string;
 
 	/**
@@ -391,7 +391,7 @@ export interface Task {
 	/**
 	 * When the task last crossed into a `"completed"`-category status, or `null`
 	 * if it isn't currently completed. Auto-stamped/cleared by `Mutations.updateTask`
-	 * on a status change — never hand-set, and (like `updatedAt`) excluded from
+	 * on a status change - never hand-set, and (like `updatedAt`) excluded from
 	 * history diffing. The latest completion always wins; reopening clears it.
 	 */
 	completedAt: IsoDate | null;
@@ -400,7 +400,7 @@ export interface Task {
 
 	/** Vault-relative path of the note backing this task. */
 	path: LinkTarget;
-	/** `Person.id`s @mentioned in the body/comments — powers `mentions: self`. */
+	/** `Person.id`s @mentioned in the body/comments - powers `mentions: self`. */
 	mentions: string[];
 	/**
 	 * How many comments it has -- filled where the app knows it (the web
@@ -413,7 +413,7 @@ export interface Task {
 	/**
 	 * A speculative future occurrence of a recurring series, synthesised by
 	 * `projectRecurrences` for the `show:recurring` preview. Never a real note,
-	 * never serialized, never a drag/rank/select target — a ghost row. Its
+	 * never serialized, never a drag/rank/select target - a ghost row. Its
 	 * `path` is synthetic (`<source>/occ/N`) and `recurringFrom` points at the
 	 * chain member it was projected from.
 	 */
@@ -453,7 +453,7 @@ export interface Project {
 	title: string;
 	/**
 	 * The human-facing, stable identifier ("PRD-P0005"), same idea as
-	 * `Task.id` — a project's own `title` can be renamed at any time, so a
+	 * `Task.id` - a project's own `title` can be renamed at any time, so a
 	 * saved/typed `projectKey:` query encodes this instead (see
 	 * `queryContext` in `query/context.ts`). Optional: this plugin's own
 	 * projects (file-backed, no per-workspace counter) have none, and
@@ -462,9 +462,9 @@ export interface Project {
 	id?: string;
 	/** Curated icon id (see `ui/components/Icon.tsx`); optional, falls back at render. */
 	icon?: string;
-	/** Reuses the Task status taxonomy — no separate system. `null` is "None". */
+	/** Reuses the Task status taxonomy - no separate system. `null` is "None". */
 	status: string | null;
-	/** Reuses the Task priority taxonomy — no separate system. `null` is "None". */
+	/** Reuses the Task priority taxonomy - no separate system. `null` is "None". */
 	priority: string | null;
 	/** Reuses the Task label taxonomy/engine, multi-select. */
 	labels: string[];
@@ -472,7 +472,7 @@ export interface Project {
 	dueDate: IsoDate | null;
 	/**
 	 * A `Person.id`. Deliberately `owner`, not `assignee`: a project isn't worked
-	 * by one person the way a task is — this is "who's accountable for it," not
+	 * by one person the way a task is - this is "who's accountable for it," not
 	 * "who's doing it." Same underlying control as Task's assignee.
 	 */
 	owner: string | null;
@@ -483,7 +483,7 @@ export interface Project {
 	updatedAt: IsoDate;
 	path: LinkTarget;
 	/**
-	 * The embedded task-list viewport's saved sort/group/filter settings —
+	 * The embedded task-list viewport's saved sort/group/filter settings -
 	 * absent until the user hits Save there at least once. `projectView()`
 	 * (`ui/App.tsx`) merges this over its hardcoded defaults. No migration
 	 * concern: older projects simply have none.
@@ -521,12 +521,12 @@ export interface Milestone {
 }
 
 /**
- * A Project plus its note body. The index holds bare `Project` records — the
+ * A Project plus its note body. The index holds bare `Project` records - the
  * full document is loaded only when a project is actually opened in the editor,
  * exactly mirroring `TaskDocument`.
  *
  * Unlike a Task, a Project has no comments block, so `description` is simply the
- * whole body, trimmed — there's nothing to split around. `description` is *not*
+ * whole body, trimmed - there's nothing to split around. `description` is *not*
  * a frontmatter field, and deliberately not part of the bare `Project` type:
  * `Project` rides in every `WorkspaceSnapshot` and feeds filtering/grouping/
  * Browse cards, so it stays lean.
@@ -550,12 +550,12 @@ export interface ArchivingConfig {
  * Per-workspace opt-in activity history. Lives on the workspace config (like
  * `archiving`) because recording is a property of the *workspace*, not of any
  * single entity. The log itself is append-only Markdown under the workspace's
- * own `History/` folder — see `src/core/history/` and the `HistoryLog` glue.
+ * own `History/` folder - see `src/core/history/` and the `HistoryLog` glue.
  */
 export interface HistoryConfig {
 	/**
 	 * Off by default, and phrasing around this is deliberate: the log is
-	 * "activity history", not a formal audit log — it's a hand-editable local
+	 * "activity history", not a formal audit log - it's a hand-editable local
 	 * file, so it can't borrow compliance authority.
 	 */
 	enabled: boolean;
@@ -565,7 +565,7 @@ export interface HistoryConfig {
  * Who performed an action. A person is resolved from the workspace `people`
  * roster by the device's per-workspace "me" personId (there's no login, so "the
  * person holding the mouse"). `system` is reserved for machine-initiated
- * writes — the auto-archive sweep, a future recurring-task engine — never a
+ * writes - the auto-archive sweep, a future recurring-task engine - never a
  * human action wearing a costume.
  */
 export type HistoryActor =
@@ -596,16 +596,16 @@ export interface HistoryChange {
 /**
  * One appended, immutable line in a workspace's history log. There is no
  * sequence number: within a stream the writer enforces a strictly increasing
- * `ts`, and across streams the reader orders by `ts` then file name — the
+ * `ts`, and across streams the reader orders by `ts` then file name - the
  * timestamp is the timeline, and a shared log is at bottom a merge of clocks.
  */
 export interface HistoryEntry {
-	/** ISO datetime the action happened — strictly increasing within a stream. */
+	/** ISO datetime the action happened - strictly increasing within a stream. */
 	ts: IsoDate;
 	actor: HistoryActor;
 	action: string;
 	/**
-	 * The workspace root at the time of the action — the file already lives
+	 * The workspace root at the time of the action - the file already lives
 	 * under that root's `History/` folder, so this is belt-and-braces for a
 	 * log that gets copied somewhere or viewed out of context.
 	 */
@@ -625,18 +625,18 @@ export interface WorkspaceConfig {
 	history: HistoryConfig;
 	/** Configurable independently of status category. `null` when no status is defined. */
 	defaultNewTaskStatus: string | null;
-	/** Task type new tasks start with. `null` is a valid, common choice — unlike
+	/** Task type new tasks start with. `null` is a valid, common choice - unlike
 	 *  status, there's no "must resolve to something" constraint here. */
 	defaultNewTaskType: string | null;
 	/** Where a brand-new task lands among its siblings. Defaults to `"top"`. */
 	newTaskPlacement: "top" | "bottom";
-	/** Cosmetic suffix only — the plugin never calculates on estimates. */
+	/** Cosmetic suffix only - the plugin never calculates on estimates. */
 	estimateUnitLabel: string | null;
 
 	/**
 	 * Set when the workspace has been soft-deleted: it stays on disk (its own
 	 * `Trash/` folder can't be moved into itself) but is hidden from the
-	 * switcher. Deliberately *not* named `archived`/`archivedAt` — `archiving`
+	 * switcher. Deliberately *not* named `archived`/`archivedAt` - `archiving`
 	 * above is an unrelated task-auto-archive concept. `null` when live.
 	 */
 	deletedAt: IsoDate | null;
@@ -657,7 +657,7 @@ export interface WorkspaceConfig {
 
 /**
  * List and Board are v1; Timeline (Gantt) and Calendar follow. `canvas` is the
- * read-only dependency-graph (DAG) layout — Phase 1 renders it, later phases
+ * read-only dependency-graph (DAG) layout - Phase 1 renders it, later phases
  * make it interactive.
  */
 export type ViewType = "list" | "board" | "table" | "timeline" | "calendar" | "canvas";
@@ -704,7 +704,7 @@ export type SortDirection = "asc" | "desc";
 
 /**
  * One column key in a Table view's multi-column sort. Independent of
- * `sortBy`/`sortDirection` — List and Board never read this.
+ * `sortBy`/`sortDirection` - List and Board never read this.
  */
 export interface TableSortKey {
 	field: SortField;
@@ -713,10 +713,10 @@ export interface TableSortKey {
 
 /**
  * How a view treats sub-tasks:
- *   - `nested` — indented under their parent, with a disclosure toggle (List only;
+ *   - `nested` - indented under their parent, with a disclosure toggle (List only;
  *      other layouts fall back to `flat`).
- *   - `flat`   — loose rows alongside top-level tasks, marked with `↳`.
- *   - `hidden` — sub-tasks are dropped from the view entirely.
+ *   - `flat` - loose rows alongside top-level tasks, marked with `↳`.
+ *   - `hidden` - sub-tasks are dropped from the view entirely.
  *
  * Replaces the old `filters.topLevelOnly` boolean; a saved view carrying that
  * flag migrates to `hidden` on read.
@@ -727,7 +727,7 @@ export type SubtaskDisplay = (typeof SUBTASK_DISPLAYS)[number];
 /**
  * The three relationship kinds the Canvas view draws: `dependency`
  * (`blocks`/`blockedBy`), `hierarchy` (`parent` → child), and `related`. There
- * is deliberately no finer split of `related` — `TaskRelations.related` is one
+ * is deliberately no finer split of `related` - `TaskRelations.related` is one
  * flat array with no sub-typing to filter on.
  */
 export const CANVAS_RELATION_KINDS = [
@@ -819,11 +819,11 @@ export interface ViewFilters {
 	completedAtAfter?: IsoDate;
 
 	/**
-	 * Exclusion companions to the array fields above — `-status:done`
+	 * Exclusion companions to the array fields above - `-status:done`
 	 * populates `excludeStatus`, not `status`. A task matching any excluded
 	 * value is dropped regardless of what the include list allows; the two
 	 * are independent, not complementary. No companion exists for the
-	 * range-bound fields (`*Before`/`*After`) — see `ArrayFilterKey`.
+	 * range-bound fields (`*Before`/`*After`) - see `ArrayFilterKey`.
 	 */
 	excludeStatus?: string[];
 	excludePriority?: string[];
@@ -857,7 +857,7 @@ export interface ViewColumnState {
 /**
  * Per-session Timeline chrome: current zoom and horizontal scroll position.
  *
- * Persisted to the view's note but deliberately **not** part of `ViewDefinition` —
+ * Persisted to the view's note but deliberately **not** part of `ViewDefinition` -
  * same treatment as `columns`. Panning or zooming the timeline writes
  * straight through and never marks the view unsaved.
  *
@@ -875,13 +875,13 @@ export interface ViewTimelineState {
  * Per-session Calendar chrome: which month the grid is showing.
  *
  * Persisted to the view's note but, like `ViewTimelineState`, deliberately **not**
- * part of `ViewDefinition` — paging between months writes straight
+ * part of `ViewDefinition` - paging between months writes straight
  * through and never marks the view unsaved. Always normalised to the 1st of the
  * month (`startOfMonth`) whenever it's written, so `visibleMonth` has one
- * canonical representation. `null` means "not set" — the view falls back to the
+ * canonical representation. `null` means "not set" - the view falls back to the
  * month containing today.
  *
- * The date field the grid buckets by is *not* here — that's `calendarDateField`
+ * The date field the grid buckets by is *not* here - that's `calendarDateField`
  * on `SavedView`, which is definitional (it changes what the view shows) and
  * flows through the normal draft/Save cycle.
  */
@@ -901,10 +901,10 @@ export interface ViewCalendarState {
  *
  * Status icon, Task ID and Task title are mandatory and never members here.
  * `type` renders on Board cards and List rows; other layouts ignore an entry
- * they can't show. Order is canonical — `canonicalizeHiddenFields` sorts into it.
+ * they can't show. Order is canonical - `canonicalizeHiddenFields` sorts into it.
  *
  * The list stores what's *hidden*, so a view written before a field existed
- * keeps working — but it also means a newly added field switches itself on
+ * keeps working - but it also means a newly added field switches itself on
  * everywhere. Where that would be pure noise, suppress it contextually rather
  * than migrating every saved view (see `renderedHiddenFields`).
  */
@@ -924,7 +924,7 @@ export const TASK_FIELDS = [
 export type TaskField = (typeof TASK_FIELDS)[number];
 
 export interface SavedView {
-	/** Discriminant — this is a `Views/<id>.md` note. */
+	/** Discriminant - this is a `Views/<id>.md` note. */
 	type: "vertex-flow-view";
 	/** Vault path of the backing note (`<root>/Views/<id>`), extension-less. */
 	path: string;
@@ -934,7 +934,7 @@ export interface SavedView {
 	icon?: string;
 	/**
 	 * Free-text note about what this view is for. Metadata, not part of
-	 * `ViewDefinition` — editing it never marks the view unsaved, same as `name`
+	 * `ViewDefinition` - editing it never marks the view unsaved, same as `name`
 	 * and `icon`. Stored as a plain frontmatter string in the view's note.
 	 */
 	description?: string;
@@ -948,14 +948,14 @@ export interface SavedView {
 	/** Task fields hidden from this view's rows/cards; `[]` shows all. */
 	hiddenFields: TaskField[];
 	/**
-	 * How this view treats sub-tasks. Definitional — it changes what the
-	 * view shows — so it rides in `ViewDefinition` and the draft/Save cycle.
+	 * How this view treats sub-tasks. Definitional - it changes what the
+	 * view shows - so it rides in `ViewDefinition` and the draft/Save cycle.
 	 */
 	subtaskDisplay: SubtaskDisplay;
 	/**
 	 * Which date field the Calendar view buckets tasks by. Definitional (it
 	 * changes what the view shows), so it participates in `ViewDefinition` and
-	 * the draft/Save cycle — not furniture like `calendar` below.
+	 * the draft/Save cycle - not furniture like `calendar` below.
 	 */
 	calendarDateField: CalendarDateField;
 	/**
@@ -972,7 +972,7 @@ export interface SavedView {
 	 */
 	calendarMode?: CalendarMode;
 	/**
-	 * Table-only multi-column sort. Independent of `sortBy`/`sortDirection` —
+	 * Table-only multi-column sort. Independent of `sortBy`/`sortDirection` -
 	 * List and Board never read this. Empty array = fall back to `rank` order.
 	 * Order matters: index 0 is the primary key, index 1 the tiebreak, etc.
 	 */
@@ -996,7 +996,7 @@ export interface SavedView {
 	 */
 	canvasDirection?: CanvasDirection;
 	/**
-	 * Canvas relation kinds hidden from this view — a *hidden* list, so absent or
+	 * Canvas relation kinds hidden from this view - a *hidden* list, so absent or
 	 * empty means "show all three" (same convention as `hiddenFields`). Hiding
 	 * `dependency` or `hierarchy` also drops those edges from ELK's layered
 	 * ranking, not just the drawing; `related` never affects layout either way.
@@ -1004,20 +1004,20 @@ export interface SavedView {
 	canvasHiddenRelationKinds?: CanvasRelationKind[];
 	/**
 	 * Whether the Calendar and Timeline render this view's recurrences as
-	 * projected, not-yet-created future occurrences. Definitional — it changes
-	 * what the view shows — so it rides in `ViewDefinition` and the draft/Save
+	 * projected, not-yet-created future occurrences. Definitional - it changes
+	 * what the view shows - so it rides in `ViewDefinition` and the draft/Save
 	 * cycle rather than writing through like `calendar` chrome. Projections are
 	 * read-only: they preview, they never (and cannot) mutate the chain.
 	 */
 	recurringPreview: boolean;
 	/**
-	 * Timeline zoom/scroll chrome — present only once the view has been opened
+	 * Timeline zoom/scroll chrome - present only once the view has been opened
 	 * as a timeline and panned or zoomed. Excluded from `ViewDefinition`, like
 	 * `columns`.
 	 */
 	timeline?: ViewTimelineState;
 	/**
-	 * Calendar visible-month chrome — present only once the view has been opened
+	 * Calendar visible-month chrome - present only once the view has been opened
 	 * as a calendar and paged off its default month. Excluded from
 	 * `ViewDefinition`, like `columns` and `timeline`.
 	 */
@@ -1025,7 +1025,7 @@ export interface SavedView {
 	/**
 	 * Table-only column order. The mandatory columns (status, id, title) are
 	 * always first and are never members here. Absent/empty = canonical
-	 * `TASK_FIELDS` order. Furniture — writes straight through on drag-drop.
+	 * `TASK_FIELDS` order. Furniture - writes straight through on drag-drop.
 	 */
 	columnOrder?: TaskField[];
 	/** Table-only per-column pixel widths, keyed by "status" | "id" | "title" | TaskField. Furniture. */
@@ -1038,7 +1038,7 @@ export interface SavedView {
  * What a view *is*, as opposed to what it's called and where its columns sit.
  *
  * This is the unit the text query language round-trips (`core/query`) and the
- * unit `useViewDraft` compares to decide whether a view is unsaved — one
+ * unit `useViewDraft` compares to decide whether a view is unsaved - one
  * definition of "the same view" rather than two that can drift. `name`, `icon`
  * and `id` are identity; `columns`, `timeline` and `calendar` are per-session
  * furniture that writes straight through to disk.
@@ -1066,7 +1066,7 @@ export type ViewDefinition = Pick<
 
 /**
  * A Project's embedded task-list view settings: the `ViewDefinition` plus the
- * one piece of per-session furniture the project note *can* hold — group
+ * one piece of per-session furniture the project note *can* hold - group
  * collapse/hide. A Project has no `Views/<id>.md`, so this rides in the
  * project's own `view:` frontmatter block. `columns` is absent when nothing is
  * collapsed or hidden (kept out of `ViewDefinition` so a collapse never marks a
@@ -1144,7 +1144,7 @@ export const DASHBOARD_TIME_BUCKETS: readonly DashboardTimeBucket[] = [
 /**
  * What a KPI (or a bar's or line's height) measures. `count` is the task
  * count; the two `estimate` aggregates sum/average the plain `estimate`
- * number — the plugin does no other math on it. The two `cycleTime` ones
+ * number - the plugin does no other math on it. The two `cycleTime` ones
  * are the days from `startedAt` to `completedAt`, over the tasks that have
  * both (a task done without ever being started has no cycle time).
  */
@@ -1164,7 +1164,7 @@ export const DASHBOARD_METRICS: readonly DashboardMetric[] = [
 ] as const;
 
 /**
- * A single discrete predicate a KPI can be scoped to — e.g. `status === "done"`.
+ * A single discrete predicate a KPI can be scoped to - e.g. `status === "done"`.
  * `value` is a taxonomy id, `Person.id`, project link target, or the `NONE`
  * sentinel; for `label` it matches tasks carrying that label.
  */
@@ -1210,7 +1210,7 @@ export interface KpiFieldMapping {
 }
 
 /**
- * Shape depends on `chartType` — a discriminated union so an invalid
+ * Shape depends on `chartType` - a discriminated union so an invalid
  * chart-type/field combination is unrepresentable (the config popover derives
  * its options from the compatibility matrix in `core/dashboards/compat`).
  */
@@ -1233,14 +1233,14 @@ export interface DashboardWidget {
 	chartType: ChartType;
 	/** User-editable; an auto-generated default until `titleIsCustom`. */
 	title: string;
-	/** True once the user has renamed it — auto-titles never overwrite it. */
+	/** True once the user has renamed it - auto-titles never overwrite it. */
 	titleIsCustom: boolean;
 	fieldMapping: DashboardFieldMapping;
 	layout: DashboardWidgetLayout;
 }
 
 export interface DashboardConfig {
-	/** Discriminant — this is a `Dashboards/<id>.md` note. */
+	/** Discriminant - this is a `Dashboards/<id>.md` note. */
 	type: "vertex-flow-dashboard";
 	/** Vault path of the backing note (`<root>/Dashboards/<id>`), extension-less. */
 	path: string;
@@ -1250,12 +1250,12 @@ export interface DashboardConfig {
 	icon?: string;
 	/**
 	 * Free-text note about what this dashboard is for. Metadata, exactly like
-	 * `SavedView.description` — not part of any definitional comparison.
+	 * `SavedView.description` - not part of any definitional comparison.
 	 */
 	description?: string;
 	widgets: DashboardWidget[];
 	/**
-	 * Dashboard-wide filter, applied once at the top-level data fetch (Phase 1 —
+	 * Dashboard-wide filter, applied once at the top-level data fetch (Phase 1 -
 	 * widgets have no independent filters). Reuses `ViewFilters` so the filter
 	 * bar shares the List/Board filter UI and the query engine wholesale.
 	 */
@@ -1272,7 +1272,7 @@ export interface WorkspaceDashboards {
 
 /**
  * Every entity in one Workspace, as the Obsidian glue layer indexed it.
- * Core logic takes this as a plain value — it has no idea files exist.
+ * Core logic takes this as a plain value - it has no idea files exist.
  */
 export interface WorkspaceSnapshot {
 	workspace: WorkspaceConfig;
@@ -1291,7 +1291,7 @@ export interface WorkspaceSnapshot {
 // ---------------------------------------------------------------------------
 
 /**
- * Completion rollup. Computed, never stored — and never auto-synced
+ * Completion rollup. Computed, never stored - and never auto-synced
  * back into a status in either direction.
  */
 export interface Progress {
@@ -1299,7 +1299,7 @@ export interface Progress {
 	completed: number;
 	started: number;
 	canceled: number;
-	/** 0–100, counting completed against non-canceled total. */
+	/** 0-100, counting completed against non-canceled total. */
 	percent: number;
 }
 

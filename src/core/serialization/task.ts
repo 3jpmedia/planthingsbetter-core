@@ -1,7 +1,7 @@
 /**
  * Task frontmatter ↔ domain object.
  *
- * `parseTask` takes the *already-parsed* YAML object, never a string — that's
+ * `parseTask` takes the *already-parsed* YAML object, never a string - that's
  * what keeps this module free of the Obsidian API (and of a YAML dependency)
  * while still being the thing unit tests exercise.
  */
@@ -40,7 +40,7 @@ export interface TaskParseOptions {
 	path: string;
 	/** Workspace's configured default, used when `status` is missing. `null` when the workspace has no statuses. */
 	defaultStatus: string | null;
-	/** `Person.id`s @mentioned in the body — computed by the caller. */
+	/** `Person.id`s @mentioned in the body - computed by the caller. */
 	mentions?: string[];
 	/**
 	 * The workspace's configured statuses. Used to validate recurrence
@@ -269,7 +269,7 @@ export function parseTask(
 	const log = new IssueLog();
 
 	// The filename is the ID (Golden Rule), so it wins over the frontmatter
-	// field if they ever disagree — the file is the thing wikilinks resolve to.
+	// field if they ever disagree - the file is the thing wikilinks resolve to.
 	const fileId = basename(options.path);
 	const declaredId = asString(fm.id);
 	if (declaredId && declaredId !== fileId) {
@@ -304,7 +304,7 @@ export function parseTask(
 	);
 
 	// `parent` and `project` are independent fields. A sub-task carries its own
-	// `project` link — seeded from its parent at creation, then maintained on
+	// `project` link - seeded from its parent at creation, then maintained on
 	// its own, never auto-synced. That's redundancy, not a second
 	// parent: `parent` remains the one true nesting position, and it's what lets
 	// a project view find sub-tasks without walking the whole tree.
@@ -333,7 +333,7 @@ export function parseTask(
 		startDate: asDate(fm.startDate),
 		dueDate: asDate(fm.dueDate),
 		recurrence,
-		// `archivedAt` alone is enough to mean archived — either field alone
+		// `archivedAt` alone is enough to mean archived - either field alone
 		// counts, and a note carrying only the timestamp shouldn't reappear.
 		archived: archived || archivedAt != null,
 		archivedAt,

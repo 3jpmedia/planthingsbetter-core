@@ -2,14 +2,14 @@
  * RFC 5545 iCalendar, hand-rolled (no npm dependency).
  *
  * One `VEVENT` per task. Dates are date-only (`VALUE=DATE`), matching `IsoDate`
- * — no times, no timezones. `DTEND` for a date-only event is *exclusive* per
+ * - no times, no timezones. `DTEND` for a date-only event is *exclusive* per
  * RFC 5545 §3.6.1, so a task due through a given day gets `DTEND` = the day
  * after. `STATUS` carries the workspace's status *name*
  * verbatim: nonstandard against RFC 5545's fixed enum, but a calendar app that
  * doesn't recognize the value just ignores the property, and a readable status
  * beats dropping the field.
  *
- * `CREATED`, `LAST-MODIFIED` and `SEQUENCE` are always emitted when supplied —
+ * `CREATED`, `LAST-MODIFIED` and `SEQUENCE` are always emitted when supplied -
  * they're sync metadata a calendar app uses to reconcile events, so they aren't
  * tied to any of the user-facing field toggles.
  */
@@ -23,22 +23,22 @@ export interface IcsRow {
 	summary: string;
 	/** Workspace status name, emitted verbatim. */
 	status?: string;
-	/** `YYYY-MM-DD` — becomes `DTSTART;VALUE=DATE`. */
+	/** `YYYY-MM-DD` - becomes `DTSTART;VALUE=DATE`. */
 	start?: string;
-	/** `YYYY-MM-DD` — becomes the (exclusive) `DTEND;VALUE=DATE`. */
+	/** `YYYY-MM-DD` - becomes the (exclusive) `DTEND;VALUE=DATE`. */
 	due?: string;
-	/** ISO datetime — becomes `DTSTAMP` (UTC). */
+	/** ISO datetime - becomes `DTSTAMP` (UTC). */
 	stamp: string;
 	/**
-	 * ISO datetime — becomes `CREATED` (UTC). Sync metadata: always present in
+	 * ISO datetime - becomes `CREATED` (UTC). Sync metadata: always present in
 	 * the export even though "Created" isn't offered as a field, so calendar
 	 * apps can reconcile events.
 	 */
 	created?: string;
-	/** ISO datetime — becomes `LAST-MODIFIED` (UTC). Same story as `created`. */
+	/** ISO datetime - becomes `LAST-MODIFIED` (UTC). Same story as `created`. */
 	lastModified?: string;
 	/**
-	 * Non-negative integer — becomes `SEQUENCE`. Clamped at 0 by the emitter
+	 * Non-negative integer - becomes `SEQUENCE`. Clamped at 0 by the emitter
 	 * (RFC 5545 requires a non-negative integer).
 	 */
 	sequence?: number;
@@ -127,7 +127,7 @@ export function buildIcs(rows: IcsRow[], opts: IcsOptions = {}): string {
 			lines.push(line("SEQUENCE", String(Math.max(0, row.sequence))));
 		}
 		lines.push(line("SUMMARY", escapeText(row.summary)));
-		// `DUE` is a VTODO-only property — invalid on a VEVENT, so a compliant
+		// `DUE` is a VTODO-only property - invalid on a VEVENT, so a compliant
 		// client silently drops it. Use an exclusive date-only `DTEND` instead.
 		if (row.start && row.due) {
 			if (toDateValue(row.due) < toDateValue(row.start)) {

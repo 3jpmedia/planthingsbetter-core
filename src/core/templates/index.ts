@@ -11,8 +11,8 @@
  * Parsing happens once, at module load. That's deliberate: a template that
  * doesn't parse is an authoring bug, and failing loudly the first time the
  * plugin runs beats failing later, halfway through creating someone's
- * workspace. `resolveTemplateContent` — the half that needs a clock and a
- * workspace root — is deferred into `buildExampleContent`, exactly like a TS
+ * workspace. `resolveTemplateContent` - the half that needs a clock and a
+ * workspace root - is deferred into `buildExampleContent`, exactly like a TS
  * template's own builder.
  */
 
@@ -41,7 +41,7 @@ function markdownTemplates(): WorkspaceTemplate[] {
 
 const MARKDOWN_TEMPLATES = markdownTemplates();
 
-/** "Blank workspace" leads the gallery — it's the plainest starting point and
+/** "Blank workspace" leads the gallery - it's the plainest starting point and
  *  the one a self-directed user wants. "Getting Started" sits right after it:
  *  the more guided pre-populated entry. */
 function galleryOrder(templates: WorkspaceTemplate[]): WorkspaceTemplate[] {

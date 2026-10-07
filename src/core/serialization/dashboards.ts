@@ -1,9 +1,9 @@
 /**
- * `Dashboards/<id>.md` — one dashboard definition per note (§Dashboards Phase 1).
+ * `Dashboards/<id>.md` - one dashboard definition per note (§Dashboards Phase 1).
  *
  * Parsing follows the same forgiving contract as `serialization/views`: an
  * unknown chart type, a malformed field mapping, or a duplicate id logs an issue
- * via `IssueLog` and is dropped or repaired — it never throws and never
+ * via `IssueLog` and is dropped or repaired - it never throws and never
  * corrupts the rest of the file.
  *
  * `parseDashboards`/`serializeDashboards` (plural) survive only for the one-time
@@ -200,7 +200,7 @@ export function parseLegacyDashboardFilters(
 	return parseFilters(record.filters);
 }
 
-/** Everything but `filters` — shared by the live and legacy parse paths. */
+/** Everything but `filters` - shared by the live and legacy parse paths. */
 function parseDashboardCore(
 	record: Record<string, unknown>,
 	id: string,
@@ -224,7 +224,7 @@ function parseDashboardCore(
 	return { id, name, icon, widgets };
 }
 
-/** The definitional half of a dashboard — everything but the `type`/`path` discriminants. */
+/** The definitional half of a dashboard - everything but the `type`/`path` discriminants. */
 function parseDashboardValue(
 	record: Record<string, unknown>,
 	id: string,
@@ -266,7 +266,7 @@ export function parseDashboard(
 
 /**
  * Parse the retired shared `_dashboards` array. Migration-only. `path` is left
- * blank — these objects are read once to be re-written as individual files.
+ * blank - these objects are read once to be re-written as individual files.
  */
 export function parseDashboards(raw: unknown): ParseResult<DashboardConfig[]> {
 	const record = asRecord(raw);
@@ -390,7 +390,7 @@ export function serializeDashboard(
 /**
  * Serialize a dashboard in the retired structured shape (a `filters:` block).
  * The plural `_dashboards` array used this on disk, so `serializeDashboards`
- * still emits it — the pair models the retired file. The live per-file path is
+ * still emits it - the pair models the retired file. The live per-file path is
  * `serializeDashboard` (a `filter:` string).
  */
 export function serializeLegacyDashboard(

@@ -18,7 +18,7 @@ export interface ViewContext {
 	/**
 	 * The roster `Person.id` this device treats as "me" in this workspace, or
 	 * null when unset or not in this workspace. Resolving `self` filters is the
-	 * whole mechanism behind "Assigned to Me" / "Mentions Me" — the substitute
+	 * whole mechanism behind "Assigned to Me" / "Mentions Me" - the substitute
 	 * for a dedicated notification panel in v1.
 	 */
 	selfId: string | null;
@@ -35,7 +35,7 @@ export interface ViewContext {
 	/**
 	 * Sub-task/project rollup scope, for sorts that read computed values
 	 * (`progress`). Absent when a caller builds a context from a bare config
-	 * rather than a full snapshot — those sorts then compare as unset.
+	 * rather than a full snapshot - those sorts then compare as unset.
 	 */
 	scope?: HierarchyScope;
 }

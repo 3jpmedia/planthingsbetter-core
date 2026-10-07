@@ -15,7 +15,7 @@ const dow = (iso: string) => new Date(`${iso}T00:00:00Z`).getUTCDay();
 /* --------------------------------------------------------- calendarAnchor -- */
 
 describe("calendarAnchor", () => {
-	it("reads only the selected field — never falls back to the other", () => {
+	it("reads only the selected field - never falls back to the other", () => {
 		const dueOnly = task({ dueDate: "2026-08-20" });
 		expect(calendarAnchor(dueOnly, "dueDate")).toBe("2026-08-20");
 		expect(calendarAnchor(dueOnly, "startDate")).toBeNull();
@@ -53,7 +53,7 @@ describe("bucketByDay / unscheduledForCalendar", () => {
 		expect(unscheduledForCalendar(all, "dueDate")).toEqual([c, d]);
 	});
 
-	it("buckets by the start field independently — c becomes placed, b does not", () => {
+	it("buckets by the start field independently - c becomes placed, b does not", () => {
 		const buckets = bucketByDay(all, "startDate");
 		expect([...buckets.keys()]).toEqual(["2026-08-18"]);
 		expect(buckets.get("2026-08-18")).toEqual([a, c]);
@@ -105,7 +105,7 @@ describe("monthGrid", () => {
 		};
 	};
 
-	it("always spans whole Sunday-started weeks, 28–42 cells", () => {
+	it("always spans whole Sunday-started weeks, 28-42 cells", () => {
 		for (const m of [
 			"2026-01-01", // 31-day, starts Thursday
 			"2026-02-01", // 28-day, starts Sunday
@@ -148,7 +148,7 @@ describe("monthGrid", () => {
 	});
 
 	it("leads with exactly as many days as the month's first weekday", () => {
-		// Sunday-start (0 leading) and Saturday-start (6 leading) — both ends.
+		// Sunday-start (0 leading) and Saturday-start (6 leading) - both ends.
 		for (const m of ["2026-02-01", "2026-05-01", "2026-08-01", "2026-09-01"]) {
 			const first = startOfMonth(m);
 			expect(monthGrid(m).indexOf(first)).toBe(dow(first));
@@ -195,7 +195,7 @@ describe("drag branch: scheduling from the Unscheduled drawer", () => {
 	it("sets only the selected field, leaving the other untouched", () => {
 		const t = task({ startDate: "2026-08-01" }); // unscheduled under 'dueDate'
 		expect(calendarAnchor(t, "dueDate")).toBeNull();
-		// No bar math — the view sets { [field]: target } directly.
+		// No bar math - the view sets { [field]: target } directly.
 		expect({ ...t, dueDate: "2026-08-15" }).toMatchObject({
 			startDate: "2026-08-01",
 			dueDate: "2026-08-15",

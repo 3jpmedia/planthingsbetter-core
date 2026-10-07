@@ -4,12 +4,12 @@
  * Deliberately *symbolic*: dates are still offset-or-absolute tokens rather
  * than resolved `IsoDate`s, and every cross-reference is still an anchor string
  * rather than a final `LinkTarget`. Nothing here needs a
- * `TemplateBuildContext` — that only arrives at resolve time, so a template can
+ * `TemplateBuildContext` - that only arrives at resolve time, so a template can
  * be parsed once at module load and resolved many times against different
  * clocks and workspace roots.
  *
  * No Obsidian import (Golden Rule), and no dependency on the rest of the
- * template machinery — this file is plain data.
+ * template machinery - this file is plain data.
  */
 
 import type {
@@ -43,12 +43,12 @@ export class TemplateParseError extends Error {
 		this.line = line;
 	}
 
-	/** `templates/foo.md:12 — message`, with whichever parts are known. */
+	/** `templates/foo.md:12 - message`, with whichever parts are known. */
 	describe(): string {
 		const where = [this.file, this.line !== undefined ? String(this.line) : null]
 			.filter(Boolean)
 			.join(":");
-		return where ? `${where} — ${this.message}` : this.message;
+		return where ? `${where} - ${this.message}` : this.message;
 	}
 }
 
@@ -88,7 +88,7 @@ export interface ParsedProject {
 	description?: string;
 }
 
-/** A minimal, human-authorable recurrence — "weekly", "every 2 weeks",
+/** A minimal, human-authorable recurrence - "weekly", "every 2 weeks",
  *  "monthly when completed". Deliberately covers only frequency, interval,
  *  and the on-date/on-close trigger split; none of the richer
  *  RecurrenceConfig knobs (specific weekdays, day-of-month patterns, a
@@ -109,7 +109,7 @@ export interface ParsedTask {
 	depth: number;
 	/** Anchor of the parent derived from heading nesting, if any. */
 	headingParent: string | null;
-	/** Explicit `parent:` field — always wins over `headingParent`. */
+	/** Explicit `parent:` field - always wins over `headingParent`. */
 	parent?: string;
 	/** Project title or anchor. Inherited from the nearest ancestor when absent. */
 	project?: string;
@@ -123,10 +123,10 @@ export interface ParsedTask {
 	due?: ParsedDate;
 	created?: ParsedDate;
 	updated?: ParsedDate;
-	/** `completedAt` — stamped when the task is done. */
+	/** `completedAt` - stamped when the task is done. */
 	completed?: ParsedDate;
 	archived?: ParsedDate | boolean;
-	/** Anchors. `undefined` means the field was never declared — which is what
+	/** Anchors. `undefined` means the field was never declared - which is what
 	 *  makes "declared on both sides and disagreeing" distinguishable from
 	 *  "declared on one side only, synthesize the inverse". */
 	blocks?: string[];
@@ -143,7 +143,7 @@ export interface ParsedView {
 	name: string;
 	icon?: string;
 	description?: string;
-	/** Structured shorthand — ignored entirely when `query` is present. */
+	/** Structured shorthand - ignored entirely when `query` is present. */
 	viewType?: ViewType;
 	groupBy?: GroupByField;
 	sortBy?: SortField;
@@ -165,7 +165,7 @@ export interface ParsedWidget {
 	bucket?: DashboardTimeBucket;
 	/** kpi. */
 	metric?: DashboardMetric;
-	/** kpi — `value` is a name, resolved like every other reference. */
+	/** kpi - `value` is a name, resolved like every other reference. */
 	scope?: { field: DashboardGroupingField; value: string };
 	/** Row-layout share. Ignored by the flat `widgets` form. */
 	weight?: number;
@@ -196,7 +196,7 @@ export interface ParsedTemplate {
 	tasks: ParsedTask[];
 	/** Non-fatal notes (e.g. nesting deeper than markdown can express). */
 	warnings: string[];
-	/** The `people` id starred `"Name*"`, if the template claims one — the
+	/** The `people` id starred `"Name*"`, if the template claims one - the
 	 *  identity a workspace created from it should adopt app-wide. */
 	mePersonId?: string;
 }

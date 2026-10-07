@@ -106,7 +106,7 @@ describe("planning", () => {
 	});
 
 	it("a project's childTasks are its top-level tasks only", () => {
-		// T/2 carries `project: P/1` but is a sub-task of T/1 — it's a
+		// T/2 carries `project: P/1` but is a sub-task of T/1 - it's a
 		// hierarchical child of T/1, not of the project, so the project's
 		// cascade/unparent choice must not list it for its own sake.
 		const scope: HierarchyScope = {
@@ -176,7 +176,7 @@ describe("unparent", () => {
 	});
 
 	it("does not promote children anywhere", () => {
-		// Deleting the project must not silently re-point its tasks — that would
+		// Deleting the project must not silently re-point its tasks - that would
 		// be inventing a hierarchy decision.
 		const scope: HierarchyScope = {
 			tasks: [task({ path: "T/1", project: "P/1" })],
@@ -192,7 +192,7 @@ describe("unparent", () => {
 	});
 });
 
-describe("cascade — one level at a time (§7.8)", () => {
+describe("cascade - one level at a time (§7.8)", () => {
 	it("deletes childless children immediately", () => {
 		const scope: HierarchyScope = {
 			tasks: [
@@ -218,7 +218,7 @@ describe("cascade — one level at a time (§7.8)", () => {
 		};
 		const outcome = applyDeletion(scope, planTaskDeletion(scope, scope.tasks[0]), "cascade");
 
-		// T/2 is NOT deleted here — it comes back as its own question.
+		// T/2 is NOT deleted here - it comes back as its own question.
 		expect(outcome.deletePaths).toEqual(["T/1"]);
 		expect(outcome.followUps).toHaveLength(1);
 		expect(outcome.followUps[0].path).toBe("T/2");
@@ -325,8 +325,8 @@ describe("dangling relations", () => {
 
 describe("dangling project links", () => {
 	it("nulls `project` on a deep sub-task the cascade never touched", () => {
-		// P/1 deleted; T/1 (top-level) is handled by the cascade, but T/3 — a
-		// grandchild that carries `project: P/1` as metadata — is not.
+		// P/1 deleted; T/1 (top-level) is handled by the cascade, but T/3 - a
+		// grandchild that carries `project: P/1` as metadata - is not.
 		const scope: HierarchyScope = {
 			tasks: [
 				task({ path: "T/1", project: "P/1" }),

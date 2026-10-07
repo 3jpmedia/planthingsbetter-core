@@ -2,7 +2,7 @@
  * The chart-type → allowed-fields compatibility matrix (§Dashboards Phase 1).
  *
  * This is the single source of truth the config popover derives its option
- * lists from — invalid combinations are unrepresentable *by construction*, not
+ * lists from - invalid combinations are unrepresentable *by construction*, not
  * merely rejected at the UI layer. The serializer (`serialization/dashboards`)
  * runs the same `isFieldMappingValid` check and falls back gracefully when a
  * hand-edited dashboard note names something impossible.
@@ -98,7 +98,7 @@ export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 }
 
 /**
- * A safe default mapping for a freshly chosen chart type — the first allowed
+ * A safe default mapping for a freshly chosen chart type - the first allowed
  * field of each kind. Every widget always has a *valid* mapping.
  */
 export function defaultFieldMapping(chartType: ChartType): DashboardFieldMapping {

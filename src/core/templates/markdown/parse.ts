@@ -5,12 +5,12 @@
  * what lets the same parser serve both the build-time templates baked into
  * `generated.ts` and (later) user-authored templates discovered in a vault.
  *
- * The frontmatter is real YAML — nested objects, flow arrays, inline maps — so
+ * The frontmatter is real YAML - nested objects, flow arrays, inline maps - so
  * it goes through the `yaml` package. The *body* deliberately does not: it is
  * scanned line by line here rather than handed to a CommonMark parser, because
  * the only thing this code needs to get right is where each block starts and
  * ends. Description and comment content is never rendered or re-parsed by the
- * plugin — it is stored verbatim — so a full markdown AST would be a large
+ * plugin - it is stored verbatim - so a full markdown AST would be a large
  * dependency bought for nothing.
  *
  * The scanner tracks four things, and every hard error below comes from one of
@@ -76,7 +76,7 @@ function fail(message: string, line?: number): never {
 
 /* ------------------------------------------------------------ slugging ---- */
 
-/** Bare slugify with no collision suffixing — callers detect collisions
+/** Bare slugify with no collision suffixing - callers detect collisions
  *  themselves so they can report *both* offending nodes, not silently rename. */
 export function slugifyPlain(input: string): string {
 	return (
@@ -91,7 +91,7 @@ export function slugifyPlain(input: string): string {
  * A tolerant comparison key: lowercase, everything non-alphanumeric stripped.
  *
  * References in the body name taxonomy values by their display *name*, but
- * authors reach for the shape they see elsewhere in the app — `status: todo`
+ * authors reach for the shape they see elsewhere in the app - `status: todo`
  * for a status named "To Do", `in-progress` for "In Progress". Matching on
  * name, then id, then this key means all three spellings land on the same
  * value without the format having to pick a winner.
@@ -109,7 +109,7 @@ export function parseDateToken(raw: string, line: number): ParsedDate {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) {
 		fail(
-			`Invalid date "${raw}" — expected a relative offset like "-30d" or an ISO date like "2026-08-26"`,
+			`Invalid date "${raw}" - expected a relative offset like "-30d" or an ISO date like "2026-08-26"`,
 			line,
 		);
 	}
@@ -138,7 +138,7 @@ const REPEAT_INTERVAL_RE = /^every\s+(\d+)\s+(.+)$/;
 
 /**
  * "weekly", "every 2 weeks", "monthly when completed" → ParsedRepeat.
- * Deliberately minimal — see ParsedRepeat's doc comment for what's
+ * Deliberately minimal - see ParsedRepeat's doc comment for what's
  * intentionally left out.
  */
 export function parseRepeatToken(raw: string, line: number): ParsedRepeat {
@@ -159,7 +159,7 @@ export function parseRepeatToken(raw: string, line: number): ParsedRepeat {
 	const freq = FREQ_WORDS[freqWord];
 	if (!freq) {
 		fail(
-			`Unrecognized "repeat" value "${raw}" — expected e.g. "weekly", "every 2 weeks", or "monthly when completed"`,
+			`Unrecognized "repeat" value "${raw}" - expected e.g. "weekly", "every 2 weeks", or "monthly when completed"`,
 			line,
 		);
 	}
@@ -175,7 +175,7 @@ export function parseRepeatToken(raw: string, line: number): ParsedRepeat {
  * The greedy `.*` reaches for the *last* parenthesised group, so an extra
  * parenthesised phrase inside the name (e.g. `"Research (IRB) (started,
  * #94a3b8)"`) still resolves to the right name and parts. A description must
- * not itself contain parentheses — the last paren group would swallow them —
+ * not itself contain parentheses - the last paren group would swallow them -
  * and it only parses when the entry has a paren group.
  */
 function splitShorthand(raw: string): {
@@ -200,7 +200,7 @@ function splitShorthand(raw: string): {
 const HEX_RE = /^#[0-9a-fA-F]{3,8}$/;
 
 /**
- * Color for a status that didn't name one — taken from its *category*, not its
+ * Color for a status that didn't name one - taken from its *category*, not its
  * position.
  *
  * Position is the wrong signal here: cycling the shared palette hands the first
@@ -272,7 +272,7 @@ function parseStatuses(raw: unknown): StatusValue[] | undefined {
 		const categoryRaw = parts.find((p) => !HEX_RE.test(p));
 		if (!categoryRaw) {
 			fail(
-				`Status "${name}" needs a category — one of ${STATUS_CATEGORIES.join(", ")} — e.g. "${name} (started)"`,
+				`Status "${name}" needs a category - one of ${STATUS_CATEGORIES.join(", ")} - e.g. "${name} (started)"`,
 			);
 		}
 		const category = STATUS_CATEGORIES.find(
@@ -280,7 +280,7 @@ function parseStatuses(raw: unknown): StatusValue[] | undefined {
 		);
 		if (!category) {
 			fail(
-				`Status "${name}" has an unknown category "${categoryRaw}" — expected one of ${STATUS_CATEGORIES.join(", ")}`,
+				`Status "${name}" has an unknown category "${categoryRaw}" - expected one of ${STATUS_CATEGORIES.join(", ")}`,
 			);
 		}
 
@@ -315,7 +315,7 @@ function parseFlatTaxonomy<T extends { id: string; name: string; color: string }
 		const unknown = parts.find((p) => !HEX_RE.test(p));
 		if (unknown) {
 			fail(
-				`"${name}" in ${field} carries "(${unknown})" — only a #hex colour is allowed here`,
+				`"${name}" in ${field} carries "(${unknown})" - only a #hex colour is allowed here`,
 			);
 		}
 		const base: { id: string; name: string; color: string; description?: string } = {
@@ -332,7 +332,7 @@ function parseFlatTaxonomy<T extends { id: string; name: string; color: string }
 }
 
 /** `"Name"`, `"Name*"`, `"Name (alias)"`, `"Name* (alias)"`. The trailing `*`
- *  marks the person "me" is — the app-level identity a workspace created from
+ *  marks the person "me" is - the app-level identity a workspace created from
  *  this template adopts (see `ParsedTemplate.mePersonId`). Templates that
  *  don't mean to claim an identity just omit the star. */
 function parsePeople(
@@ -417,7 +417,7 @@ function enumOr<T extends string>(
 	const match = allowed.find((a) => a.toLowerCase() === raw.trim().toLowerCase());
 	if (!match) {
 		fail(
-			`"${field}: ${raw}" is not valid — expected one of ${allowed.join(", ")}`,
+			`"${field}: ${raw}" is not valid - expected one of ${allowed.join(", ")}`,
 			line,
 		);
 	}
@@ -560,7 +560,7 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 	const widget: ParsedWidget = { chartType, title, line };
 
 	if (chartType === "bar" || chartType === "pie") {
-		if (!groupBy) fail(`${where} ("${title}") — a ${chartType} chart needs "groupBy"`);
+		if (!groupBy) fail(`${where} ("${title}") - a ${chartType} chart needs "groupBy"`);
 		widget.groupBy = groupBy;
 	} else if (chartType === "line" || chartType === "timeline") {
 		const xField = enumOr(
@@ -571,7 +571,7 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 		);
 		if (!xField) {
 			fail(
-				`${where} ("${title}") — a ${chartType} chart needs "xField" (one of ${DASHBOARD_TEMPORAL_FIELDS.join(", ")})`,
+				`${where} ("${title}") - a ${chartType} chart needs "xField" (one of ${DASHBOARD_TEMPORAL_FIELDS.join(", ")})`,
 			);
 		}
 		widget.xField = xField;
@@ -581,14 +581,14 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 		const metric = enumOr(data.metric, METRICS, "metric", line);
 		if (!metric) {
 			fail(
-				`${where} ("${title}") — a kpi widget needs "metric" (one of ${METRICS.join(", ")})`,
+				`${where} ("${title}") - a kpi widget needs "metric" (one of ${METRICS.join(", ")})`,
 			);
 		}
 		widget.metric = metric;
 		if (data.scope != null) {
 			const scope = data.scope;
 			if (typeof scope !== "object" || Array.isArray(scope)) {
-				fail(`${where} ("${title}") — "scope" must be {field: ..., value: ...}`);
+				fail(`${where} ("${title}") - "scope" must be {field: ..., value: ...}`);
 			}
 			const scopeData = scope as Record<string, unknown>;
 			const field = enumOr(
@@ -597,10 +597,10 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 					"scope.field",
 					line,
 				);
-			if (!field) fail(`${where} ("${title}") — "scope" needs a "field"`);
+			if (!field) fail(`${where} ("${title}") - "scope" needs a "field"`);
 			widget.scope = { field, value: renderValue(scopeData.value ?? "").trim() };
 			if (!widget.scope.value) {
-				fail(`${where} ("${title}") — "scope" needs a "value"`);
+				fail(`${where} ("${title}") - "scope" needs a "value"`);
 			}
 		}
 	}
@@ -608,7 +608,7 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 	if (data.weight != null) {
 		const weight = Number(data.weight);
 		if (!Number.isFinite(weight) || weight <= 0) {
-			fail(`${where} ("${title}") — "weight" must be a positive number`);
+			fail(`${where} ("${title}") - "weight" must be a positive number`);
 		}
 		widget.weight = weight;
 	}
@@ -638,7 +638,7 @@ function parseDashboards(raw: unknown): ParsedDashboard[] {
 
 		if (data.widgets != null && data.rows != null) {
 			fail(
-				`${where} declares both "widgets" and "rows" — use one or the other`,
+				`${where} declares both "widgets" and "rows" - use one or the other`,
 			);
 		}
 
@@ -674,10 +674,10 @@ function parseDashboards(raw: unknown): ParsedDashboard[] {
 /* ----------------------------------------------------------- projects ---- */
 
 /**
- * Frontmatter `projects:` — the form exported workspace templates use, mirroring
+ * Frontmatter `projects:` - the form exported workspace templates use, mirroring
  * `views`/`dashboards`. Everything an exporter can write is covered: title (the
  * filename), icon, description, the status/priority/owner/labels references
- * (by name — re-resolved against the template's own taxonomy), and the dates.
+ * (by name - re-resolved against the template's own taxonomy), and the dates.
  * Hand-authored templates still write Projects as `##` body sections; the two
  * forms merge at the entry point, frontmatter first.
  */
@@ -773,7 +773,7 @@ const TASK_FIELDS = new Set([
 
 /**
  * A line is the node's field line only if *every* pipe-separated segment is
- * `knownKey: value`. Anything else is prose — which is what keeps a description
+ * `knownKey: value`. Anything else is prose - which is what keeps a description
  * whose first sentence happens to contain a colon from being eaten as fields.
  */
 function readFieldLine(
@@ -815,8 +815,8 @@ function readArchived(raw: string, line: number): ParsedDate | boolean {
 const HEADING_RE = /^(#{1,6})[ \t]+(.*?)[ \t]*(?:\{#([^}\s]+)\})?[ \t]*$/;
 
 /** A `:::` line that *opens* a fence, as opposed to `:::` alone (a close).
- *  Matches any tag — `:::description`, `:::comment Author (date)`, or
- *  anything following the same convention in the future — without
+ *  Matches any tag - `:::description`, `:::comment Author (date)`, or
+ *  anything following the same convention in the future - without
  *  hardcoding which ones exist, so nested-fence depth tracking stays correct
  *  no matter what gets pasted inside a comment or description. */
 function isFenceOpener(trimmedLine: string): boolean {
@@ -905,9 +905,9 @@ function scanBody(body: string, firstLine: number): BodyResult {
 			const content: string[] = [];
 			i += 1;
 			// Depth starts at 1 for the fence just opened. A nested `:::...`
-			// opener — any tag, not just description/comment, so pasting a
+			// opener - any tag, not just description/comment, so pasting a
 			// whole other template's markdown in here can't reopen this bug
-			// under a different fence name — increments it; only the bare
+			// under a different fence name - increments it; only the bare
 			// `:::` that brings depth back to 0 is this fence's real close. A
 			// ``` code span is tracked separately and suspends fence detection
 			// entirely while open, so a literal ":::" inside a pasted code
@@ -952,7 +952,7 @@ function scanBody(body: string, firstLine: number): BodyResult {
 				const meta = /^:::comment\s+(.*?)\s*\(([^)]*)\)\s*$/.exec(header);
 				if (!meta) {
 					fail(
-						`Malformed comment fence — expected ":::comment Author (offset)"`,
+						`Malformed comment fence - expected ":::comment Author (offset)"`,
 						openedAt,
 					);
 				}
@@ -976,7 +976,7 @@ function scanBody(body: string, firstLine: number): BodyResult {
 		// --- headings ---------------------------------------------------------
 		if (/^#{7,}[ \t]/.test(trimmed)) {
 			warnings.push(
-				`Line ${at(i)}: heading is deeper than H6, which markdown cannot express — treating it as text`,
+				`Line ${at(i)}: heading is deeper than H6, which markdown cannot express - treating it as text`,
 			);
 		}
 
@@ -991,7 +991,7 @@ function scanBody(body: string, firstLine: number): BodyResult {
 				const key = title.toLowerCase();
 				if (key !== "projects" && key !== "tasks") {
 					fail(
-						`Unknown top-level section "# ${title}" — a template has exactly "# Projects" and "# Tasks"`,
+						`Unknown top-level section "# ${title}" - a template has exactly "# Projects" and "# Tasks"`,
 						at(i),
 					);
 				}
@@ -1012,7 +1012,7 @@ function scanBody(body: string, firstLine: number): BodyResult {
 			if (section === "projects") {
 				if (depth !== 2) {
 					fail(
-						`"${title}" is an H${depth} under "# Projects", where every entry must be an H2 — use a :::description fence for headings inside a Project's overview`,
+						`"${title}" is an H${depth} under "# Projects", where every entry must be an H2 - use a :::description fence for headings inside a Project's overview`,
 						at(i),
 					);
 				}
@@ -1032,7 +1032,7 @@ function scanBody(body: string, firstLine: number): BodyResult {
 				const expected = parent ? parent.depth + 1 : 2;
 				if (depth !== expected) {
 					fail(
-						`"${title}" is an H${depth} but the nesting expects an H${expected} — a sub-task sits exactly one level deeper than its parent`,
+						`"${title}" is an H${depth} but the nesting expects an H${expected} - a sub-task sits exactly one level deeper than its parent`,
 						at(i),
 					);
 				}
@@ -1079,7 +1079,7 @@ function scanBody(body: string, firstLine: number): BodyResult {
 			const meta = /^(.*?)\s*\(([^)]*)\)\s*:\s*([\s\S]*)$/.exec(first);
 			if (!meta) {
 				fail(
-					`Malformed comment — expected "> Author (offset): body"`,
+					`Malformed comment - expected "> Author (offset): body"`,
 					openedAt,
 				);
 			}
@@ -1117,7 +1117,7 @@ function scanBody(body: string, firstLine: number): BodyResult {
 		}
 		if (descriptionFenced) {
 			fail(
-				`Text after a :::description fence — put it inside the fence`,
+				`Text after a :::description fence - put it inside the fence`,
 				at(i),
 			);
 		}
@@ -1219,8 +1219,8 @@ function applyFields(
 /**
  * The gallery card preview.
  *
- * Derived from frontmatter and the body — never from resolved example
- * content — so rendering a card stays free of `buildExampleContent()`, exactly
+ * Derived from frontmatter and the body - never from resolved example
+ * content - so rendering a card stays free of `buildExampleContent()`, exactly
  * as it is for the hand-written TypeScript templates. A taxonomy the template
  * doesn't override is shown as the workspace default *only when the template
  * overrides at least one other taxonomy*; a template that overrides nothing
@@ -1229,7 +1229,7 @@ function applyFields(
  *
  * Rows beyond the taxonomy mirror the workspace sidebar's order: the "Default
  * view" the index injects, the Views/Dashboards the workspace creates, then
- * the Projects (structure — they're always created) and the People register
+ * the Projects (structure - they're always created) and the People register
  * the template defines.
  */
 function cardSettings(
@@ -1239,14 +1239,14 @@ function cardSettings(
 	projects: ParsedProject[],
 ): TemplateSetting[] {
 	// A template with *no* taxonomy override is deliberately saying "use the
-	// workspace defaults" — so the card lists nothing it configured, rather than
+	// workspace defaults" - so the card lists nothing it configured, rather than
 	// restating the system defaults as if the template chose them. This keeps
 	// ("blank"-style) templates honest without special-casing any id.
 	const rows: TemplateSetting[] = [];
 	// An override counts for the card only if it carries at least one value. A
 	// template that overrides nothing, or that explicitly empties every taxonomy
-	// (a blank workspace) — the latter yields a non-empty key set but all-empty
-	// arrays — deliberately shows no taxonomy rows rather than rows of nothing.
+	// (a blank workspace) - the latter yields a non-empty key set but all-empty
+	// arrays - deliberately shows no taxonomy rows rather than rows of nothing.
 	const hasValues = Object.values(overrides).some(
 		(arr) => Array.isArray(arr) && arr.length > 0,
 	);
@@ -1311,7 +1311,7 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 	const match = FRONTMATTER_RE.exec(normalized);
 	if (!match) {
 		fail(
-			`Template has no YAML frontmatter — it must start with a "---" line`,
+			`Template has no YAML frontmatter - it must start with a "---" line`,
 			1,
 		);
 	}
@@ -1331,7 +1331,7 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 	// --- schema gate ---------------------------------------------------------
 	if (data.templateSchema == null) {
 		fail(
-			`Frontmatter is missing "templateSchema" — add "templateSchema: ${TEMPLATE_SCHEMA_VERSION}"`,
+			`Frontmatter is missing "templateSchema" - add "templateSchema: ${TEMPLATE_SCHEMA_VERSION}"`,
 			2,
 		);
 	}
@@ -1344,7 +1344,7 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 	}
 	if (schema > TEMPLATE_SCHEMA_VERSION) {
 		fail(
-			`This template needs templateSchema ${schema}, but this version of Vertex Flow only understands up to ${TEMPLATE_SCHEMA_VERSION} — update the plugin`,
+			`This template needs templateSchema ${schema}, but this version of Vertex Flow only understands up to ${TEMPLATE_SCHEMA_VERSION} - update the plugin`,
 			2,
 		);
 	}
@@ -1352,13 +1352,13 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 	// `type` is the unified discriminant every other Vertex-Flow-authored note
 	// uses; `kind` is the legacy field name. Accept either spelling and
 	// normalize to the new `type: vertex-flow-workspace-template` internally.
-	// `snapshot` stays reserved and unbuilt — only the field name and the
+	// `snapshot` stays reserved and unbuilt - only the field name and the
 	// built value's spelling change here.
 	const rawKind = data.type ?? data.kind;
 	const kindField = data.type != null ? "type" : "kind";
 	if (rawKind == null) {
 		fail(
-			`Frontmatter is missing "type" — add "type: vertex-flow-workspace-template"`,
+			`Frontmatter is missing "type" - add "type: vertex-flow-workspace-template"`,
 			3,
 		);
 	}
@@ -1371,8 +1371,8 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 	if (normalizedKind !== "template") {
 		fail(
 			normalizedKind === "snapshot"
-				? `"type: vertex-flow-workspace-snapshot" is not yet supported — only "type: vertex-flow-workspace-template" can be loaded`
-				: `Unknown "${kindField}: ${renderValue(rawKind)}" — only "type: vertex-flow-workspace-template" is supported`,
+				? `"type: vertex-flow-workspace-snapshot" is not yet supported - only "type: vertex-flow-workspace-template" can be loaded`
+				: `Unknown "${kindField}: ${renderValue(rawKind)}" - only "type: vertex-flow-workspace-template" is supported`,
 			3,
 		);
 	}
@@ -1428,21 +1428,21 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 		const clash = anchors.get(node.anchor);
 		if (clash) {
 			fail(
-				`Duplicate anchor "${node.anchor}" — "${clash.title}" (line ${clash.line}) and "${node.title}" (line ${node.line}). Give one of them an explicit {#anchor}.`,
+				`Duplicate anchor "${node.anchor}" - "${clash.title}" (line ${clash.line}) and "${node.title}" (line ${node.line}). Give one of them an explicit {#anchor}.`,
 				node.line,
 			);
 		}
 		anchors.set(node.anchor, { title: node.title, line: node.line });
 	}
 
-	// The card preview is derived from *everything* the template declares —
+	// The card preview is derived from *everything* the template declares -
 	// taxonomy and people from frontmatter, Projects from frontmatter and/or the
-	// body, and the Views/Dashboards from their frontmatter sections — which is
+	// body, and the Views/Dashboards from their frontmatter sections - which is
 	// why it is built last, once all of them are parsed.
 	// `supportsExampleContent` truthfully means "instantiation can seed Tasks".
 	// An explicit frontmatter value wins (a blank template says `false`); when
 	// absent, a template that ships `# Tasks` body sections is populatable and
-	// one that doesn't isn't — so task-less local templates get no dead toggle.
+	// one that doesn't isn't - so task-less local templates get no dead toggle.
 	const supportsExampleContent =
 		optionalBoolean(data, "supportsExampleContent") ?? tasks.length > 0;
 	const meta: TemplateMeta = {

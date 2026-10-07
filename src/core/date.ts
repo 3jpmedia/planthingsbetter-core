@@ -1,8 +1,8 @@
 /**
  * Calendar-day helpers shared by the recurrence glue and its UI.
  *
- * Recurrence reasons in the user's *local* calendar day — closing a daily task
- * late in the evening must advance the chain now, not wait for UTC midnight — so
+ * Recurrence reasons in the user's *local* calendar day - closing a daily task
+ * late in the evening must advance the chain now, not wait for UTC midnight - so
  * this is deliberately not `nowIso()` (which is an instant, in UTC).
  */
 
@@ -15,7 +15,7 @@ export function localTodayIso(now: Date = new Date()): IsoDate {
 	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-/** The current local time as `HHMMSS`, zero-padded — paired with
+/** The current local time as `HHMMSS`, zero-padded - paired with
  *  `localTodayIso` in export filenames so two exports made on the same day
  *  never collide without leaning on a numeric-suffix fallback. `now` is
  *  injectable, same as `localTodayIso`. */
@@ -24,7 +24,7 @@ export function localTimeStamp(now: Date = new Date()): string {
 	return `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
-/** True for a real calendar day in YYYY-MM-DD form — rejects malformed
+/** True for a real calendar day in YYYY-MM-DD form - rejects malformed
  *  strings (`2026-9-1`) and non-existent days (`2026-02-30`) without a
  *  date library, by round-tripping through `Date` and checking the y/m/d
  *  it reports back matches what was asked for. */
@@ -39,10 +39,10 @@ export interface DueDateStatus {
 	isOverdue: boolean;
 }
 
-/** Today/overdue treatment for a due date — shared by every place a due date
+/** Today/overdue treatment for a due date - shared by every place a due date
  *  renders (List rows, Board cards, Calendar chips, Timeline labels, Table
  *  cells) so the badge can't drift between them. A completed or canceled
- *  task is never "overdue" or "due today" — that's the caller's `isOpen`. */
+ *  task is never "overdue" or "due today" - that's the caller's `isOpen`. */
 export function dueDateStatus(
 	dueDate: IsoDate | null,
 	isOpen: boolean,

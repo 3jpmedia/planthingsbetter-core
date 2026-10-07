@@ -25,7 +25,7 @@ describe("buildIcs", () => {
 		};
 		const l = lines(buildIcs([row]));
 		expect(l).toContain("DTSTART;VALUE=DATE:20260820");
-		// DTEND is exclusive — the day after the due date.
+		// DTEND is exclusive - the day after the due date.
 		expect(l).toContain("DTEND;VALUE=DATE:20260829");
 		expect(l.some((line) => line.startsWith("DUE"))).toBe(false);
 		expect(l).toContain("DTSTAMP:20260826T144500Z");
@@ -169,7 +169,7 @@ describe("buildExport iCalendar", () => {
 		const count = snapshot.tasks.filter((task) => !task.archived).length;
 		expect(l.filter((line) => line === "BEGIN:VEVENT").length).toBe(count);
 
-		// Per task: identity, sync stamps — non-optional.
+		// Per task: identity, sync stamps - non-optional.
 		for (const prefix of [
 			"UID:",
 			"SUMMARY:",
@@ -183,7 +183,7 @@ describe("buildExport iCalendar", () => {
 		expect(l.some((line) => line.startsWith("DTSTART;VALUE=DATE:"))).toBe(true);
 		expect(l.some((line) => line.startsWith("DTEND;VALUE=DATE:"))).toBe(true);
 		expect(l.some((line) => line.startsWith("STATUS:"))).toBe(true);
-		// Description is the only toggleable field — off by default.
+		// Description is the only toggleable field - off by default.
 		expect(l.some((line) => line.startsWith("DESCRIPTION:"))).toBe(false);
 	});
 

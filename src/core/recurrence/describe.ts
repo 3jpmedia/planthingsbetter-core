@@ -2,7 +2,7 @@
  * Human-readable descriptions of a recurrence.
  *
  * These strings are the Repeat-row summary, the Series/Overview dialogs' copy
- * and the Stop-repeating confirmation lead — one phrasing, one place.
+ * and the Stop-repeating confirmation lead - one phrasing, one place.
  */
 
 import type { OnCloseDateMode, RecurrenceConfig, StatusValue } from "../types";
@@ -45,7 +45,7 @@ function joinList(items: string[]): string {
 	return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
-/** The cadence half of the description — "Every week on Monday, Wednesday". */
+/** The cadence half of the description - "Every week on Monday, Wednesday". */
 export function describeFrequency(rule: RecurrenceConfig): string {
 	const interval = Math.max(1, rule.interval);
 	switch (rule.freq) {
@@ -86,7 +86,7 @@ export function describeFrequency(rule: RecurrenceConfig): string {
 	}
 }
 
-/** The trigger half — "when completed", "when status is In Review" or "on the
+/** The trigger half - "when completed", "when status is In Review" or "on the
  *  due date / start date". */
 export function describeTrigger(
 	rule: RecurrenceConfig,
@@ -104,7 +104,7 @@ export function describeTrigger(
 
 /**
  * `on-close` only: a short clause describing what Start Date / Due Date will
- * be set to, or `""` when both resolve to `"none"` — the original, dateless
+ * be set to, or `""` when both resolve to `"none"` - the original, dateless
  * behavior reads fine without extra words appended. Reused by
  * `describeRecurrence` (which feeds both the Repeat row summary and Activity
  * History's `repeat set:` / `repeat changed:` entries) and by the Repeat
@@ -112,12 +112,12 @@ export function describeTrigger(
  * things about the same rule.
  *
  * `undefined` is treated the same as `"immediate"` here, matching the
- * Repeat dialog's own display default — by the time any rule reaches this
+ * Repeat dialog's own display default - by the time any rule reaches this
  * function from real task data, `migrateOnCloseDateModes` has already
  * backfilled both fields, so `undefined` should never actually appear here in
  * practice. (`buildPlan`'s runtime resolution treats an unresolved mode as
  * `"none"` instead, which is the more conservative choice for actually
- * setting dates on a note — the two only disagree in this same
+ * setting dates on a note - the two only disagree in this same
  * already-unreachable case.)
  */
 export function describeOnCloseDates(rule: RecurrenceConfig): string {
@@ -133,7 +133,7 @@ export function describeOnCloseDates(rule: RecurrenceConfig): string {
 	if (due) parts.push(`due ${due}`);
 	if (parts.length === 0) return "";
 	// "shifted" is meaningless without saying which field the shift preserves
-	// the range around — the same `anchor` the on-date path uses.
+	// the range around - the same `anchor` the on-date path uses.
 	const anchored =
 		rule.onCloseStartDateMode === "shifted" ||
 		rule.onCloseDueDateMode === "shifted"
@@ -144,12 +144,12 @@ export function describeOnCloseDates(rule: RecurrenceConfig): string {
 	return `sets ${parts.join(" and ")}${anchored}`;
 }
 
-/** The full one-line summary — cadence, trigger, and any end conditions. */
+/** The full one-line summary - cadence, trigger, and any end conditions. */
 export function describeRecurrence(
 	rule: RecurrenceConfig,
 	statuses: readonly StatusValue[],
 ): string {
-	// Status-driven series have no cadence to describe — the trigger (plus
+	// Status-driven series have no cadence to describe - the trigger (plus
 	// whatever dates it sets) is the whole story.
 	if (rule.trigger === "on-close" && rule.onCloseCadence) {
 		const unit = { daily: "day", weekly: "week", monthly: "month", yearly: "year" }[rule.freq];

@@ -11,12 +11,12 @@ import type { ChartType, DashboardWidget, DashboardWidgetLayout } from "../types
 /** Columns at the widest (`lg`) breakpoint. */
 export const GRID_COLUMNS = 12;
 
-/** Default size for a freshly created widget — half-width on a 12-col grid. */
+/** Default size for a freshly created widget - half-width on a 12-col grid. */
 export const DEFAULT_WIDGET_SIZE = { w: 6, h: 4 } as const;
 
 export interface ChartMeta {
 	label: string;
-	/** Curated icon id registered in `ui/components/Icon` — never add new ones. */
+	/** Curated icon id registered in `ui/components/Icon` - never add new ones. */
 	icon: string;
 	minW: number;
 	minH: number;

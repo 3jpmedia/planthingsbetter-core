@@ -7,7 +7,7 @@
  * the plugin rewrite the comment block without touching a single character of
  * the user's own writing above it.
  *
- * Comments are flat — no threading. A "reply" is just a flat comment carrying a
+ * Comments are flat - no threading. A "reply" is just a flat comment carrying a
  * `reply="<comment-id>"` reference to another comment; it does not nest, and the
  * storage and list order are exactly the same as any other comment.
  */
@@ -26,7 +26,7 @@ export interface SplitBody {
 	description: string;
 	/** The raw comment block, or null when the note has none yet. */
 	commentsBlock: string | null;
-	/** Anything after the end delimiter — preserved verbatim on rewrite. */
+	/** Anything after the end delimiter - preserved verbatim on rewrite. */
 	trailing: string;
 }
 
@@ -48,7 +48,7 @@ export function splitBody(body: string): SplitBody {
 function decodeReactions(raw: string | undefined): Record<string, number> {
 	const reactions: Record<string, number> = {};
 	if (!raw) return reactions;
-	// `👍:2,🚀:1` — split on the *last* colon of each pair so emoji containing
+	// `👍:2,🚀:1` - split on the *last* colon of each pair so emoji containing
 	// no colon stay intact.
 	for (const pair of raw.split(",")) {
 		const trimmed = pair.trim();
@@ -173,7 +173,7 @@ function handlesFor(person: Person): string[] {
 /**
  * Resolve `@handle`s against the People register.
  *
- * Matching is deliberately loose — `@JR`, `@jr-leonard` and `@JRLeonard` should
+ * Matching is deliberately loose - `@JR`, `@jr-leonard` and `@JRLeonard` should
  * all find the same person, because nobody typing a comment is going to check
  * the exact spelling of an id first. Unresolvable handles are simply dropped:
  * there's no auth here, so an unknown `@someone` is just text.
@@ -202,7 +202,7 @@ export function resolveMentions(text: string, people: Person[]): string[] {
 }
 
 /**
- * Tally a note's comments by `author`. Parallel to `mentionsInNote` — both are
+ * Tally a note's comments by `author`. Parallel to `mentionsInNote` - both are
  * derived from the same single body read the index already performs
  * (`VaultIndex.refreshMentions`), so counting comments here costs nothing
  * extra. Keys are the raw `author` strings (a `Person.id` in practice); an

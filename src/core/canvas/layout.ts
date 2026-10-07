@@ -2,7 +2,7 @@
  * Flatten an `elkjs` layout result into absolute screen coordinates for the
  * Canvas view.
  *
- * Pure and Obsidian-free (Golden Rule) — and deliberately typed against a
+ * Pure and Obsidian-free (Golden Rule) - and deliberately typed against a
  * minimal structural shape rather than importing `elkjs`, so `src/core/` keeps
  * its dependency allowlist and this stays unit-testable with synthetic trees.
  * `elkjs`'s `ElkNode` is structurally assignable to `ElkLayoutNode`.
@@ -18,13 +18,13 @@
  *
  * Both *edge* coordinate spaces are trusted: ELK hoists every edge onto
  * `root.edges` and tags it with the node whose space its section points live
- * in (`container` — the root for cross-group/top-level edges, a compound's id
+ * in (`container` - the root for cross-group/top-level edges, a compound's id
  * for edges between two nodes inside that compound). `flattenCanvasLayout`
  * translates each edge's points by its container's absolute origin, so an
  * edge inside a group box starts and ends exactly on the card boundaries it
  * connects rather than 12px inside one of them.
  *
- * ELK's reported *positions* (`x`/`y`, relative to the parent) are trusted —
+ * ELK's reported *positions* (`x`/`y`, relative to the parent) are trusted -
  * only sizes are recomputed.
  */
 
@@ -84,7 +84,7 @@ export interface FlatLayeringEdge {
 export interface FlatCanvasLayout {
 	/** Task nodes, absolute coords, keyed by task path. */
 	nodes: Map<string, PlacedBox>;
-	/** Group boxes, absolute coords, keyed by `group:${key}` — tight-fit. */
+	/** Group boxes, absolute coords, keyed by `group:${key}` - tight-fit. */
 	groups: Map<string, PlacedBox>;
 	/** One SVG path per layering-edge segment. */
 	edges: FlatLayeringEdge[];
@@ -92,7 +92,7 @@ export interface FlatCanvasLayout {
 	height: number;
 }
 
-/** What each ELK edge id maps back to — its kind and its original endpoints. */
+/** What each ELK edge id maps back to - its kind and its original endpoints. */
 export interface EdgeMeta {
 	kind: LayeringEdgeKind;
 	source: string;
@@ -124,12 +124,12 @@ const GROUP_PREFIX = "group:";
 /**
  * Prefix for the placeholder leaf a scope's isolated grid reserves in ELK
  * (`planIsolatedGrid`). Chosen to collide with neither a real task path nor
- * `GROUP_PREFIX` — see `planIsolatedGrid`'s own note.
+ * `GROUP_PREFIX` - see `planIsolatedGrid`'s own note.
  */
 const GRID_PLACEHOLDER_PREFIX = "__vf-grid:";
 
 /**
- * Every ELK node's absolute origin (top-left), keyed by id — `"root"` itself
+ * Every ELK node's absolute origin (top-left), keyed by id - `"root"` itself
  * is `(0, 0)`. `flattenCanvasLayout` uses this to translate each edge's
  * section points from its *container*'s space into absolute coordinates; kept
  * exported so tests can assert compound origin math directly.
@@ -176,7 +176,7 @@ export function flattenCanvasLayout(
 		for (const edge of node.edges ?? []) {
 			const meta = edgeMeta.get(edge.id ?? "");
 			// Points are in the edge's *container*'s space, not the node whose
-			// `edges` array it happened to be hoisted onto — offset by that
+			// `edges` array it happened to be hoisted onto - offset by that
 			// container's absolute origin (root when unspecified/unknown).
 			const origin = origins.get(edge.container ?? "root") ?? { x: 0, y: 0 };
 			for (const section of edge.sections ?? []) {
@@ -262,7 +262,7 @@ export interface GridPosition {
 
 /**
  * Plain left-to-right, top-to-bottom packing for a node set with nothing for
- * ELK to rank. Consumes `nodes` in the order given — that order already
+ * ELK to rank. Consumes `nodes` in the order given - that order already
  * reflects the view's own sort (rank by default via `evaluated.tasks`), so
  * this deliberately does no sorting of its own; reordering here would
  * silently override whatever sort the person actually chose.
@@ -294,8 +294,8 @@ export const ISOLATED_GRID_GAP = 24;
  * the rect to reserve inside ELK (via a placeholder leaf only ELK sees, with
  * a size ELK absolutely trusts), plus the real member boxes positioned within
  * that rect in scope-local `(0, 0)` coords. During layout ELK treats the
- * placeholder as an ordinary leaf — sizing its compound around it and,
- * critically, spacing *sibling* compounds clear of it — then
+ * placeholder as an ordinary leaf - sizing its compound around it and,
+ * critically, spacing *sibling* compounds clear of it - then
  * `resolveIsolatedGrids` swaps the placeholder's resolved rect for the real
  * grid boxes.
  */
@@ -312,7 +312,7 @@ export interface IsolatedGridPlan {
 
 /**
  * Plan one scope's isolated grid (see `IsolatedGridPlan`). `sizeById` must
- * hold an entry for every member and its heights are the row stride — the
+ * hold an entry for every member and its heights are the row stride - the
  * caller already applies whatever floor it needs (e.g. the node height
  * budget), so rows always clear the tallest card. Consumes `isolated` in
  * order (already the view's sort); `packCanvasGrid` deliberately re-sorts
@@ -351,7 +351,7 @@ export function planIsolatedGrid(
 	return {
 		scopeId,
 		// Deliberately nothing like a real task path, and not starting with
-		// the `group:` prefix either — `flattenCanvasLayout` treats an id that
+		// the `group:` prefix either - `flattenCanvasLayout` treats an id that
 		// starts with `group:` as a compound to recurse into rather than a
 		// leaf to place, which would drop the reservation entirely.
 		placeholderId: `${GRID_PLACEHOLDER_PREFIX}${scopeId}`,
@@ -369,7 +369,7 @@ export function planIsolatedGrid(
  * Swap each plan's reserved placeholder leaf for its real grid boxes. During
  * `flattenCanvasLayout` the placeholder was a plain leaf inside its compound,
  * so it already helped tight-fit the group box AND ELK already spaced sibling
- * groups clear of it — resolution just positions the grid onto the
+ * groups clear of it - resolution just positions the grid onto the
  * placeholder's resolved absolute rect and drops the placeholder. `boxes` are
  * in scope-local coords and their bbox equals the reserved rect, so overall
  * `width`/`height` barely move and each group box still encloses its grid.
@@ -414,7 +414,7 @@ export function resolveIsolatedGrids(
  * Fold the flat/ungrouped case's grid-packed isolated nodes (`"root"` scope
  * only) into an already-ELK-flattened layout.
  *
- * Grouped scopes never come through here — those reserve their grid space
+ * Grouped scopes never come through here - those reserve their grid space
  * *inside* ELK via `planIsolatedGrid`'s placeholder, because a grid appended
  * after layout anchors to the connected-block bbox and overlaps whichever
  * sibling group ELK had placed just outside it (commit 5e076fa's
@@ -423,8 +423,8 @@ export function resolveIsolatedGrids(
  * block when `direction` is `"right"`, beside it when `"down"`".
  *
  * `boxes` (relative to `packCanvasGrid`'s local `(0, 0)`) are appended right
- * after the root's connected-block bbox, or at `(0, 0)` — the root's own
- * origin — when nothing is connected at all, and the overall `width`/`height`
+ * after the root's connected-block bbox, or at `(0, 0)` - the root's own
+ * origin - when nothing is connected at all, and the overall `width`/`height`
  * extend to include them so `fitToView`/the SVG viewBox never crop the grid.
  */
 export function mergeIsolatedIntoLayout(

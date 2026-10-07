@@ -102,7 +102,7 @@ describe("parseTask", () => {
 		expect(issues[0]).toMatch(/Missing status/);
 	});
 
-	it("leaves an untitled task's title blank — the id is not its name", () => {
+	it("leaves an untitled task's title blank - the id is not its name", () => {
 		const { value } = parseTask({}, opts);
 		expect(value.title).toBe("");
 		expect(value.id).toBe("PRD-0104");
@@ -181,7 +181,7 @@ describe("serializeTask", () => {
 	});
 });
 
-describe("parseRecurrence / serializeRecurrence — on-close date modes", () => {
+describe("parseRecurrence / serializeRecurrence - on-close date modes", () => {
 	const base = {
 		freq: "weekly",
 		trigger: "on-close",
@@ -218,7 +218,7 @@ describe("parseRecurrence / serializeRecurrence — on-close date modes", () => 
 		expect(log.issues.some((i) => i.includes("onCloseStartDateMode"))).toBe(true);
 	});
 
-	it("keeps an absent key as undefined — no implicit default at this layer", () => {
+	it("keeps an absent key as undefined - no implicit default at this layer", () => {
 		const rule = parseRecurrence(base, new IssueLog(), []);
 		expect(rule?.onCloseStartDateMode).toBeUndefined();
 		expect(rule?.onCloseDueDateMode).toBeUndefined();
@@ -232,7 +232,7 @@ describe("parseRecurrence / serializeRecurrence — on-close date modes", () => 
 const projectOpts = { path: "W/Projects/Core App Experience", defaultStatus: "queue" };
 
 // The documented Project frontmatter (vault-schema.md §4.2), with every
-// optional field populated — parallel to `SPEC_TASK`.
+// optional field populated - parallel to `SPEC_TASK`.
 const SPEC_PROJECT = {
 	type: "project",
 	title: "Core App Experience",
@@ -634,7 +634,7 @@ describe("@mentions", () => {
 		expect(resolveMentions("@jr", people)).toEqual(["jr-leonard"]);
 	});
 
-	it("drops handles matching nobody — there is no auth here", () => {
+	it("drops handles matching nobody - there is no auth here", () => {
 		expect(resolveMentions("@nobody-at-all", people)).toEqual([]);
 	});
 
@@ -1032,7 +1032,7 @@ describe("parseViews", () => {
 		expect(issues).toEqual([]);
 		expect(value[0].canvasDirection).toBe("right");
 		expect(value[1].canvasDirection).toBe("down");
-		// Unknown never fails validation — it falls back to the default.
+		// Unknown never fails validation - it falls back to the default.
 		expect(value[2].canvasDirection).toBeUndefined();
 
 		// The normalized values survive the migration-format round-trip.
@@ -1238,7 +1238,7 @@ describe("parseView (per-file)", () => {
 		expect(value.canvasArrangement).toBe("tree");
 		expect(value.canvasDirection).toBe("down");
 
-		// The per-file serializer drops the frontmatter key entirely — the query
+		// The per-file serializer drops the frontmatter key entirely - the query
 		// string is the single source now.
 		const frontmatter = serializeView(value);
 		expect(frontmatter).not.toHaveProperty("canvasDirection");
@@ -1277,7 +1277,7 @@ describe("parseView (per-file)", () => {
 		);
 		expect(value.canvasHiddenRelationKinds).toEqual(["dependency", "hierarchy"]);
 
-		// The per-file serializer drops the frontmatter key entirely — the query
+		// The per-file serializer drops the frontmatter key entirely - the query
 		// string is the single source now, same as canvasArrangement/canvasDirection.
 		const frontmatter = serializeView(value);
 		expect(frontmatter).not.toHaveProperty("canvasHiddenRelationKinds");
@@ -1368,7 +1368,7 @@ describe("parseView (per-file)", () => {
 	});
 });
 
-describe("type: discriminant — pre-1.1 bare values normalize to vertex-flow-*", () => {
+describe("type: discriminant - pre-1.1 bare values normalize to vertex-flow-*", () => {
 	it("parseTask stamps the prefixed value even from bare `type: task` input", () => {
 		const { value } = parseTask({ type: "task", id: "PRD-1", title: "x" }, opts);
 		expect(value.type).toBe("vertex-flow-task");

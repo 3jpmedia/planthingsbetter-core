@@ -1,5 +1,5 @@
 /**
- * Person usage and deletion — parallel to `core/taxonomy/usage.ts`, not built
+ * Person usage and deletion - parallel to `core/taxonomy/usage.ts`, not built
  * on it. `assignee`/`owner` are plain nullable fields (not a taxonomy value,
  * no color, not part of the four-kind engine), so unlike a required
  * single-select taxonomy, deleting a person is never truly blocked: the

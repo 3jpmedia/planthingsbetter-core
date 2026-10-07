@@ -3,10 +3,10 @@
  *
  * Every tool returns structured JSON (the surface decision: plain objects, not
  * flattened prose), and every payload is built here as a pure function over a
- * `WorkspaceSnapshot` or lighter core values — no Obsidian import, so the whole
+ * `WorkspaceSnapshot` or lighter core values - no Obsidian import, so the whole
  * response surface is unit-tested like the rest of core.
  *
- * List results share one shape: `{ results, total, truncated }` — a hard cap,
+ * List results share one shape: `{ results, total, truncated }` - a hard cap,
  * never pagination (no cursor state for a stateless protocol), with `total`
  * counting what the filter *would* have returned so an LLM can see it was cut
  * off and narrow its query.
@@ -71,7 +71,7 @@ export function pageList<T>(rows: T[]): McpListPayload<T> {
 
 /** Progress rollup, serialized for the detail payloads. */
 export interface McpProgress extends Progress {
-	/** Compact form, e.g. `"6/10"` — completed against the non-canceled total. */
+	/** Compact form, e.g. `"6/10"` - completed against the non-canceled total. */
 	text: string;
 }
 
@@ -214,7 +214,7 @@ export function projectDetail(
 ): {
 	project: McpProjectRow & {
 		description?: string;
-		/** Top-level task rollup — see `projectProgress` (sub-tasks counted in
+		/** Top-level task rollup - see `projectProgress` (sub-tasks counted in
 		 *  their own parent's bar, archived tasks excluded). */
 		progress: McpProgress;
 	};
@@ -337,7 +337,7 @@ export function taskRowWithUrl(
 }
 
 /** Optional ordering for `taskRows`, mirroring a Saved View's sort clauses.
- *  Omitted entirely (or `sortBy: "rank"`), tasks stay in rank order — the same
+ *  Omitted entirely (or `sortBy: "rank"`), tasks stay in rank order - the same
  *  result the List view shows by default. */
 export interface McpTaskSort {
 	sortBy?: import("../types").SortField;
@@ -352,7 +352,7 @@ export interface McpTaskSort {
 /**
  * Filter + cap a workspace's tasks. `filters` rides the real Saved View filter
  * engine (`applyFilters`), resolved against a context that names people and
- * projects — so `{ status: ["todo"], assignee: [SELF], project: [path] }` all
+ * projects - so `{ status: ["todo"], assignee: [SELF], project: [path] }` all
  * behave exactly the way the UI does. Like every view, archived tasks are
  * hidden unless `showArchived` widens the archive mode to `"included"`.
  */
@@ -378,7 +378,7 @@ export function taskRows(
 	} else if (sort.sortBy && sort.sortBy !== "rank") {
 		matched = sortTasks(matched, sort.sortBy, sort.sortDirection ?? "asc", context);
 	} else if (sort.sortDirection === "desc") {
-		// Explicit descending rank — the only "rank" call that changes output.
+		// Explicit descending rank - the only "rank" call that changes output.
 		matched = sortTasks(matched, "rank", "desc", context);
 	}
 
@@ -419,11 +419,11 @@ export function taskDetail(
 		};
 		mentions?: string[];
 		/** A ready-to-use `list_tasks` query for this task's sub-tasks, present
-		 *  only when subTaskCount > 0 — so a client that just learned a count
+		 *  only when subTaskCount > 0 - so a client that just learned a count
 		 *  from this response doesn't have to already know the query grammar
 		 *  to actually fetch them. */
 		subtasksQuery?: string;
-		/** Direct sub-task completion rollup — see `subtaskProgress`. Empty for
+		/** Direct sub-task completion rollup - see `subtaskProgress`. Empty for
 		 *  a leaf task (`total: 0`), which is meaningfully different from 0%. */
 		subtaskProgress: McpProgress;
 		description?: string;
@@ -572,7 +572,7 @@ export function viewDetail(links: McpLinks, view: SavedView): McpViewDetail {
 	};
 }
 
-/** View column chrome — `ViewColumnState` shorthand without the nesting. */
+/** View column chrome - `ViewColumnState` shorthand without the nesting. */
 function deserializeColumnState(columns: SavedView["columns"]) {
 	if (!columns?.collapsed && !columns?.hidden) return {};
 	return {
@@ -713,14 +713,14 @@ export function commentRows(comments: Comment[]): McpCommentRow[] {
 /** One bucket of a count breakdown. */
 export interface McpNameCount {
 	id: string;
-	/** True when this is the "(none)" bucket — no value set, not an entity id. */
+	/** True when this is the "(none)" bucket - no value set, not an entity id. */
 	isNone?: boolean;
 	name: string;
 	count: number;
 }
 
 export interface McpCounts {
-	/** Tasks the filter matched (before the 200-row list cap — counts are uncapped). */
+	/** Tasks the filter matched (before the 200-row list cap - counts are uncapped). */
 	total: number;
 	/** The matched tasks that are neither completed nor canceled, ignoring archived. */
 	open: number;
@@ -764,7 +764,7 @@ function aggregateByName(
 		}));
 }
 
-/** The full count surface behind `count_tasks` — a pure sibling of `taskRows`. */
+/** The full count surface behind `count_tasks` - a pure sibling of `taskRows`. */
 export function countTasks(
 	snapshot: WorkspaceSnapshot,
 	filters: ViewFilters = {},
@@ -817,7 +817,7 @@ export function countTasks(
 				add("taskType", (t) => t.taskType, taxonomyNames("taskType"));
 				break;
 			case "label": {
-				// Labels are multi-valued — a task counts under every label it
+				// Labels are multi-valued - a task counts under every label it
 				// carries, and a task with none lands in the `(none)` bucket.
 				const tally = new Map<string | null, number>();
 				for (const t of matched) {
@@ -864,7 +864,7 @@ export interface McpProjectCounts {
 	byStatus?: McpNameCount[];
 }
 
-/** `count_projects` — a status breakdown by the shared status taxonomy. */
+/** `count_projects` - a status breakdown by the shared status taxonomy. */
 export function countProjects(
 	snapshot: WorkspaceSnapshot,
 	showArchived = false,
@@ -1166,7 +1166,7 @@ export interface McpRunView {
 }
 
 /**
- * Evaluate a real Saved View against a snapshot — verified against the app's
+ * Evaluate a real Saved View against a snapshot - verified against the app's
  * own `evaluateView` (same filter/sort/group engine), so "what does this view
  * show?" has one authoritative answer. `today` enables the `show:recurring`
  * projection when the view has `recurringPreview` on. Rows are capped like
@@ -1189,7 +1189,7 @@ export function runView(
 		viewType: view.viewType,
 		filteredOut: evaluated.filteredOut,
 		// `pageList` carries `total` = the full matched list, uncapped by the
-		// row slice — same number as `evaluated.total`.
+		// row slice - same number as `evaluated.total`.
 		...pageList(rows),
 		...(withGroups
 			? {
@@ -1220,7 +1220,7 @@ export interface McpDashboardData {
 }
 
 /**
- * The chart-ready data behind every widget — the same `computeWidgetData` the
+ * The chart-ready data behind every widget - the same `computeWidgetData` the
  * Dashboard view renders, so a model can read actual numbers ("the bar chart
  * split by status") rather than just the widget's config.
  */

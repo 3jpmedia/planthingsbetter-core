@@ -5,11 +5,11 @@
  * produces a log that demonstrates the hub on first open instead of an empty
  * folder: workspace config toggling history on, each scaffolded Saved View,
  * Dashboard, Project and Task arriving, then a few *follow-ups* that show the
- * fun parts of the Feed — a bulk status change (aggregated to "×N"), an
+ * fun parts of the Feed - a bulk status change (aggregated to "×N"), an
  * individual status advance, a priority bump, and a comment.
  *
- * Everything here is authored by the machine — `SYSTEM_ACTOR_NAME`, a bracketed
- * handle nobody would type into a People field — because these entries record
+ * Everything here is authored by the machine - `SYSTEM_ACTOR_NAME`, a bracketed
+ * handle nobody would type into a People field - because these entries record
  * the *scaffold*, not the owner, and a fresh workspace has nobody to credit
  * anyway. Pure core code: no Obsidian API, returns plain `HistoryEntry`s for
  * the glue layer to append.
@@ -47,7 +47,7 @@ export interface SeedHistoryInput {
 /**
  * Build the onboarding log for a workspace created with history enabled and
  * example content. Entries are oldest-first with strictly chronological,
- * second-distinct timestamps — a single running cursor, so no template's count
+ * second-distinct timestamps - a single running cursor, so no template's count
  * of views/projects/tasks can ever interleave the timeline. The whole batch
  * appends straight into the creating device's stream file unchanged.
  */
@@ -107,9 +107,9 @@ export function seedHistory(input: SeedHistoryInput): HistoryEntry[] {
 		{ field: "history.enabled", to: true },
 	]);
 
-	// 2. The scaffolded Saved Views (mirrors `addView` — target only).
+	// 2. The scaffolded Saved Views (mirrors `addView` - target only).
 	for (const view of input.views) push("view.create", [viewTarget(view)]);
-	// 3. …and Dashboards (mirrors `addDashboard` — target only).
+	// 3. …and Dashboards (mirrors `addDashboard` - target only).
 	for (const dashboard of input.dashboards) {
 		push("dashboard.create", [dashboardTarget(dashboard)]);
 	}
@@ -125,7 +125,7 @@ export function seedHistory(input: SeedHistoryInput): HistoryEntry[] {
 		]);
 	});
 
-	// 5. A multi-select "set status" — real `task.bulk-update` entries carry
+	// 5. A multi-select "set status" - real `task.bulk-update` entries carry
 	//    one delta per task, and the hub aggregates identical triples to "×3".
 	const started = workspace.statuses.find((s) => s.category === "started");
 	if (started && tasks.length >= 3) {
@@ -141,7 +141,7 @@ export function seedHistory(input: SeedHistoryInput): HistoryEntry[] {
 		);
 	}
 
-	// 6. The last task carried through to Done — an individual field delta.
+	// 6. The last task carried through to Done - an individual field delta.
 	const completed = workspace.statuses.find((s) => s.category === "completed");
 	if (completed && tasks.length > 0) {
 		const task = tasks[tasks.length - 1];
@@ -150,7 +150,7 @@ export function seedHistory(input: SeedHistoryInput): HistoryEntry[] {
 		]);
 	}
 
-	// 7. A priority bump on the first task — proves more than status diffs render.
+	// 7. A priority bump on the first task - proves more than status diffs render.
 	if (workspace.priorities.length >= 2 && tasks.length > 0) {
 		const task = tasks[0];
 		push("task.update", [taskTarget(task)], [

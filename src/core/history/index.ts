@@ -1,5 +1,5 @@
 /**
- * The activity-history log format — pure, unit-testable, Obsidian-free.
+ * The activity-history log format - pure, unit-testable, Obsidian-free.
  *
  * Golden Rule: nothing under `src/core/` imports the Obsidian API, and this
  * file is the inside of that envelope. It decides *what a log looks like*;
@@ -10,10 +10,10 @@
  *
  * Each workspace keeps an append-only log under its own `History/` folder. The
  * writer shards by device (`History/2026-09.<device>.md`) so a vault synced
- * across machines never has two Obsidian instances rewriting the same file —
+ * across machines never has two Obsidian instances rewriting the same file -
  * each device appends only to its own stream, and the reader merges everything
- * in the folder. Each entry is a single line of flow-style YAML — a
- * `- { … }` sequence item — so appending is a true O(1) file append and the
+ * in the folder. Each entry is a single line of flow-style YAML - a
+ * `- { … }` sequence item - so appending is a true O(1) file append and the
  * whole stream parses back into the entry array:
  *
  *     - { ts: 2026-09-05T14:32:00Z, actor: { kind: person, id: allan, name: Allan }, action: task.update, workspace: WS, targets: [ { kind: task, id: TSK-0104, path: WS/Tasks/TSK-0104} ], changes: [ { field: status, from: backlog, to: started} ] }
@@ -26,8 +26,8 @@
  *
  * `yaml` is the one runtime dependency `src/core/` may take (the markdown
  * template parser already uses it), and its flow-style `stringify` quotes
- * values as needed, so hand-written entries — someone *will* paste a name
- * containing a colon — stay parseable.
+ * values as needed, so hand-written entries - someone *will* paste a name
+ * containing a colon - stay parseable.
  *
  * Parsing is deliberately forgiving: a line a human mangled, or a whole file
  * that isn't a YAML list, degrades to fewer entries rather than throwing.
@@ -44,7 +44,7 @@ export const HISTORY_FOLDER = "History";
 
 /**
  * Machine writes (the onboarding seed, a future recurring-task engine) sign
- * with a bracketed handle — deliberately the sort of thing nobody types into a
+ * with a bracketed handle - deliberately the sort of thing nobody types into a
  * People-register field, so the Feed's actor chips never read as a colleague.
  */
 export const SYSTEM_ACTOR_NAME = "[system]";
@@ -56,7 +56,7 @@ export const SYSTEM_ACTOR_NAME = "[system]";
  */
 export const UNKNOWN_ACTOR_NAME = "[unknown]";
 
-/** `"2026-09"` for "September 2026" — the log rotates monthly. */
+/** `"2026-09"` for "September 2026" - the log rotates monthly. */
 export function monthKey(iso: string): string {
 	return iso.slice(0, 7);
 }
@@ -64,7 +64,7 @@ export function monthKey(iso: string): string {
 /**
  * The log stream file for the device that owns this write: `<root>/History/
  * YYYY-MM.<device>.md`. Each Obsidian install has its own random `device` token
- * (never synced), so two synced machines never rewrite the same file — the
+ * (never synced), so two synced machines never rewrite the same file - the
  * read-modify-write race that would drop entries disappears by construction.
  */
 export function historyPathFor(
@@ -76,7 +76,7 @@ export function historyPathFor(
 }
 
 /**
- * `<root>/History` — the folder holding every device stream of the log.
+ * `<root>/History` - the folder holding every device stream of the log.
  * `readEntries` merges all of them.
  */
 export function historyFolder(root: string): string {
@@ -89,7 +89,7 @@ export function historyFolder(root: string): string {
  */
 export function serializeEntryLine(entry: HistoryEntry): string {
 	// `stringify` with `flow: true` renders the entry as flow YAML. Line
-	// breaks inside the flow are formatting, so they're flattened to spaces —
+	// breaks inside the flow are formatting, so they're flattened to spaces -
 	// flow-style scalars never contain a literal newline, so crushing them
 	// cannot corrupt a value. The `- ` prefix makes the line a sequence item,
 	// which is what lets `parseHistoryLog` see the file as a list.
@@ -109,7 +109,7 @@ export function serializeEntryLine(entry: HistoryEntry): string {
  *
  * Forgiving by design, one line at a time: each entry is one line, so a single
  * mangled line is dropped while the rest of the stream survives. A whole file
- * that isn't a log still yields `[]` instead of throwing — the log is a
+ * that isn't a log still yields `[]` instead of throwing - the log is a
  * best-effort record, never something that should take a view down because a
  * sync conflict or an over-zealous edit broke it.
  */
@@ -179,7 +179,7 @@ function isChange(raw: unknown): raw is HistoryChange {
 	return typeof change.field === "string";
 }
 
-/** True when the JSON-ized forms differ — the durable comparison for values
+/** True when the JSON-ized forms differ - the durable comparison for values
  *  that may be arrays (`labels`) or plain objects. */
 export function valuesDiffer(a: unknown, b: unknown): boolean {
 	if (a === b) return false;

@@ -3,22 +3,22 @@
  * `type: vertex-flow-workspace-template` markdown file the New Workspace
  * gallery can offer.
  *
- * Configuration plus Projects ride in frontmatter — statuses, priorities, task
+ * Configuration plus Projects ride in frontmatter - statuses, priorities, task
  * types, labels, the people roster, saved views, dashboards, and each Project
  * as an entry (same shape as Views/Dashboards) carrying its title, icon,
  * description, status/priority/owner/labels and dates. Tasks, when the caller
  * asks for them, ride in the `# Tasks` body as `## Title {#id}` field-line
- * sections — with `:::description` and `:::comment Author (date)` fences for
+ * sections - with `:::description` and `:::comment Author (date)` fences for
  * the note body, so descriptions and comments come along too. Archived
  * Projects and Tasks ride along only when `includeArchived` is set; otherwise
  * they're workspace trash, not template payload.
  *
  * `supportsExampleContent` is truthful about what the toggle can populate:
- * `true` only when Tasks ride along (Projects are structure — always created
- * — so they never make a template "populatable"), `false` (blank, like
+ * `true` only when Tasks ride along (Projects are structure - always created
+ * - so they never make a template "populatable"), `false` (blank, like
  * `blank-workspace.md`) when there's nothing to seed.
  *
- * Pure — no Obsidian import (Golden Rule); `yaml` is the one sanctioned
+ * Pure - no Obsidian import (Golden Rule); `yaml` is the one sanctioned
  * dependency, already used by `parse.ts` for the reverse direction.
  */
 
@@ -47,13 +47,13 @@ export interface TemplateSerializeInput {
 	meta: { id: string; name: string; description?: string; icon?: string; createdAt?: string };
 	/** Source of the taxonomy and the people roster. */
 	workspace: WorkspaceConfig;
-	/** Every Saved View to carry over — the caller drops synthetic System Views. */
+	/** Every Saved View to carry over - the caller drops synthetic System Views. */
 	views: SavedView[];
 	dashboards: DashboardConfig[];
 	/** The workspace's Projects; archived ones are dropped by the serializer. */
 	projects: Project[];
-	/** A project's body description — the part that doesn't live on the bare
-	 *  `Project` record — keyed by `project.path`. */
+	/** A project's body description - the part that doesn't live on the bare
+	 *  `Project` record - keyed by `project.path`. */
 	projectDescriptions?: Record<string, string>;
 	/** The workspace's Tasks to ride along in the `# Tasks` body. Omitted → the
 	 *  template ships no Tasks. When present, `supportsExampleContent` is true. */
@@ -65,7 +65,7 @@ export interface TemplateSerializeInput {
 	/** Archived Projects *and* Tasks ride along only when true (so their
 	 *  cross-links keep resolving); default drops them. */
 	includeArchived?: boolean;
-	/** For `printQuery` / `printFilters` — build it with `queryContext(snapshot)`. */
+	/** For `printQuery` / `printFilters` - build it with `queryContext(snapshot)`. */
 	queryContext: QueryContext;
 }
 
@@ -118,7 +118,7 @@ function widgetMap(
 			break;
 	}
 
-	// `weight` is a relative share within its row — the parser normalises it
+	// `weight` is a relative share within its row - the parser normalises it
 	// against the row total, so the raw column width carries over directly.
 	if (includeWeight) map.weight = widget.layout.w;
 	return map;
@@ -127,7 +127,7 @@ function widgetMap(
 /**
  * Group widgets into rows by their `y` band (widgets sharing a `y` are one
  * row), each row ordered by `x`. Some fidelity loss going grid → rows → grid is
- * expected and acceptable — dashboards are Phase 1 and row-share is already a
+ * expected and acceptable - dashboards are Phase 1 and row-share is already a
  * simplification.
  */
 function widgetRows(dashboard: DashboardConfig): Record<string, unknown>[][] {
@@ -167,7 +167,7 @@ function viewMap(view: SavedView, context: QueryContext): Record<string, unknown
 	const map: Record<string, unknown> = { name: view.name };
 	if (view.icon) map.icon = view.icon;
 	if (view.description) map.description = view.description;
-	// A single `query:` line is a complete, battle-tested round-trip — the
+	// A single `query:` line is a complete, battle-tested round-trip - the
 	// grammar defines it to take precedence over every structured alternative.
 	map.query = printQuery(viewDefinition(view), context);
 	return map;
@@ -177,7 +177,7 @@ function viewMap(view: SavedView, context: QueryContext): Record<string, unknown
 
 /** A Project rides in frontmatter, same shape as Views/Dashboards, so every
  *  property survives the trip. References (status/priority/owner/labels) are
- *  written as *names* rather than ids — the parser re-resolves them against the
+ *  written as *names* rather than ids - the parser re-resolves them against the
  *  same taxonomy this template ships, exactly as the old body field line did. */
 function projectMap(
 	project: Project,
@@ -212,10 +212,10 @@ function projectMap(
 
 /* ------------------------------------------------------------- tasks ------ */
 
-/** The repeat shorthand's canonical frequency words — the inverse of the
+/** The repeat shorthand's canonical frequency words - the inverse of the
  *  aliases `parseRepeatToken` accepts (day/days/week/weeks/…). One map per
- *  cardinality, because a multi-interval cadence is written "every 2 weeks" —
- *  the parser's plural aliases — not "every 2 weekly". */
+ *  cardinality, because a multi-interval cadence is written "every 2 weeks" -
+ *  the parser's plural aliases - not "every 2 weekly". */
 const REPEAT_FREQ_WORDS: Record<RecurrenceFrequency, string> = {
 	daily: "daily",
 	weekly: "weekly",
@@ -230,7 +230,7 @@ const REPEAT_FREQ_PLURALS: Record<RecurrenceFrequency, string> = {
 };
 
 /** `RecurrenceConfig` → the `repeat:` field-line token, or `null` when the
- *  shorthand can't express a rule faithfully — the token deliberately covers
+ *  shorthand can't express a rule faithfully - the token deliberately covers
  *  only frequency, interval, and the "when completed" on-close trigger, so a
  *  custom trigger status (e.g. "when Review lands") is skipped rather than
  *  silently flattened into an on-date cadence. */
@@ -245,11 +245,11 @@ function printRepeatToken(rule: RecurrenceConfig): string | null {
 
 /** One `## Title {#id}` field-line section per Task, in global `rank` order
  *  (resolve re-derives rank from document order, so ordering survives the
- *  re-import). Description and comments ride in `:::` fences — the same
+ *  re-import). Description and comments ride in `:::` fences - the same
  *  grammar a hand-author writes against. Refs are *anchors* (the source task
  *  ids, unique by construction); a ref that points at a Task excluded by the
  *  archived filter is dropped rather than left dangling. No `*` "me" marker
- *  and no `history` toggle anywhere — see the module doc. */
+ *  and no `history` toggle anywhere - see the module doc. */
 function taskSection(
 	tasks: Task[],
 	taskDescriptions: Record<string, string> | undefined,
@@ -320,7 +320,7 @@ function taskSection(
 		const repeat = task.recurrence ? printRepeatToken(task.recurrence) : null;
 		if (repeat) segments.push(`repeat: ${repeat}`);
 
-		// `token()` guards every name-bearing segment — a name with a `|` or a
+		// `token()` guards every name-bearing segment - a name with a `|` or a
 		// newline would silently corrupt the field line, so that one field is
 		// dropped instead (the rest of the Task still rides).
 		const fieldLine = segments
@@ -337,7 +337,7 @@ function taskSection(
 		}
 
 		for (const comment of taskComments?.[task.path] ?? []) {
-			// A comment by a roster member deleted since can't re-resolve — its
+			// A comment by a roster member deleted since can't re-resolve - its
 			// author would fail template resolution, so it's dropped.
 			const author = nameById(workspace.people, comment.author);
 			if (!author || /[()]/.test(author)) continue;
@@ -374,7 +374,7 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 	const statuses = [...workspace.statuses].sort((a, b) => a.order - b.order);
 	const priorities = [...workspace.priorities].sort((a, b) => a.order - b.order);
 
-	// Archived entities are workspace trash, not template payload — unless the
+	// Archived entities are workspace trash, not template payload - unless the
 	// caller explicitly asks for them (a full snapshot). Projects and Tasks are
 	// kept on the same toggle so a Task's own project link always resolves.
 	const activeProjects = projects.filter((p) => includeArchived || !p.archived);
@@ -400,7 +400,7 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 	frontmatter.priorities = priorities.map(flatShorthand);
 	frontmatter.taskTypes = workspace.taskTypes.map(flatShorthand);
 	frontmatter.labels = workspace.labels.map(flatShorthand);
-	// Real names, full roster — but never the `*` "me" marker (§9): carrying it
+	// Real names, full roster - but never the `*` "me" marker (§9): carrying it
 	// would auto-assign the exporting device's identity to whoever creates a
 	// workspace from this template.
 	frontmatter.people = workspace.people.map((person) => person.name);
@@ -421,7 +421,7 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 
 	const yaml = stringifyYaml(frontmatter);
 
-	// Projects ride in frontmatter, so `# Projects` is empty scaffolding — the
+	// Projects ride in frontmatter, so `# Projects` is empty scaffolding - the
 	// grammar a template's body conforms to is still exactly "# Projects" and
 	// "# Tasks", and a hand-author adding `##` sections from there works.
 	// Tasks (when carried) fill `# Tasks` as `## Title {#id}` sections.

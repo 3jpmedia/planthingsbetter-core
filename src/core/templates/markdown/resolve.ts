@@ -1,7 +1,7 @@
 /**
  * `ParsedTemplate` + `TemplateBuildContext` → `TemplateContent`.
  *
- * The parser deals in symbols — anchors, taxonomy *names*, day offsets. This
+ * The parser deals in symbols - anchors, taxonomy *names*, day offsets. This
  * file turns them into the same concrete shape `buildExampleContent()` returns
  * for a hand-written TypeScript template, so nothing downstream
  * (`instantiateTemplate`, the gallery, the snapshot fixtures) can tell the two
@@ -15,7 +15,7 @@
  * Order matters, and it is the reason this is a separate pass from parsing:
  * taxonomy and people first, then projects, then tasks (so relations and
  * `deriveMentions` have every path available), and only then the view `query:`
- * and dashboard `filter:` strings — those resolve names against the *finished*
+ * and dashboard `filter:` strings - those resolve names against the *finished*
  * workspace, so they cannot run any earlier.
  */
 
@@ -86,7 +86,7 @@ function looseKey(input: string): string {
  *
  * Three passes, narrowing: exact name, then exact id, then the punctuation- and
  * case-insensitive key. The last one is what lets `status: todo` and
- * `status: in-progress` reach values named "To Do" and "In Progress" — authors
+ * `status: in-progress` reach values named "To Do" and "In Progress" - authors
  * write the shape they see in frontmatter elsewhere in the vault, and the
  * format shouldn't make them guess which spelling this particular field wants.
  */
@@ -112,7 +112,7 @@ function makeResolver(
 			byLoose.get(looseKey(value));
 		if (!hit) {
 			fail(
-				`Unknown ${kind} "${value}" — this template defines ${
+				`Unknown ${kind} "${value}" - this template defines ${
 					values.length > 0
 						? values.map((v) => `"${v.name}"`).join(", ")
 						: "no " + kind + " values"
@@ -137,7 +137,7 @@ function makePersonResolver(
 		const hit = index.get(looseKey(raw));
 		if (!hit) {
 			fail(
-				`Unknown person "${raw.trim()}" — add them to the template's "people" list`,
+				`Unknown person "${raw.trim()}" - add them to the template's "people" list`,
 				line,
 			);
 		}
@@ -175,9 +175,9 @@ function resolveArchived(
  * ParsedRepeat + the task's own resolved dates → a full RecurrenceConfig.
  * Mirrors the dialog's own `finalize()`: anchor to whichever date the task
  * has (due first, then start), and always seed the first landing one cadence
- * *strictly past* that anchor — the task's own date is this occurrence, not
+ * *strictly past* that anchor - the task's own date is this occurrence, not
  * a landing the series should duplicate. With no date to anchor to, seed one
- * cadence step past today rather than today itself — the same fix that keeps
+ * cadence step past today rather than today itself - the same fix that keeps
  * a dateless on-date task from firing on the very next reconcile.
  */
 function resolveRepeat(
@@ -205,7 +205,7 @@ function resolveRepeat(
 		copyFields: null,
 	};
 
-	// On-date only. `on-close` has no cadence and its nextDate is inert —
+	// On-date only. `on-close` has no cadence and its nextDate is inert -
 	// leave the authored value untouched there.
 	if (!repeat.onClose) rule.nextDate = nextOccurrence(rule, rule.nextDate);
 
@@ -214,7 +214,7 @@ function resolveRepeat(
 
 /* ------------------------------------------------------ query validation -- */
 
-/** Clause tokens a dashboard `filter:` may not carry — they configure a *view*,
+/** Clause tokens a dashboard `filter:` may not carry - they configure a *view*,
  *  and a dashboard has no layout to configure. */
 const NON_FILTER_CLAUSES = new Set([
 	"view",
@@ -237,7 +237,7 @@ function definitionFromQuery(
 		const errors = result.issues
 			.filter((issue) => issue.severity === "error")
 			.map((issue) => issue.message);
-		fail(`${where} — query "${query}" is invalid: ${errors.join("; ")}`);
+		fail(`${where} - query "${query}" is invalid: ${errors.join("; ")}`);
 	}
 	return result.definition;
 }
@@ -255,7 +255,7 @@ function filtersFromQuery(
 
 	if (offending.length > 0) {
 		fail(
-			`${where} — a dashboard filter can only narrow which tasks are counted, but "${query}" uses ${[
+			`${where} - a dashboard filter can only narrow which tasks are counted, but "${query}" uses ${[
 				...new Set(offending),
 			].join(", ")}`,
 		);
@@ -281,7 +281,7 @@ const GRID_COLUMNS = 12;
  *
  * A single-widget row always spans the grid regardless of weight. Otherwise
  * each widget takes `round(12 * weight / total)`, and the last one absorbs the
- * rounding remainder so a row always sums to exactly 12 — a row summing to 11
+ * rounding remainder so a row always sums to exactly 12 - a row summing to 11
  * would leave a visible gap and one summing to 13 would wrap the last widget.
  */
 function rowWidths(widgets: ParsedWidget[]): number[] {
@@ -369,7 +369,7 @@ export function resolveTemplateContent(
 
 	// --- anchors → paths ---------------------------------------------------
 	// Both maps are built before a single entity is constructed, because a task
-	// can name a task that appears later in the file (and often does — `blocks:`
+	// can name a task that appears later in the file (and often does - `blocks:`
 	// points forward as readily as back).
 
 	const projectPath = new Map<string, LinkTarget>();
@@ -380,7 +380,7 @@ export function resolveTemplateContent(
 		const titleKey = project.title.toLowerCase();
 		if (projectPathByTitle.has(titleKey)) {
 			fail(
-				`Two Projects are both titled "${project.title}" — Project titles are their filenames, so they must be unique`,
+				`Two Projects are both titled "${project.title}" - Project titles are their filenames, so they must be unique`,
 				project.line,
 			);
 		}
@@ -415,7 +415,7 @@ export function resolveTemplateContent(
 			projectPath.get(key) ??
 			projectPathByTitle.get(key.toLowerCase()) ??
 			fail(
-				`"project: ${key}" does not name any Project in this template — use the Project's title or its {#anchor}`,
+				`"project: ${key}" does not name any Project in this template - use the Project's title or its {#anchor}`,
 				line,
 			)
 		);
@@ -462,7 +462,7 @@ export function resolveTemplateContent(
 	for (const task of parsed.tasks) byAnchor.set(task.anchor, task);
 
 	/** A sub-task with no `project:` of its own belongs to whichever Project its
-	 *  nearest ancestor belongs to — stated once at the top of a hierarchy
+	 *  nearest ancestor belongs to - stated once at the top of a hierarchy
 	 *  rather than repeated on every child. */
 	function inheritedProject(task: ParsedTask): string | undefined {
 		let current: ParsedTask | undefined = task;
@@ -547,7 +547,7 @@ export function resolveTemplateContent(
 					author: resolvePerson(comment.author, comment.line),
 					date: resolveDateTime(comment.date, ctx),
 					body: comment.body,
-					// Reactions aren't part of the template format — nothing authors
+					// Reactions aren't part of the template format - nothing authors
 					// them and nothing in the app would round-trip them from here.
 					reactions: {},
 					// Same for edit stamps and reply references.
@@ -619,7 +619,7 @@ export function resolveTemplateContent(
  * writes whichever reads better at that point in the file. So: declare either
  * side and the other is synthesized; declare both and they must agree.
  *
- * "Agree" is deliberately asymmetric about absence — `A blocks B` is satisfied
+ * "Agree" is deliberately asymmetric about absence - `A blocks B` is satisfied
  * by B either naming A in `blockedBy` or not declaring `blockedBy` at all. Only
  * a `blockedBy` list that exists and omits A is a contradiction, because that
  * is the one case where the author has stated something incompatible rather

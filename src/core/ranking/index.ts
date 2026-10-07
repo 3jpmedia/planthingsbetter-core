@@ -1,7 +1,7 @@
 /**
  * Task-facing ranking helpers.
  *
- * `rank` is global — one maintained order shared by the Backlog list and the
+ * `rank` is global - one maintained order shared by the Backlog list and the
  * Board. Every view is just a different rendering of that one order; there are
  * deliberately no per-view rank maps (Golden Rule).
  */
@@ -27,8 +27,8 @@ export interface RankAssignment {
 
 /**
  * Like `planReorder`, but for a batch dragged together. `moved` keeps its
- * existing relative order (sorted by current rank) — that's what "drag the
- * selection" is supposed to preserve — and lands as a contiguous block
+ * existing relative order (sorted by current rank) - that's what "drag the
+ * selection" is supposed to preserve - and lands as a contiguous block
  * starting at `toIndex` among the non-moved siblings.
  */
 export function planReorderMany(
@@ -57,7 +57,7 @@ export function planReorderMany(
  * Compute the rank a dragged task needs to land at `toIndex` among `siblings`.
  *
  * `siblings` is the destination list *including* the moved task if it was
- * already there — it gets filtered out here, so callers can pass the column
+ * already there - it gets filtered out here, so callers can pass the column
  * contents verbatim without worrying about whether this is an intra-column
  * reorder or a cross-column move.
  */
@@ -78,8 +78,8 @@ export function planReorder(
 
 /**
  * Rank for a brand-new task among `siblings`, at whichever end
- * `placement` names. `"top"` is the historical default — new work appears
- * where you'll see it — `"bottom"` queues it after everything else.
+ * `placement` names. `"top"` is the historical default - new work appears
+ * where you'll see it - `"bottom"` queues it after everything else.
  */
 export function rankForNewTask(
 	siblings: Task[],

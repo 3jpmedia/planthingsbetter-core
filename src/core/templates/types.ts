@@ -7,7 +7,7 @@
  * without generating anything, plus a `buildExampleContent()` that is only
  * called when the user opts to populate the new workspace with sample notes.
  *
- * Nothing in this folder may import the Obsidian API (Golden Rule) — templates
+ * Nothing in this folder may import the Obsidian API (Golden Rule) - templates
  * describe note *content*, and the Obsidian glue layer writes the files.
  */
 
@@ -55,7 +55,7 @@ export interface TemplateMeta {
 	description: string; // one or two sentences, shown on the card
 	icon?: string; // Obsidian icon name
 	/** When this template was exported, as an ISO 8601 timestamp. Only set for
-	 *  vault-authored templates captured via "Export Workspace as Template" —
+	 *  vault-authored templates captured via "Export Workspace as Template" -
 	 *  built-in templates and hand-authored files leave it unset. */
 	createdAt?: string;
 	/** Whether the workspace-creation UI offers the "Populate with example
@@ -63,7 +63,7 @@ export interface TemplateMeta {
 	 *  forces `populate: false` on creation. */
 	supportsExampleContent?: boolean;
 	/** Community-sharing attribution, carried through from a markdown template's
-	 *  frontmatter. Purely informational — nothing in parsing, resolution or
+	 *  frontmatter. Purely informational - nothing in parsing, resolution or
 	 *  instantiation reads these. */
 	author?: string;
 	authorUrl?: string;
@@ -71,13 +71,13 @@ export interface TemplateMeta {
 	 *  versions the file grammar). */
 	templateVersion?: string;
 	source?: string;
-	/** Lightweight preview for the card — must NOT require calling
+	/** Lightweight preview for the card - must NOT require calling
 	 *  buildExampleContent(). Derived from the same arrays the template feeds
 	 *  its taxonomy from, via settingsFromValues(). */
 	settings: TemplateSetting[];
 	/** Number of tasks the template's `# Tasks` body declares. Computed at
-	 *  parse time from the same body scan `tasks` comes from — never requires
-	 *  buildExampleContent() — so it can't drift from what's actually there. */
+	 *  parse time from the same body scan `tasks` comes from - never requires
+	 *  buildExampleContent() - so it can't drift from what's actually there. */
 	taskCount: number;
 }
 
@@ -93,7 +93,7 @@ export interface TemplateBuildContext {
 export interface TemplateContent {
 	workspace?: TemplateWorkspaceOverrides;
 	views?: SavedView[]; // appended after defaultViews()[0], never replacing it
-	/** Optional — written as a `Dashboards/<id>.md` note when present. Omitting it is fine. */
+	/** Optional - written as a `Dashboards/<id>.md` note when present. Omitting it is fine. */
 	dashboards?: DashboardConfig[];
 	projects: Project[];
 	tasks: Task[];
@@ -127,7 +127,7 @@ export interface WorkspaceTemplate extends TemplateMeta {
 }
 
 /** Turns a taxonomy value array into card-preview settings. Used in every
- *  template file instead of hand-typing `settings` — the single place that
+ *  template file instead of hand-typing `settings` - the single place that
  *  keeps the card in sync with `workspace.statuses` / `.priorities` /
  *  `.taskTypes` / `.labels`. */
 export function settingsFromValues(

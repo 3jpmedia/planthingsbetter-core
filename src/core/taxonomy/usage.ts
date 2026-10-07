@@ -1,5 +1,5 @@
 /**
- * Counting taxonomy usage — the input to the deletion guard.
+ * Counting taxonomy usage - the input to the deletion guard.
  *
  * Status is the one taxonomy used by Projects as well as Tasks, so its
  * usage count spans both entity types. The other three are Task-only.
@@ -32,7 +32,7 @@ export function findTaxonomyUsage(
 		if (taskUsesValue(task, kind, valueId)) taskPaths.push(task.path);
 	}
 
-	// Projects reuse the Task status taxonomy — no separate system — so deleting
+	// Projects reuse the Task status taxonomy - no separate system - so deleting
 	// a status has to account for them too.
 	if (kind === "status") {
 		for (const project of scope.projects ?? []) {

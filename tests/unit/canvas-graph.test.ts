@@ -30,7 +30,7 @@ const deps = (g: ReturnType<typeof buildCanvasGraph>) =>
 		.filter((e) => e.kind === "dependency")
 		.map((e) => ({ source: e.source, target: e.target }));
 
-describe("buildCanvasGraph — dependency edges", () => {
+describe("buildCanvasGraph - dependency edges", () => {
 	it("makes one node per task, edge order blocker → blocked", () => {
 		const a = t("A", { relations: { blocks: ["W/Tasks/B"] } });
 		const b = t("B");
@@ -61,7 +61,7 @@ describe("buildCanvasGraph — dependency edges", () => {
 	});
 });
 
-describe("buildCanvasGraph — hierarchy edges", () => {
+describe("buildCanvasGraph - hierarchy edges", () => {
 	it("adds a thin parent → child edge, independent of grouping", () => {
 		const parent = t("PAR");
 		const child = t("CHI", { parent: "W/Tasks/PAR" });
@@ -81,7 +81,7 @@ describe("buildCanvasGraph — hierarchy edges", () => {
 	});
 });
 
-describe("buildCanvasGraph — related edges", () => {
+describe("buildCanvasGraph - related edges", () => {
 	it("dedupes a related pair regardless of which side declared it", () => {
 		const a = t("A", { relations: { related: ["W/Tasks/B"] } });
 		const b = t("B", { relations: { related: ["W/Tasks/A"] } });
@@ -98,7 +98,7 @@ describe("buildCanvasGraph — related edges", () => {
 	});
 });
 
-describe("filterCanvasGraph — relation-kind visibility", () => {
+describe("filterCanvasGraph - relation-kind visibility", () => {
 	const build = () => {
 		const par = t("PAR");
 		const chi = t("CHI", {
@@ -186,7 +186,7 @@ describe("canvasEdgePlan", () => {
 		]);
 	});
 
-	it("reports an empty layout edge set for a tree with no hierarchy — the fallback signal", () => {
+	it("reports an empty layout edge set for a tree with no hierarchy - the fallback signal", () => {
 		const a = t("A", { relations: { blocks: ["W/Tasks/B"] } });
 		const b = t("B");
 		const plan = canvasEdgePlan(buildCanvasGraph([a, b]), "tree");
@@ -215,12 +215,12 @@ describe("partitionByConnectivity", () => {
 		expect(isolated.map((n) => n.id)).toEqual(["W/Tasks/A", "W/Tasks/B"]);
 	});
 
-	it("keeps a task connected only via layoutEdges — a related-only task is isolated regardless of arrangement", () => {
+	it("keeps a task connected only via layoutEdges - a related-only task is isolated regardless of arrangement", () => {
 		const a = t("A", { relations: { related: ["W/Tasks/B"] } });
 		const b = t("B", { relations: { related: ["W/Tasks/A"] } });
 		const graph = buildCanvasGraph([a, b]);
 
-		// `related` never reaches `layoutEdges` in either arrangement — this
+		// `related` never reaches `layoutEdges` in either arrangement - this
 		// checks the partition directly against an empty layoutEdges set,
 		// exactly what a related-only pair produces from `canvasEdgePlan` in
 		// both flow and tree.

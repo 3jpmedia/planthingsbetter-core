@@ -1,9 +1,9 @@
 /**
- * Calendar view — pure day-bucketing (phase 2).
+ * Calendar view - pure day-bucketing (phase 2).
  *
  * The Calendar is a *day-bucketing* view, not a range view: it drops each Task
  * onto the single day named by one chosen date field and paints a month grid.
- * That's the whole reason Projects stay out of it — a Project's authoritative
+ * That's the whole reason Projects stay out of it - a Project's authoritative
  * date *range* has nowhere to live on a day grid, and Timeline already
  * covers ranges.
  *
@@ -12,7 +12,7 @@
  * "turn an ISO string into a comparable integer, clamped to a four-digit year"
  * logic. Nothing here does string slicing to find a month.
  *
- * No drag math lives here either — dragging a chip reuses `taskBar` /
+ * No drag math lives here either - dragging a chip reuses `taskBar` /
  * `shiftBar` / `barDates` from `timeline.ts` as-is (a chip move is a Timeline
  * body-drag with a whole-day delta); only the pixel→cell hit-test belongs to
  * the UI layer.
@@ -29,7 +29,7 @@ import { MS_PER_DAY, dayNumber, isoFromDay } from "./timeline";
  * The day this task sits on for the given toggle, or `null` if it has no value
  * in *that* field.
  *
- * A direct read of the selected field only — a task with `startDate` set but no
+ * A direct read of the selected field only - a task with `startDate` set but no
  * `dueDate` is unscheduled under the "Due" toggle, never quietly borrowed from
  * its start date, or the toggle would stop meaning what it says. Normalised to
  * a bare `YYYY-MM-DD` so bucket keys are canonical even when a field holds a
@@ -60,7 +60,7 @@ export function bucketByDay(
 }
 
 /**
- * The complement of `bucketByDay` / `calendarSpan` — tasks with no value in
+ * The complement of `bucketByDay` / `calendarSpan` - tasks with no value in
  * the selected field (or, with two, in either of them).
  */
 export function unscheduledForCalendar(
@@ -220,7 +220,7 @@ export function addMonthsDay(day: number, n: number): number {
 /**
  * Normalise any date to the 1st of its month.
  *
- * `visibleMonth` is always stored this way — from prev, next, or Today — so the
+ * `visibleMonth` is always stored this way - from prev, next, or Today - so the
  * furniture has one representation, the same discipline `canonicalizeFilters` /
  * `canonicalizeHiddenFields` apply elsewhere. Built on `dayNumber` /
  * `isoFromDay`, not string slicing.
@@ -232,7 +232,7 @@ export function startOfMonth(date: IsoDate): IsoDate {
 /**
  * The day cells for a month view: the month itself plus the leading/trailing
  * days from adjacent months needed to fill whole weeks. Weeks start on Sunday
- * (`getUTCDay` 0), so the result is 28–42 cells — 28 only for a non-leap
+ * (`getUTCDay` 0), so the result is 28-42 cells - 28 only for a non-leap
  * February that begins on a Sunday.
  */
 export function monthGrid(month: IsoDate): IsoDate[] {

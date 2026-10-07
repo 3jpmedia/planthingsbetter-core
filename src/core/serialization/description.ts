@@ -26,7 +26,7 @@ export const DESCRIPTION_HEADING = "## Description";
  *
  * The block is emitted even when there's nothing to put in it. An empty
  * description used to collapse the whole section away, which left someone
- * editing the raw note with no indication of where the description belongs —
+ * editing the raw note with no indication of where the description belongs -
  * and made a cleared description indistinguishable from a note that never had
  * one. The heading is structure rather than content (`parseDescription`
  * strips it), so an empty block round-trips back to `""` and the editor still
@@ -50,7 +50,7 @@ const escape = (literal: string) =>
 
 /**
  * The description block, built from the constants above rather than repeating
- * them — otherwise renaming a tag would silently stop the parser matching.
+ * them - otherwise renaming a tag would silently stop the parser matching.
  * `[\s\S]*?` matches multiline content without running past the end tag.
  */
 const BLOCK_RE = new RegExp(

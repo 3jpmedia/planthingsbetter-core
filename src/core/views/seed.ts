@@ -1,8 +1,8 @@
 /**
  * Seeding a new task from the view it's created in.
  *
- * "New task" on a screen you've narrowed — a project, a label, "assigned to
- * me" — should land where you're looking, not in the unfiltered backlog. This
+ * "New task" on a screen you've narrowed - a project, a label, "assigned to
+ * me" - should land where you're looking, not in the unfiltered backlog. This
  * turns a view's filters into starting field values for `createTask`.
  *
  * Pure, like the rest of `core/views`: it reads `ViewFilters` (and, only to
@@ -28,7 +28,7 @@ export interface TaskSeed {
  * The one concrete value in a single-select filter, or `null`.
  *
  * A filter that ORs several values ("todo or in-progress") has no single right
- * answer, so it seeds nothing. `NONE` is "field is unset" — also nothing to
+ * answer, so it seeds nothing. `NONE` is "field is unset" - also nothing to
  * seed. `SELF` is resolved by the caller where it means a real person.
  */
 function onlyValue(values: string[] | undefined): string | null {
@@ -52,7 +52,7 @@ export function seedFromFilters(
 	const taskType = onlyValue(filters.taskType);
 	if (taskType) seed.taskType = taskType;
 
-	// `assignee: [self]` on an "Assigned to Me" view seeds the self person —
+	// `assignee: [self]` on an "Assigned to Me" view seeds the self person -
 	// resolved from `context.selfId` (the device's per-workspace "me"), so it
 	// only fires when the caller passes a context that has it.
 	const assignee = onlyValue(filters.assignee);

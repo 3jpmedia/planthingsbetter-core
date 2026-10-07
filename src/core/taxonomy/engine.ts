@@ -102,7 +102,7 @@ export function hasValue(taxonomy: Taxonomy, id: string): boolean {
 	return taxonomy.values.some((value) => value.id === id);
 }
 
-/** Case-insensitive, trimmed name lookup — the "no two labels alike" check. */
+/** Case-insensitive, trimmed name lookup - the "no two labels alike" check. */
 export function findValueByName<V extends TaxonomyValue>(
 	taxonomy: Taxonomy<V>,
 	name: string,
@@ -149,8 +149,8 @@ export function displayColor(
 // ---------------------------------------------------------------------------
 
 /**
- * The category behind a status id. Categories drive all logic — progress,
- * "is this active", board grouping — regardless of how the user renamed things.
+ * The category behind a status id. Categories drive all logic - progress,
+ * "is this active", board grouping - regardless of how the user renamed things.
  */
 export function categoryOf(
 	statuses: Taxonomy,
@@ -172,7 +172,7 @@ export function isStarted(statuses: Taxonomy, statusId: string | null): boolean 
 	return categoryOf(statuses, statusId) === "started";
 }
 
-/** Neither completed nor canceled — i.e. still real, outstanding work. */
+/** Neither completed nor canceled - i.e. still real, outstanding work. */
 export function isOpen(statuses: Taxonomy, statusId: string | null): boolean {
 	const category = categoryOf(statuses, statusId);
 	return category !== "completed" && category !== "canceled";
@@ -293,7 +293,7 @@ export function reorderValues<V extends TaxonomyValue>(
 }
 
 // ---------------------------------------------------------------------------
-// Deletion — the uniform guard
+// Deletion - the uniform guard
 // ---------------------------------------------------------------------------
 
 export interface TaxonomyDeletionPlan {
@@ -312,7 +312,7 @@ export interface TaxonomyDeletionPlan {
 	blocked: boolean;
 	/** Every other value in the taxonomy, in display order. */
 	replacementCandidates: TaxonomyValue[];
-	/** True when nothing else exists to reassign to — deletion is impossible. */
+	/** True when nothing else exists to reassign to - deletion is impossible. */
 	lastValueInUse: boolean;
 }
 
@@ -350,7 +350,7 @@ export function applyTaxonomyDeletion<V extends TaxonomyValue>(
 	replacementId: string | null,
 ): { taxonomy: Taxonomy<V>; replacementId: string | null; removeFromAll: boolean } {
 	// A multi-select taxonomy (labels) can drop a value from every entity that
-	// carries it — a task with no labels is fine. A single-select one can't: a
+	// carries it - a task with no labels is fine. A single-select one can't: a
 	// task must always have a status, so a blocked delete needs a replacement.
 	const removeFromAll =
 		plan.blocked && replacementId == null && taxonomy.schema.multiSelect;
@@ -358,7 +358,7 @@ export function applyTaxonomyDeletion<V extends TaxonomyValue>(
 	if (plan.blocked && !removeFromAll) {
 		if (!replacementId) {
 			throw new Error(
-				`Cannot delete ${plan.label} "${plan.valueName}" — it is used by ` +
+				`Cannot delete ${plan.label} "${plan.valueName}" - it is used by ` +
 					`${plan.usageCount} item(s). Choose a replacement first.`,
 			);
 		}
@@ -388,7 +388,7 @@ export function applyTaxonomyDeletion<V extends TaxonomyValue>(
 /**
  * Rewrite a single-select field. Returns `current` unchanged when it doesn't
  * reference the removed value, so callers can map over every task and only
- * write the ones that actually changed. `toId` may be `null` — clearing the
+ * write the ones that actually changed. `toId` may be `null` - clearing the
  * field rather than reassigning it (People deletion relies on this; a nullable
  * field like `assignee`/`owner` has that fallback where a required taxonomy
  * doesn't).

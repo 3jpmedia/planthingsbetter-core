@@ -733,7 +733,7 @@ describe("resolution", () => {
 
 	it("resolves a unique project title with no ambiguity warning", () => {
 		// Project titles are unique per workspace, so `resolveEntity`'s soleMatch
-		// always lands on exactly one project — the "use the full path" ambiguity
+		// always lands on exactly one project - the "use the full path" ambiguity
 		// warning never fires. Guards against a regression in that invariant.
 		const parsed = parseQuery(`project:"Core App Experience"`, ctx);
 		expect(parsed.definition.filters.project).toEqual([project]);
@@ -926,7 +926,7 @@ describe("group-wildcard filters (label:*/project:*)", () => {
 
 	it("gives parent: no group behaviour, even with a /*-suffixed value", () => {
 		// `parent` also routes through the entity branch, but with
-		// `resolveAs: "task"` — the group-wildcard hook only fires for "project".
+		// `resolveAs: "task"` - the group-wildcard hook only fires for "project".
 		const withoutMatch = parseQuery("parent:Something/*", groupCtx);
 		expect(withoutMatch.definition.filters.parent).toEqual(["Something/*"]);
 		expect(withoutMatch.issues[0].code).toBe("unknown-value");

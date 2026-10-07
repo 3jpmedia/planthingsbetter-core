@@ -1,7 +1,7 @@
 /**
- * Default taxonomy configurations for a new Workspace (–5.4).
+ * Default taxonomy configurations for a new Workspace (-5.4).
  *
- * Every default here is overridable per Workspace — that is the whole point of
+ * Every default here is overridable per Workspace - that is the whole point of
  * the taxonomy engine. These values simply mean a brand-new workspace is
  * immediately usable without visiting settings.
  */
@@ -16,7 +16,7 @@ import type {
 /**
  * Default statuses map 1:1 to the fixed category enum, matching the common
  * default workflow. Users may rename, recolor, reorder, add and remove these
- * freely — the categories underneath never change.
+ * freely - the categories underneath never change.
  */
 export const DEFAULT_STATUSES: StatusValue[] = [
   {
@@ -57,7 +57,7 @@ export const DEFAULT_STATUSES: StatusValue[] = [
 ];
 
 /**
- * Fully flexible and ordered — order carries meaning, count does not.
+ * Fully flexible and ordered - order carries meaning, count does not.
  *
  * There is no "No Priority" rung: an un-prioritised task simply has `priority:
  * null`, rendered as "None". A dedicated value would be a second way to say the
@@ -76,11 +76,11 @@ export const DEFAULT_TASK_TYPES: TaskTypeValue[] = [
   { id: "chore", name: "Chore", color: "#94a3b8" },
 ];
 
-/** Workspaces start with no labels — labels are inherently project-specific. */
+/** Workspaces start with no labels - labels are inherently project-specific. */
 export const DEFAULT_LABELS: LabelValue[] = [];
 
 /**
  * Default status for brand-new tasks. Configurable independently of category
- * — this is a status *id*, not "the first backlog status".
+ * - this is a status *id*, not "the first backlog status".
  */
 export const DEFAULT_NEW_TASK_STATUS = "queue";

@@ -5,7 +5,7 @@
  * the result is always a definition you can apply as-is; `ok` tells you whether
  * anything went wrong badly enough that you probably shouldn't.
  *
- * An unknown `field:` is an **error**, not free text — GitHub's "treat it as a
+ * An unknown `field:` is an **error**, not free text - GitHub's "treat it as a
  * search term" rule would silently widen a view on a typo, which is exactly the
  * mistake this bar exists to catch. A quoted token is always text, so
  * `"status:todo"` remains the escape hatch.
@@ -204,7 +204,7 @@ export function parseQueryTokens(
 		) {
 			fail(
 				"not-expressible",
-				`"-${token.field}:" isn't supported — exclusion only works on filter fields`,
+				`"-${token.field}:" isn't supported - exclusion only works on filter fields`,
 				token.span,
 			);
 			continue;
@@ -236,7 +236,7 @@ export function parseQueryTokens(
 			const value = soleValue(token);
 			if (!value) continue;
 			// `show:archived` and `show:archived-only` both set `filters.archived`,
-			// so a query with both is a real conflict — dedupe on that key.
+			// so a query with both is a real conflict - dedupe on that key.
 			// `show:recurring` is a separate presentation flag on the view.
 			const lowered = value.text.trim().toLowerCase();
 			if (lowered === FLAG_TOKENS.archivedIncluded.value) {
@@ -303,7 +303,7 @@ export function parseQueryTokens(
 				raw = raw.slice(1);
 			}
 
-			// Closed unions, unlike taxonomy ids — a stale one would just be
+			// Closed unions, unlike taxonomy ids - a stale one would just be
 			// coerced away on save, so there's nothing to preserve verbatim.
 			if (field === "group") {
 				const match = GROUP_BY_TOKEN.get(raw);
@@ -519,7 +519,7 @@ export interface ParsedFilterQuery {
 }
 
 /**
- * Parse a filter-only query — the grammar a dashboard `filter:` line uses.
+ * Parse a filter-only query - the grammar a dashboard `filter:` line uses.
  * Identical to `parseQuery` but any layout clause (`group:`/`sort:`/`hide:`/…)
  * is an error rather than being silently applied to a definition nobody reads.
  */

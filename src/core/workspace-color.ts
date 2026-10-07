@@ -2,7 +2,7 @@ import { COLOR_PALETTE } from "./color";
 
 /**
  * Deterministic accent color for a workspace, derived from its `root` path.
- * No state, no config — same root always yields the same palette color for
+ * No state, no config - same root always yields the same palette color for
  * the life of this hash function. Two workspaces may legitimately collide
  * on the same color; callers should not assume uniqueness.
  */

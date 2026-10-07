@@ -1,5 +1,5 @@
 /**
- * The query language's vocabulary — pure data, no logic.
+ * The query language's vocabulary - pure data, no logic.
  *
  * Every table here is keyed by a model type (`Record<ArrayFilterKey, …>`,
  * `Record<GroupByField, …>`) rather than written as a free-standing literal.
@@ -37,14 +37,14 @@ export type ResolveAs =
 	| "date";
 
 export interface FilterFieldSpec {
-	/** The canonical token — what the printer emits. */
+	/** The canonical token - what the printer emits. */
 	token: string;
 	/** Extra spellings accepted on input. */
 	aliases: readonly string[];
 	resolveAs: ResolveAs;
 	/**
 	 * `unset` parses everywhere it's syntactically legal, but for these fields
-	 * it can never match — `Task.status` is non-nullable, and `matchesFilters`
+	 * it can never match - `Task.status` is non-nullable, and `matchesFilters`
 	 * gives `mentions` no NONE branch. Parsed, then warned about.
 	 */
 	unsetIsVacuous: boolean;
@@ -182,7 +182,7 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 	},
 };
 
-/** The free-text field (a task's title). Not in `FILTER_FIELDS` — its value
+/** The free-text field (a task's title). Not in `FILTER_FIELDS` - its value
  *  isn't a list. Printed as `taskTitle:` -- always labelled, never bare
  *  words, though bare words still parse as it -- self-describing like the
  *  other tokens, leaving room for other titles (a view's, ...) later.
@@ -257,7 +257,7 @@ export const CALENDAR_MODE_VALUES: Record<CalendarMode, EnumValueSpec> = {
 };
 
 /**
- * Date range-bound clauses (`due-before:`, `due-after:`, …) — each token
+ * Date range-bound clauses (`due-before:`, `due-after:`, …) - each token
  * names the exact `ViewFilters` scalar key it sets. Single-valued, unlike
  * the exact-match date fields above, so this is a plain token → key map
  * rather than a `FilterFieldSpec` table.
@@ -359,7 +359,7 @@ export const SELF_KEYWORDS = ["me", "self"] as const;
  */
 export const UNSET_KEYWORDS = ["unset"] as const;
 
-/** Prefix marking a value as verbatim — skip keyword and name resolution. */
+/** Prefix marking a value as verbatim - skip keyword and name resolution. */
 export const VERBATIM_PREFIX = "=";
 
 /* ------------------------------------------------------------- flags ------ */
@@ -374,8 +374,8 @@ export const FLAG_TOKENS = {
 } as const;
 
 /**
- * Legacy spellings of the removed `is:top-level` flag. Still parsed — they set
- * `subtaskDisplay: "hidden"` — so a query written before the tri-state existed
+ * Legacy spellings of the removed `is:top-level` flag. Still parsed - they set
+ * `subtaskDisplay: "hidden"` - so a query written before the tri-state existed
  * keeps working. The printer emits `subtasks:hidden` instead.
  */
 export const LEGACY_TOP_LEVEL_VALUES = ["top-level", "toplevel", "root"] as const;
@@ -501,8 +501,8 @@ export const FIELD_BY_TOKEN = indexBy(
 
 /**
  * Clause fields that configure a view's *layout*, not its filter set. A context
- * with no layout to configure — a dashboard's `filter:` line, a workspace
- * template's dashboard `filter:` — rejects a query that uses any of them.
+ * with no layout to configure - a dashboard's `filter:` line, a workspace
+ * template's dashboard `filter:` - rejects a query that uses any of them.
  */
 export const LAYOUT_ONLY_CLAUSES: ReadonlySet<string> = new Set([
 	"view",
@@ -520,7 +520,7 @@ export const LAYOUT_ONLY_CLAUSES: ReadonlySet<string> = new Set([
 	"relations",
 ]);
 
-/** Every field token the parser recognises — the pool for "did you mean…". */
+/** Every field token the parser recognises - the pool for "did you mean…". */
 export const ALL_FIELD_TOKENS: readonly string[] = [
 	...FILTER_FIELD_BY_TOKEN.keys(),
 	...DATE_BOUND_FIELD_BY_TOKEN.keys(),

@@ -1,8 +1,8 @@
 /**
  * Architectural guard.
  *
- * CLAUDE.md's Golden Rule — "core domain logic must never import the Obsidian
- * API" — is what keeps every other test in this suite possible. It's also the
+ * CLAUDE.md's Golden Rule - "core domain logic must never import the Obsidian
+ * API" - is what keeps every other test in this suite possible. It's also the
  * single easiest rule to break by accident, since importing a type from
  * `obsidian` looks harmless right up until the unit tests can't run at all.
  *

@@ -1,14 +1,14 @@
 /**
- * Sample workspace — the fixed fixture the core unit test suite is built on
- * (`sampleSnapshot()` in `instantiate.ts`). Its content — project titles, task
- * ids, relations, comments — is load-bearing across `hierarchy.test.ts`,
+ * Sample workspace - the fixed fixture the core unit test suite is built on
+ * (`sampleSnapshot()` in `instantiate.ts`). Its content - project titles, task
+ * ids, relations, comments - is load-bearing across `hierarchy.test.ts`,
  * `views.test.ts`, `taxonomy.test.ts`, and three tests in `templates.test.ts`.
  * Change it deliberately and update those tests alongside.
  *
  * This is a standalone frozen fixture - its content no longer mirrors any
  * live template source, so edit it here alone, and update the tests that
  * assert against it whenever you do. Do NOT import this from
- * `templates/index.ts` or add it to `WORKSPACE_TEMPLATES` — it is test-only.
+ * `templates/index.ts` or add it to `WORKSPACE_TEMPLATES` - it is test-only.
  */
 
 import { joinPath } from "../links";
@@ -405,7 +405,7 @@ function buildExampleContent(ctx: TemplateBuildContext): TemplateContent {
 					id: "cmt_01",
 					author: "bob",
 					date: ctx.iso(-2),
-					body: "@alice the welcome screen is done — account creation is the last piece.",
+					body: "@alice the welcome screen is done - account creation is the last piece.",
 					reactions: {},
 					editedAt: null,
 					replyTo: null,
@@ -419,7 +419,7 @@ function buildExampleContent(ctx: TemplateBuildContext): TemplateContent {
 					id: "cmt_01",
 					author: "alice",
 					date: ctx.iso(-3),
-					body: "Schema and auth are merged — nice work. @bob can you pick up pagination next, then this moves to review?",
+					body: "Schema and auth are merged - nice work. @bob can you pick up pagination next, then this moves to review?",
 					reactions: { "👍": 1 },
 					editedAt: null,
 					replyTo: null,
@@ -508,13 +508,13 @@ function buildExampleContent(ctx: TemplateBuildContext): TemplateContent {
 export const sampleWorkspaceTemplate: WorkspaceTemplate = {
 	id: "sample-workspace",
 	name: "Sample Workspace",
-	description: "Frozen fixture backing sampleSnapshot() and the unit test suite. Not a gallery template — do not register this in templates/index.ts.",
+	description: "Frozen fixture backing sampleSnapshot() and the unit test suite. Not a gallery template - do not register this in templates/index.ts.",
 	icon: "kanban",
 	supportsExampleContent: true,
 	workspace: { statuses, taskTypes, labels },
 	views: [sprintBoard],
 	// Matches the `tasks` array `buildExampleContent()` builds above (also
-	// `rankSeq(25)`) — hand-kept in sync like `settings` below, since this
+	// `rankSeq(25)`) - hand-kept in sync like `settings` below, since this
 	// fixture predates parse-time derivation and isn't a gallery card.
 	taskCount: 25,
 	settings: [

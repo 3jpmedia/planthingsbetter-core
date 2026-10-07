@@ -1,6 +1,6 @@
 # @planthingsbetter/core
 
-Pure domain logic shared across Plan Things Better products — the [Vertex
+Pure domain logic shared across Plan Things Better products - the [Vertex
 Flow](https://github.com/allanleonardjr/vertex-flow-obsidian) Obsidian plugin
 and the Plan Things Better SaaS app.
 
@@ -16,7 +16,7 @@ Covers:
 - Frontmatter-shaped (de)serialization helpers for the two products' storage
   layers to build on
 
-This package has **no runtime dependencies** — it never imports the Obsidian
+This package has **no runtime dependencies** - it never imports the Obsidian
 API, the DOM, or any UI library, so it's safe to use from a browser, a Node
 server, or an Obsidian plugin sandbox alike.
 
@@ -49,7 +49,7 @@ contradictory relation, or unknown taxonomy name rather than shipping it.
 ```
 
 Run `pnpm build` here in watch-adjacent fashion (re-run after each change)
-and the consumer's `pnpm install` symlink picks it up — no publish needed for
+and the consumer's `pnpm install` symlink picks it up - no publish needed for
 local iteration. CI and real releases use a published semver range instead.
 
 ## Publishing

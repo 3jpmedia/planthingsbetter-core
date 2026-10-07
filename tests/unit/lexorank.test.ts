@@ -46,7 +46,7 @@ describe("compareRanks", () => {
 	});
 
 	it("treats a shorter decimal as sorting before a longer extension", () => {
-		// 0.5 < 0.51 — the ':' separator must not break this.
+		// 0.5 < 0.51 - the ':' separator must not break this.
 		expect(compareRanks("0|i00004:5", "0|i00004:51")).toBe(-1);
 		expect(compareRanks("0|i00004:", "0|i00004:1")).toBe(-1);
 	});

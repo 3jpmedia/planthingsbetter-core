@@ -1,7 +1,7 @@
 /**
  * Export scope: which tasks an export covers.
  *
- * Deliberately doesn't special-case the current view versus a saved view — both
+ * Deliberately doesn't special-case the current view versus a saved view - both
  * are just "a resolved `SavedView`, evaluate it". The UI layer decides which
  * view that is (on-disk, a live unsaved draft, or a synthesized
  * label/project/person view).
@@ -28,16 +28,16 @@ export interface ScopeResult {
 	scopeLabel: string;
 }
 
-/** A scope's kind and name, split apart from `scopeLabel` — used to build a
+/** A scope's kind and name, split apart from `scopeLabel` - used to build a
  *  filename's `-<kind>-<name>` segments, and by the Export dialog's locked-
  *  scope display. Label and Person scope are `{ kind: "view", view }` under
  *  the hood (synthesised by `labelView()`/`personView()` in `ui/App.tsx`), so
  *  they're recovered here via the `label:`/`person:` prefix those helpers
- *  stamp on the synthesised view's `id` — the one thing that distinguishes
+ *  stamp on the synthesised view's `id` - the one thing that distinguishes
  *  them from an ordinary saved view at this layer. */
 export interface ScopeIdentity {
 	kind: "workspace" | "project" | "view" | "label" | "person";
-	/** `null` only for "workspace" — a workspace export has nothing beyond
+	/** `null` only for "workspace" - a workspace export has nothing beyond
 	 *  the workspace itself to name, and it's already in the filename's
 	 *  workspace segment. */
 	name: string | null;

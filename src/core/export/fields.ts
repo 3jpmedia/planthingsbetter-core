@@ -8,7 +8,7 @@
  * Its identity fields (UID/SUMMARY), dates (DTSTART/DTEND), status and sync
  * stamps (CREATED/LAST-MODIFIED/SEQUENCE) are all required for the file to be
  * meaningful, so the exporter emits them unconditionally and they have no
- * checkbox — `icalEligible` literally means "offered as an iCalendar toggle."
+ * checkbox - `icalEligible` literally means "offered as an iCalendar toggle."
  */
 
 export type ExportFormat = "csv" | "json" | "ics";
@@ -267,7 +267,7 @@ export const ICS_MANDATORY_FIELDS: FieldId[] = [
   "updatedAt",
 ];
 
-/** The default checked set — the Identity group only. */
+/** The default checked set - the Identity group only. */
 export const DEFAULT_FIELDS: FieldId[] = FIELD_GROUPS.filter(
   (group) => group.defaultOn,
 ).flatMap((group) => group.fields);

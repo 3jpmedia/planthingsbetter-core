@@ -1,12 +1,12 @@
 /**
  * Workspace JSON export.
  *
- * The raw `WorkspaceSnapshot` shape (ids, not names — TASK-IO compatible) with
+ * The raw `WorkspaceSnapshot` shape (ids, not names - TASK-IO compatible) with
  * `tasks` narrowed to the export scope, plus an always-present `resolved` block
  * of id→name lookups so the file reads sensibly without the live plugin. The
  * `descriptions` / `comments` blocks appear only when those fields were checked.
  *
- * This is deliberately *not* an importable format — see `CLAUDE.md`'s non-goals.
+ * This is deliberately *not* an importable format - see `CLAUDE.md`'s non-goals.
  */
 
 import type {

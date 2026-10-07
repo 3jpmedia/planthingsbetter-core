@@ -3,7 +3,7 @@
  *
  * Every value is a resolved name, never a stored id: `displayName()` for the
  * taxonomy fields, the project/parent title for the link fields, the person's
- * name for `assignee`. JSON does *not* use this — it keeps raw ids and carries a
+ * name for `assignee`. JSON does *not* use this - it keeps raw ids and carries a
  * separate `resolved` lookup block (see `json.ts`).
  */
 

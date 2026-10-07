@@ -1,7 +1,7 @@
 /**
  * Parent/child resolution and progress rollup.
  *
- * Hierarchy is read entirely from frontmatter links — there are no stored
+ * Hierarchy is read entirely from frontmatter links - there are no stored
  * `children` arrays anywhere, so a child is found by querying for its parent
  * reference. That is what makes re-parenting a one-field edit (Golden Rule).
  */
@@ -43,7 +43,7 @@ export function childTasks(scope: HierarchyScope, parent: LinkTarget): Task[] {
  * Every task carrying this project link, at any nesting depth.
  *
  * `parent` and `project` are independent fields: a sub-task keeps
- * its own `project` — seeded from its parent at creation, then never synced —
+ * its own `project` - seeded from its parent at creation, then never synced -
  * so this flattened result includes nested sub-tasks. That's what a `project:X`
  * view filter wants (show all the work under a project); for a *rollup* use
  * `topLevelProjectTasks` instead, or the same work counts twice.
@@ -58,7 +58,7 @@ export function projectTasks(
 /**
  * The project's *direct* tasks: same as `projectTasks` but only those with no
  * parent task. This is the set a project rollup (progress, the deletion
- * cascade) reasons about — a nested sub-task is already rolled into its own
+ * cascade) reasons about - a nested sub-task is already rolled into its own
  * parent's progress bar, so counting it again at the project level would
  * double-count it, and it's a hierarchical child of its parent task, not of
  * the project.
@@ -135,9 +135,9 @@ export function descendantTasks(
 
 /**
  * Every task connected to `root` through sub-task hierarchy (descendants
- * only — never ascending to a parent) and Blocks/Blocked By relations
+ * only - never ascending to a parent) and Blocks/Blocked By relations
  * (either direction, since the mutation layer mirrors both sides of a
- * Blocks relationship). `related` links are deliberately excluded — this
+ * Blocks relationship). `related` links are deliberately excluded - this
  * is the traversal behind the `root:` filter, and `related` is the loosest
  * relation type in the model (see `buildCanvasGraph`'s render-only
  * treatment of it). Cycle-safe, like `descendantTasks`.
@@ -191,7 +191,7 @@ export function ancestorTasks(scope: HierarchyScope, task: Task): Task[] {
 }
 
 /**
- * Sub-tasks deeper than this still work, but get hard to scan — parenting past
+ * Sub-tasks deeper than this still work, but get hard to scan - parenting past
  * it asks for a nudge, never blocks. One-based: a root task is level 1.
  */
 export const MAX_COMFORTABLE_DEPTH = 4;
@@ -212,8 +212,8 @@ export function isSubtask(task: Task): boolean {
  *
  * `parent` and `project` are independent: a new sub-task defaults
  * to its parent's project *once*, at creation, and from then on the field is
- * maintained on its own — re-parenting or moving the parent never re-syncs it.
- * An explicit value in the creation input — including an explicit `null` — always
+ * maintained on its own - re-parenting or moving the parent never re-syncs it.
+ * An explicit value in the creation input - including an explicit `null` - always
  * wins over that inherited default.
  */
 export function newTaskProject(
@@ -239,7 +239,7 @@ export function newTaskMilestone(
 
 /**
  * The single primary parent of a task, as a tagged reference (Golden Rule:
- * exactly one). `parent` wins over `project` — a sub-task's real home is its
+ * exactly one). `parent` wins over `project` - a sub-task's real home is its
  * parent task.
  */
 export type PrimaryParent =
@@ -260,7 +260,7 @@ export function primaryParent(task: Task): PrimaryParent {
 /**
  * Roll a set of tasks up into a progress figure.
  *
- * Canceled tasks are excluded from the denominator — a canceled task is work
+ * Canceled tasks are excluded from the denominator - a canceled task is work
  * that will never happen, so counting it against completion would leave every
  * finished project stuck below 100%.
  */
@@ -299,7 +299,7 @@ export function computeProgress(tasks: Task[], statuses: Taxonomy): Progress {
 
 /**
  * Archived tasks are parked, out-of-scope work, so they never count
- * toward a progress rollup — a parked sub-task shouldn't hold a parent's bar
+ * toward a progress rollup - a parked sub-task shouldn't hold a parent's bar
  * below 100%, nor should un-archiving one suddenly change the maths. This is
  * unconditional: unlike a view's `archived` filter, a progress figure has one
  * correct value.
@@ -309,7 +309,7 @@ function forRollup(tasks: Task[]): Task[] {
 }
 
 /**
- * Sub-task progress bar for a parent task. Direct children only — a
+ * Sub-task progress bar for a parent task. Direct children only - a
  * progress bar that silently counted grandchildren would misrepresent what the
  * user sees listed underneath it. Archived children are excluded (see
  * `forRollup`).
@@ -327,7 +327,7 @@ export function subtaskProgress(
 }
 
 /**
- * Project progress — computed at render time, never written to
+ * Project progress - computed at render time, never written to
  * frontmatter, and intentionally not synced with the project's own `status`
  * in either direction.
  */
@@ -344,7 +344,7 @@ export function projectProgress(
 
 /** A project's task tally, split so the header can show it unambiguously. */
 export interface ProjectTaskBreakdown {
-  /** Active, top-level (parent-less) tasks — what the project list shows by default. */
+  /** Active, top-level (parent-less) tasks - what the project list shows by default. */
   tasks: number;
   /** Active sub-tasks (any depth) carrying the project link. */
   subtasks: number;
@@ -355,7 +355,7 @@ export interface ProjectTaskBreakdown {
 /**
  * The project's whole scope of work, counted from `project`-link membership
  * (the same rule the view filter and `projectTasks` use). Deliberately
- * independent of any viewport's sub-task display mode or `archived` filter —
+ * independent of any viewport's sub-task display mode or `archived` filter -
  * this is a stable fact about the project, not a reflection of what's on screen.
  *
  * `tasks` alone equals the default project viewport's row count;
@@ -382,7 +382,7 @@ export function projectTaskBreakdown(
 }
 
 /**
- * Relation progress — calculate completion of tasks inside a specific relation category.
+ * Relation progress - calculate completion of tasks inside a specific relation category.
  * E.g., pass "blockedBy" to see if this task is ready to start.
  */
 export function relationProgress(
@@ -397,7 +397,7 @@ export function relationProgress(
   );
 }
 
-/** `"6/10"` — the compact form used on project cards. */
+/** `"6/10"` - the compact form used on project cards. */
 export function formatProgress(progress: Progress): string {
   return `${progress.completed}/${progress.total - progress.canceled}`;
 }

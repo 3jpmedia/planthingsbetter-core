@@ -3,7 +3,7 @@
  *
  * Generalized from the old single-purpose sample generator: it takes any
  * template plus an "include example content?" flag. Like its predecessor it
- * emits plain note descriptions — path, frontmatter, body — and writes nothing
+ * emits plain note descriptions - path, frontmatter, body - and writes nothing
  * itself, so it stays inside the no-Obsidian-imports rule. `Mutations` turns
  * the descriptions into files.
  *
@@ -55,12 +55,12 @@ export interface GeneratedWorkspace {
 	/** The same content as a ready-to-use in-memory snapshot, for tests. */
 	snapshot: WorkspaceSnapshot;
 	/** Onboarding demo entries, when the workspace ships with history enabled
-	 *  *and* example content — the glue layer appends these to `History/` so a
+	 *  *and* example content - the glue layer appends these to `History/` so a
 	 *  brand-new workspace opens the hub on a lived-in log, not an empty one.
 	 *  `undefined` otherwise (history off, or a populated-less workspace). */
 	history?: HistoryEntry[];
 	/**
-	 * The roster `Person.id` this workspace seeds as its self-person — from
+	 * The roster `Person.id` this workspace seeds as its self-person - from
 	 * `selfPersonName` or the template's own `mePersonId`. `null` when neither
 	 * was given. The glue layer persists it per device, per workspace (see
 	 * `src/obsidian/me-storage.ts`) so `self` filters and the history actor
@@ -76,10 +76,10 @@ export interface InstantiateOptions {
 	idPrefix?: string;
 	icon?: string;
 	/** When false, the workspace gets the template's taxonomy, people, views,
-	 *  dashboards and Projects — only the example Tasks are skipped. */
+	 *  dashboards and Projects - only the example Tasks are skipped. */
 	includeExampleContent: boolean;
-	/** When set, creates the "me" person by this name — matching an existing
-	 *  register entry if there is one, otherwise appending a new one — and
+	/** When set, creates the "me" person by this name - matching an existing
+	 *  register entry if there is one, otherwise appending a new one - and
 	 *  surfaces its `personId` on the generated workspace. This is what lets a
 	 *  brand-new workspace name its creator. */
 	selfPersonName?: string;
@@ -92,8 +92,8 @@ export interface InstantiateOptions {
 }
 
 /**
- * Seed the register's "me" person from the creator's name — matching an
- * existing entry by name if there is one, otherwise appending a new one — and
+ * Seed the register's "me" person from the creator's name - matching an
+ * existing entry by name if there is one, otherwise appending a new one - and
  * return the binding a freshly created workspace should record app-wide.
  */
 function seedSelfPersonName(
@@ -117,7 +117,7 @@ const DAY = 24 * 60 * 60 * 1000;
 
 /**
  * Wrap a template's task description in the plugin's fenced `## Description`
- * block — the only shape `parseDescription` (and therefore the editor) can
+ * block - the only shape `parseDescription` (and therefore the editor) can
  * read back, and the same shape `createTask`/`setDescription` produce for
  * notes created after onboarding.
  *
@@ -173,8 +173,8 @@ export function instantiateTemplate(
 
 	// Views, dashboards, the people register and Projects are *structure*, like
 	// the taxonomy: they always come along, example-content toggle or not. Only
-	// Tasks — and their comments/descriptions plus the seeded history
-	// walk-through — are example material, gated on `includeExampleContent`.
+	// Tasks - and their comments/descriptions plus the seeded history
+	// walk-through - are example material, gated on `includeExampleContent`.
 	const content = template.buildExampleContent(ctx);
 
 	// --- Workspace config ---------------------------------------------------
@@ -208,7 +208,7 @@ export function instantiateTemplate(
 
 	// --- Views ------------------------------------------------------------
 
-	// The "All Tasks" System View is injected by the index, never a file — so
+	// The "All Tasks" System View is injected by the index, never a file - so
 	// it rides in the returned snapshot but isn't emitted as a note.
 	const views: SavedView[] = [
 		defaultViews()[0],
@@ -227,13 +227,13 @@ export function instantiateTemplate(
 		}),
 	);
 
-	// Projects are structure, Tasks are example content — see the comment above.
+	// Projects are structure, Tasks are example content - see the comment above.
 	const projects = content.projects ?? [];
 	const tasks = includeExampleContent ? (content.tasks ?? []) : [];
 
 	// --- Notes ----------------------------------------------------------
 	//
-	// One file per Saved View / Dashboard, under `Views/` / `Dashboards/` —
+	// One file per Saved View / Dashboard, under `Views/` / `Dashboards/` -
 	// same per-file storage the live app uses. A workspace with no user views
 	// or dashboards simply has empty folders.
 

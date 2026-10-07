@@ -37,7 +37,7 @@ describe("derivePrefix", () => {
 	});
 
 	it("ignores punctuation, digits and spacing", () => {
-		expect(derivePrefix("  Q4 2026 — Growth!  ")).toBe(derivePrefix("QGrowth"));
+		expect(derivePrefix("  Q4 2026 - Growth!  ")).toBe(derivePrefix("QGrowth"));
 	});
 
 	it("has a fallback for a name with no letters at all", () => {
@@ -131,7 +131,7 @@ describe("entity keys", () => {
 describe("newConfigId", () => {
 	it("stays distinct across many calls in a tight loop", () => {
 		// Far more than any config list realistically holds, minted with no
-		// delay between calls so Date.now() is identical — the random suffix is
+		// delay between calls so Date.now() is identical - the random suffix is
 		// what keeps them apart.
 		const ids = new Set<string>();
 		for (let i = 0; i < 200; i++) ids.add(newConfigId("view"));

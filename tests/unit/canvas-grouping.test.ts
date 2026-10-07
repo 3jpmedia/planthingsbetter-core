@@ -18,7 +18,7 @@ const run = (groupBy: GroupByField, partial: Partial<SavedView> = {}) => {
 	return { evaluated, grouping: canvasGrouping(evaluated.groups, evaluated.tasks, groupBy) };
 };
 
-describe("canvasGrouping — box groupings", () => {
+describe("canvasGrouping - box groupings", () => {
 	for (const field of [
 		"status",
 		"priority",
@@ -73,7 +73,7 @@ describe("canvasGrouping — box groupings", () => {
 	});
 });
 
-describe("canvasGrouping — flat groupings", () => {
+describe("canvasGrouping - flat groupings", () => {
 	for (const field of ["label", "none"] as const) {
 		it(`renders flat for ${field}`, () => {
 			const { evaluated, grouping } = run(field);

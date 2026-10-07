@@ -15,7 +15,7 @@ export default tseslint.config(
 		},
 	},
 	{
-		// Unit tests run under Vitest in Node — Node built-ins and globals are
+		// Unit tests run under Vitest in Node - Node built-ins and globals are
 		// expected there.
 		files: ["tests/**/*.ts"],
 		languageOptions: {

@@ -1,9 +1,9 @@
 /**
- * Activity history — the pure, Obsidian-free core. Format (`src/core/history/`),
+ * Activity history - the pure, Obsidian-free core. Format (`src/core/history/`),
  * field diffs (`diff.ts`), the workspace-config default, and the template
  * override. The `HistoryLog`/`NoteIO` glue (where files live, seq seeding,
- * chained appends) is outside the testable envelope — same line testing.md
- * draws for `Mutations` — so the append-only *format* and the *deltas* it
+ * chained appends) is outside the testable envelope - same line testing.md
+ * draws for `Mutations` - so the append-only *format* and the *deltas* it
  * records are what get pinned here.
  */
 
@@ -76,7 +76,7 @@ describe("serializeEntryLine / parseHistoryLog", () => {
 		const line = serializeEntryLine(entry({}));
 		expect(line.endsWith("\n")).toBe(true);
 		expect(line.trim().startsWith("- {")).toBe(true);
-		// A single line that parses back to the entry array — the round trip.
+		// A single line that parses back to the entry array - the round trip.
 		expect(parseHistoryLog(line)).toEqual([entry({})]);
 	});
 

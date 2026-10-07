@@ -16,9 +16,9 @@ export interface QuerySpan {
 }
 
 export type QueryIssueCode =
-	/** A field name nothing recognises — `staus:todo`. */
+	/** A field name nothing recognises - `staus:todo`. */
 	| "unknown-field"
-	/** A field with no value at all — `status:`. */
+	/** A field with no value at all - `status:`. */
 	| "empty-value"
 	/** A value no taxonomy / person / entity matches. Kept verbatim. */
 	| "unknown-value"
@@ -27,7 +27,7 @@ export type QueryIssueCode =
 	/** Names something `ViewFilters` genuinely cannot express. */
 	| "not-expressible"
 	| "unterminated-quote"
-	/** The same field given twice — values are merged. */
+	/** The same field given twice - values are merged. */
 	| "duplicate-field"
 	/** `me` used where this device's "me" personId isn't in this workspace's roster. */
 	| "self-unconfigured";
@@ -44,7 +44,7 @@ export interface QueryIssue {
 
 export interface ParsedQuery {
 	/**
-	 * Always complete and canonical — fields absent from the source take the
+	 * Always complete and canonical - fields absent from the source take the
 	 * built-in view defaults. Populated even when `ok` is false, so the UI can
 	 * still show a match count for a partially-valid query.
 	 */

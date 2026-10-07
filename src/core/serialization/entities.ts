@@ -46,10 +46,10 @@ export function parseProject(
 			title,
 			icon: asString(fm.icon) ?? undefined,
 			status: asString(fm.status) ?? options.defaultStatus,
-			// Priority/labels reuse the Task taxonomies — same forgiving coercion.
+			// Priority/labels reuse the Task taxonomies - same forgiving coercion.
 			priority: asString(fm.priority),
 			labels: asStringArray(fm.labels),
-			// Dates parsed independently, no start-before-due rule — Task doesn't
+			// Dates parsed independently, no start-before-due rule - Task doesn't
 			// enforce one either, so this stays the same forgiving parse.
 			startDate: asDate(fm.startDate),
 			dueDate: asDate(fm.dueDate),
@@ -83,7 +83,7 @@ export function serializeProject(
 		startDate: project.startDate,
 		dueDate: project.dueDate,
 	});
-	// `archived` is written explicitly even when false — an absent field reads as
+	// `archived` is written explicitly even when false - an absent field reads as
 	// "unknown" rather than "no" (same reasoning as `serializeTask`).
 	base.archived = project.archived;
 	if (project.archivedAt) base.archivedAt = project.archivedAt;
@@ -117,7 +117,7 @@ export const PROJECT_FIELD_ORDER: readonly string[] = [
 // ---------------------------------------------------------------------------
 
 /**
- * A Project note's body *is* its description — there's no comments block to
+ * A Project note's body *is* its description - there's no comments block to
  * split around, so this is far simpler than the Task equivalent.
  *
  * A lone leading `## Overview` heading (what older projects and the create
@@ -131,7 +131,7 @@ export function extractProjectDescription(body: string): string {
 		.trim();
 }
 
-/** Serialize a description back to a note body — trimmed, one trailing newline. */
+/** Serialize a description back to a note body - trimmed, one trailing newline. */
 export function withProjectDescription(text: string): string {
 	const content = text.replace(/\r\n/g, "\n").trim();
 	return content ? `${content}\n` : "";
@@ -143,9 +143,9 @@ export function withProjectDescription(text: string): string {
 //
 // Project notes are title-based files, so two projects in one workspace sharing
 // a `title` produces ambiguous `project:` filters and links (the query bar
-// falls back to printing the raw vault path). Titles are unique per workspace —
+// falls back to printing the raw vault path). Titles are unique per workspace -
 // the same "nothing shared across workspaces" scoping taxonomies and people
-// follow — and compared case-insensitively, matching the taxonomy engine.
+// follow - and compared case-insensitively, matching the taxonomy engine.
 
 function titleKey(title: string): string {
 	return title.trim().toLowerCase();
@@ -154,7 +154,7 @@ function titleKey(title: string): string {
 /**
  * Whether another project in this workspace already uses `title`
  * (case-insensitive). `excludePath` lets a project keep (or re-case) its own
- * name on rename without tripping the check — mirrors `updateValue` in the
+ * name on rename without tripping the check - mirrors `updateValue` in the
  * taxonomy engine.
  */
 export function isProjectTitleTaken(
@@ -170,11 +170,11 @@ export function isProjectTitleTaken(
 }
 
 /**
- * `base`, or `"base 2"`, `"base 3"`… — the first form not already taken by a
+ * `base`, or `"base 2"`, `"base 3"`… - the first form not already taken by a
  * project in this workspace (case-insensitive, matching `isProjectTitleTaken`).
  *
  * The two convenience entry points that mint a project without a dialog to fix
- * the name in — the `c p` / "New project" default title, and "Duplicate" — use
+ * the name in - the `c p` / "New project" default title, and "Duplicate" - use
  * this to disambiguate their own generated title. A user typing a real name
  * still gets hard-blocked on a real clash by `createProject`.
  */
@@ -219,7 +219,7 @@ export interface ProjectTitleCollision {
 }
 
 /**
- * Projects in one workspace whose titles collide case-insensitively — one entry
+ * Projects in one workspace whose titles collide case-insensitively - one entry
  * per affected project, so each note gets its own issue. Same shape and spirit
  * as `detectPrefixCollisions`: a real correctness problem, surfaced as a
  * non-fatal note issue rather than blocking vault load, since an existing vault

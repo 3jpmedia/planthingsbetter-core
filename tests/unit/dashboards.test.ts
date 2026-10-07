@@ -378,7 +378,7 @@ describe("computeWidgetData", () => {
 		expect(data.kind).toBe("series");
 		if (data.kind !== "series") return;
 		const values = data.data.map((row) => row.__all__ as number);
-		// cumulative — monotonically non-decreasing, ending at the task total.
+		// cumulative - monotonically non-decreasing, ending at the task total.
 		for (let i = 1; i < values.length; i++) {
 			expect(values[i]).toBeGreaterThanOrEqual(values[i - 1]);
 		}

@@ -155,7 +155,7 @@ export function parseActivityQuery(source: string, context: QueryContext): Parse
 	// Display menu's.
 	for (const token of itemTokens) {
 		if (token.kind === "clause" && LAYOUT_ONLY_CLAUSES.has(token.field)) {
-			fail("not-expressible", `"${token.field}:" configures a view layout — use Display to change how activity shows`, token.span);
+			fail("not-expressible", `"${token.field}:" configures a view layout - use Display to change how activity shows`, token.span);
 		}
 	}
 
@@ -193,7 +193,7 @@ export function parseActivityQuery(source: string, context: QueryContext): Parse
 		const spec = ACTIVITY_CLAUSES[key];
 		const excludeKey = ACTIVITY_EXCLUDE_KEY[key];
 		if (token.excluded && !excludeKey) {
-			fail("not-expressible", `"-${spec.token}:" isn't supported — exclusion only works on who, what, which field and which item`, token.span);
+			fail("not-expressible", `"-${spec.token}:" isn't supported - exclusion only works on who, what, which field and which item`, token.span);
 			continue;
 		}
 		if (token.values.length === 0) {

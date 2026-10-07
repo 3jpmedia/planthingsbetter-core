@@ -51,7 +51,7 @@ export function queryContext(
 }
 
 /**
- * A context built from a workspace's config alone — taxonomies and people, with
+ * A context built from a workspace's config alone - taxonomies and people, with
  * empty project/task lists. Enough for the serialization layer: `printQuery`
  * quotes an unresolved project path and `resolveValue` keeps an unresolved
  * project/task value verbatim, so a view/dashboard `query:` round-trips exactly
@@ -59,7 +59,7 @@ export function queryContext(
  * which run before the snapshot's entity lists are populated.
  */
 /**
- * A context with nothing to resolve against — empty taxonomies, no people, no
+ * A context with nothing to resolve against - empty taxonomies, no people, no
  * entities. The serialization layer's fallback when a caller has no workspace
  * handy: every taxonomy id, project path and person id then round-trips
  * verbatim, which is exactly what a format migration needs.

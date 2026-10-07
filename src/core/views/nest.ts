@@ -2,13 +2,13 @@
  * Nested sub-task rows for the List view (`subtaskDisplay: "nested"`).
  *
  * The List view groups tasks exactly as always; this turns one group's flat list
- * into an indented forest. Nesting is *within the group* — a task sits under an
+ * into an indented forest. Nesting is *within the group* - a task sits under an
  * ancestor only when that ancestor is also in the same group. A matched task
  * whose parent was filtered out gets a muted "ghost" parent row for context, so
  * the child still reads as a sub-task rather than a loose top-level row (the
  * filter-orphan rule).
  *
- * Pure core logic — no Obsidian imports. Row order is `rank` at every level
+ * Pure core logic - no Obsidian imports. Row order is `rank` at every level
  * (Golden Rule: one global order).
  */
 
@@ -23,7 +23,7 @@ export interface NestedRow {
 	depth: number;
 	/** At least one child row is rendered (or hidden by collapse) beneath this one. */
 	hasChildren: boolean;
-	/** A filtered-out ancestor pulled in for context — not part of the result set. */
+	/** A filtered-out ancestor pulled in for context - not part of the result set. */
 	ghost: boolean;
 }
 
@@ -133,7 +133,7 @@ export function buildNestedRows(
 	}
 
 	// A corrupted vault can leave every task in a group pointing at another as
-	// its parent (a cycle) — nothing is a root, so nothing was emitted. Surface
+	// its parent (a cycle) - nothing is a root, so nothing was emitted. Surface
 	// the stragglers at depth 0 rather than dropping them silently.
 	for (const task of groupTasks) {
 		if (!covered.has(task.path)) emitSubtree(task, 0);
@@ -142,7 +142,7 @@ export function buildNestedRows(
 	return rows;
 }
 
-/** The visible, focusable rows in order — ghosts excluded (they're not focusable). */
+/** The visible, focusable rows in order - ghosts excluded (they're not focusable). */
 export function focusableRowPaths(rows: NestedRow[]): string[] {
 	return rows.filter((row) => !row.ghost).map((row) => row.task.path);
 }

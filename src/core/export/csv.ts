@@ -1,5 +1,5 @@
 /**
- * RFC 4180 CSV, hand-rolled (no npm dependency — see the architecture test's
+ * RFC 4180 CSV, hand-rolled (no npm dependency - see the architecture test's
  * allowlist).
  *
  * - Fields containing `,`, `"`, `\r` or `\n` are wrapped in double quotes.

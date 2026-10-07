@@ -1,6 +1,6 @@
 /**
  * Ported from vertex-flow-obsidian's src/ui/tabs-guard.ts (that plugin's own
- * copy is untouched by this port — see planthingsbetter-web's tab-strip work).
+ * copy is untouched by this port - see planthingsbetter-web's tab-strip work).
  * Pure, framework-free: shared by every product's tab provider so
  * reorder-clamping and the unsaved-changes-guard decision behave identically
  * everywhere, rather than drifting between independently-maintained copies.
@@ -38,7 +38,7 @@ export function shouldPromptUnsavedGuard(input: {
  * tab can't be dropped before the first unpinned slot. Omit it to reorder
  * freely, as if there were no pinned tabs at all.
  *
- * Dropping a tab back where it already sits is a no-op — the same array is
+ * Dropping a tab back where it already sits is a no-op - the same array is
  * returned so callers don't re-render for nothing.
  */
 export function reorderTabs<T extends { id: string }>(

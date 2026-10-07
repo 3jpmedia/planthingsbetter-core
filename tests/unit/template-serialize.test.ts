@@ -175,7 +175,7 @@ describe("serializeTemplateMarkdown round-trip", () => {
 	it("carries the workspace's Projects (structure, not populatable material)", () => {
 		const { source, parsed, content } = roundTrip();
 		// Projects are always created, so a Projects-only template has nothing
-		// for the populate toggle to gate — `supportsExampleContent` is false.
+		// for the populate toggle to gate - `supportsExampleContent` is false.
 		expect(parsed.meta.supportsExampleContent).toBe(false);
 		expect(parsed.tasks).toEqual([]);
 		expect(parsed.projects.map((p) => p.title)).toEqual(
@@ -331,7 +331,7 @@ describe("serializeTemplateMarkdown round-trip", () => {
 			queryContext: queryContext(snapshot),
 		});
 
-		// Tasks make the template populatable — that's what the toggle seeds.
+		// Tasks make the template populatable - that's what the toggle seeds.
 		const parsed = parseTemplateMarkdown(source);
 		expect(parsed.meta.supportsExampleContent).toBe(true);
 		expect(source).toContain("supportsExampleContent: true");
@@ -431,7 +431,7 @@ describe("serializeTemplateMarkdown round-trip", () => {
 				recurrence({ freq: "weekly", interval: 2, trigger: "on-close" }),
 			),
 		).toContain("repeat: every 2 weeks when completed");
-		// An on-close rule firing on a specific status has no shorthand — it's
+		// An on-close rule firing on a specific status has no shorthand - it's
 		// skipped rather than silently flattened into an on-date cadence.
 		expect(
 			serializeWith(
@@ -473,7 +473,7 @@ describe("serializeTemplateMarkdown round-trip", () => {
 		expect(parsed.projects.map((p) => p.title)).not.toContain("Retired Project");
 		expect(parsed.tasks.map((t) => t.title)).not.toContain("Archived task");
 
-		// A full snapshot keeps them — and the archived Task's project link
+		// A full snapshot keeps them - and the archived Task's project link
 		// still resolves, because the archived Project rides along too.
 		const content = resolveTemplateContent(
 			parseTemplateMarkdown(

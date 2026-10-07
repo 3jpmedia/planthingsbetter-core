@@ -1,5 +1,5 @@
 /**
- * The recurrence cadence engine — pure date math, no Obsidian coupling.
+ * The recurrence cadence engine - pure date math, no Obsidian coupling.
  *
  * One deterministic rule drives everything: `nextOccurrence(rule, from)` is the
  * next cadence point strictly after `from`. Spawning, backfill, ends checks and
@@ -62,7 +62,7 @@ export function weekdayOf(iso: IsoDate): Weekday {
 	return DAY_OF_WEEK[d.getUTCDay()];
 }
 
-/** The weekday an ISO date falls on, as `getUTCDay()`'s 0–6. */
+/** The weekday an ISO date falls on, as `getUTCDay()`'s 0-6. */
 function weekdayIndex(iso: IsoDate): number {
 	return new Date(`${iso.slice(0, 10)}T00:00:00Z`).getUTCDay();
 }
@@ -74,7 +74,7 @@ function daysInMonth(year: number, month1to12: number): number {
 /**
  * The last valid day of the month `interval` months after the month containing
  * `fromDay`, holding day-of-month `dayOfMonth`. Clamps 31st-style schedules to
- * the month's real length — the standard calendar-app behavior.
+ * the month's real length - the standard calendar-app behavior.
  */
 function monthlyDay(
 	fromDay: number,
@@ -109,7 +109,7 @@ function nthWeekdayOfMonth(
 }
 
 /** The last (or "5th-that-doesn't-exist" fallback) occurrence of `weekday` in
- *  the month starting at `firstOfMonth`. Defensive only — three consecutive
+ *  the month starting at `firstOfMonth`. Defensive only - three consecutive
  *  months can't all lack an nth weekday below the 5th. */
 function lastWeekdayOfMonth(firstOfMonthDay: number, weekday: number): number {
 	const lastDay = addMonthsDay(firstOfMonthDay, 1) - 1;
@@ -122,7 +122,7 @@ function lastWeekdayOfMonth(firstOfMonthDay: number, weekday: number): number {
  *
  * `from` is expected to already sit on the cadence (it's the node's `nextDate`
  * or a previous occurrence), so no "are we on a point?" reconciliation is
- * needed — this is a pure forward step.
+ * needed - this is a pure forward step.
  */
 export function nextOccurrence(
 	rule: RecurrenceConfig,
@@ -204,7 +204,7 @@ export function nextOccurrence(
 
 /**
  * Every cadence point from `start` (inclusive) that lies on or before
- * `through`. `start` itself counts as a point — a node's `nextDate` is by
+ * `through`. `start` itself counts as a point - a node's `nextDate` is by
  * construction a cadence point.
  */
 export function cadencePoints(
@@ -225,7 +225,7 @@ export function cadencePoints(
 
 /**
  * The first cadence point **on or after** `target`, walking forward from
- * `start`. When `start` is already past `target` it is itself the answer — that
+ * `start`. When `start` is already past `target` it is itself the answer - that
  * is what makes `on-close` never spawn "in the past" while still landing
  * exactly on cadence points.
  */
@@ -242,7 +242,7 @@ export function firstOccurrenceOnOrAfter(
 	return current;
 }
 
-/** The next `count` occurrence dates from `from` (inclusive) — the virtual
+/** The next `count` occurrence dates from `from` (inclusive) - the virtual
  *  projection Calendar/Timeline previews are built from. */
 export function projectOccurrences(
 	rule: RecurrenceConfig,
@@ -263,7 +263,7 @@ export function projectOccurrences(
  * preserving the range length exactly. A single-field task keeps whichever
  * field it has; an anchor naming a field the source doesn't set falls back to
  * the other (a due-anchored recurrence on a start-only task lands on its
- * start). No dates means the spawned occurrence has none — also fine.
+ * start). No dates means the spawned occurrence has none - also fine.
  */
 export function shiftOccurrenceDates(
 	source: { startDate: IsoDate | null; dueDate: IsoDate | null },

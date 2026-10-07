@@ -1,7 +1,7 @@
 /**
  * The MCP core layer: the JSON payload builders.
  *
- * These are pure functions over core types — the same surface each app's MCP
+ * These are pure functions over core types - the same surface each app's MCP
  * server serves (minus the SDK wrappers), so a breaking change to a payload
  * shape fails a test here before any client ever sees it.
  */
@@ -416,7 +416,7 @@ describe("count builders", () => {
 			counts.byProject!.find((b) => b.name === "Core App Experience"),
 		).toBeTruthy();
 		// Labels are multi-valued: a task with N labels counts under each, and
-		// one with none lands in the `(none)` bucket — so the sum is the number
+		// one with none lands in the `(none)` bucket - so the sum is the number
 		// of label assignments plus one per label-less task.
 		expect(counts.byLabel!.some((b) => b.isNone)).toBe(true);
 		const assignments = snapshot.tasks

@@ -234,7 +234,7 @@ describe("filtering", () => {
 
 	describe("group-wildcard filters (label:*/project:*)", () => {
 		// Local fixture layering `/`-nested labels and a project onto the base
-		// context — not added to the shared sample-workspace fixture.
+		// context - not added to the shared sample-workspace fixture.
 		const groupContext: typeof context = {
 			...context,
 			taxonomies: {
@@ -667,7 +667,7 @@ describe("exclusion filters", () => {
 	});
 
 	it("keeps include and exclude independent, not complementary", () => {
-		// status:todo,in-progress -status:blocked — vacuous but harmless.
+		// status:todo,in-progress -status:blocked - vacuous but harmless.
 		const t = task({ path: "a", status: "todo" });
 		expect(
 			matchesFilters(
@@ -735,7 +735,7 @@ describe("sorting", () => {
 	});
 });
 
-describe("sorting — new Table-only fields", () => {
+describe("sorting - new Table-only fields", () => {
 	it("taskType orders by taxonomy order, unset last", () => {
 		// Task Type is an unordered taxonomy by default (no `order` on the
 		// sample workspace's values), so this builds a local taxonomy that
@@ -758,7 +758,7 @@ describe("sorting — new Table-only fields", () => {
 		// Only ascending is asserted here: `taskType` reuses the same
 		// `taxonomyOrder` + `nullSkewed: false` shape `status`/`priority`
 		// already use, and that shape does not keep unset values pinned last
-		// under a flipped (`desc`) direction — the same is true for
+		// under a flipped (`desc`) direction - the same is true for
 		// `priority` today (untested there too). Out of scope for this
 		// change to alter; see the PR notes.
 		expect(
@@ -791,7 +791,7 @@ describe("sorting — new Table-only fields", () => {
 
 	it("assignee orders by person name, not id, unassigned last", () => {
 		// "zed"'s name ("Aaron") sorts before "alice"'s ("Alice") even though
-		// the id order is the reverse — proves it's comparing names.
+		// the id order is the reverse - proves it's comparing names.
 		const peopleContext: typeof context = {
 			...context,
 			people: [...context.people, { id: "zed", name: "Aaron" }],
@@ -904,7 +904,7 @@ describe("sorting — new Table-only fields", () => {
 		expect(
 			sortTasks([zero, one, two], "relations", "asc", context).map((t) => t.path),
 		).toEqual(["zero", "one", "two"]);
-		// Descending puts the highest count first and zero last — proving
+		// Descending puts the highest count first and zero last - proving
 		// zero isn't treated as an absence that always sorts last regardless
 		// of direction.
 		expect(
@@ -1023,7 +1023,7 @@ describe("nextTableSort (Table column header click cycle)", () => {
 describe("grouping", () => {
 	it("emits a column for every status, even empty ones", () => {
 		const groups = groupTasks([], "status", context);
-		// The sample-workspace fixture's status set — two `started` statuses
+		// The sample-workspace fixture's status set - two `started` statuses
 		// (In Progress, In Review) on purpose.
 		expect(groups.map((g) => g.key)).toEqual([
 			"backlog",
@@ -1148,7 +1148,7 @@ describe("evaluateView", () => {
 	it("isSystemViewId recognises both System View ids and nothing else", () => {
 		expect(isSystemViewId("tasks")).toBe(true);
 		expect(isSystemViewId("untriaged")).toBe(true);
-		// The pre-rename id is deliberately not treated as a System View id here —
+		// The pre-rename id is deliberately not treated as a System View id here -
 		// migration recognises it separately so it can be dropped.
 		expect(isSystemViewId("inbox")).toBe(false);
 		expect(isSystemViewId("my-custom-view")).toBe(false);
@@ -1230,7 +1230,7 @@ describe("hiddenFields", () => {
 		expect(renderedHiddenFields(both)).toEqual(["project"]);
 	});
 
-	it("leaves the saved view untouched — suppression is render-only", () => {
+	it("leaves the saved view untouched - suppression is render-only", () => {
 		const scoped = view({ filters: { project: ["Projects/Core App"] } });
 		renderedHiddenFields(scoped);
 		expect(scoped.hiddenFields).toEqual([]);
@@ -1275,7 +1275,7 @@ describe("seedFromFilters", () => {
 		});
 	});
 
-	it("skips a filter that ORs several values — no single right answer", () => {
+	it("skips a filter that ORs several values - no single right answer", () => {
 		expect(seedFromFilters({ status: ["todo", "in-progress"] })).toEqual({});
 	});
 

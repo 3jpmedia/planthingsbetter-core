@@ -1,5 +1,5 @@
 /**
- * Recurring tasks — the pure engine. Nothing here imports the Obsidian API.
+ * Recurring tasks - the pure engine. Nothing here imports the Obsidian API.
  *
  * The Obsidian glue layer (`src/obsidian/mutations.ts`) calls this the engine
  * for inspection, and `reconcilePlans` drives the one post-rebuild reconcile

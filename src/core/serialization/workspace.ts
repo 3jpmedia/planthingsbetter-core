@@ -1,5 +1,5 @@
 /**
- * `_workspace.md` — workspace identity plus all taxonomy definitions.
+ * `_workspace.md` - workspace identity plus all taxonomy definitions.
  *
  * A frontmatter-only config note. Kept separate from the Saved View notes because they
  * two change at wildly different rates: taxonomy config is near-static, saved
@@ -82,7 +82,7 @@ function parseTaxonomyList(
 				row.category = category;
 			} else {
 				// A status without a valid category can't drive any logic, so it
-				// falls back to `backlog` rather than being dropped — losing a
+				// falls back to `backlog` rather than being dropped - losing a
 				// status would orphan every task using it.
 				log.add(
 					`Status "${id}" has an unknown category ${JSON.stringify(category)}; treating it as "backlog".`,
@@ -167,7 +167,7 @@ export function parseWorkspace(
 
 	// A blank workspace may have an empty taxonomy (explicitly `[]` or omitted).
 	// The file is authoritative: we do NOT backfill the workspace defaults, so
-	// Settings/EditorRail show exactly what's configured — nothing, for a blank
+	// Settings/EditorRail show exactly what's configured - nothing, for a blank
 	// workspace. With no statuses there is no sensible default status, so
 	// `defaultNewTaskStatus` becomes `null` and new tasks/projects carry no
 	// status instead of a phantom id that would render as "…(removed)".
@@ -187,7 +187,7 @@ export function parseWorkspace(
 		defaultNewTaskStatus = null;
 	}
 
-	// Unlike status, "no default type" is a legitimate steady-state — a stale
+	// Unlike status, "no default type" is a legitimate steady-state - a stale
 	// or unknown id just falls back to `null` rather than forcing a pick.
 	let defaultNewTaskType = asString(fm.defaultNewTaskType) ?? null;
 	if (
@@ -200,8 +200,8 @@ export function parseWorkspace(
 		defaultNewTaskType = null;
 	}
 
-	// Anything other than exactly "bottom" reads as "top" — the historical,
-	// hardcoded behavior — so older `_workspace.md` notes with no opinion here
+	// Anything other than exactly "bottom" reads as "top" - the historical,
+	// hardcoded behavior - so older `_workspace.md` notes with no opinion here
 	// see no change.
 	const newTaskPlacement: "top" | "bottom" =
 		asString(fm.newTaskPlacement) === "bottom" ? "bottom" : "top";
@@ -216,7 +216,7 @@ export function parseWorkspace(
 			autoArchiveDays: asNumber(archiving.autoArchiveDays) ?? 30,
 		},
 		history: {
-			// Off until a workspace opts in — see `HistoryConfig.enabled`.
+			// Off until a workspace opts in - see `HistoryConfig.enabled`.
 			enabled: asBoolean(history.enabled, false),
 		},
 		defaultNewTaskStatus,

@@ -1,6 +1,6 @@
 /**
  * Small builders shared by the template files, so each template reads as data
- * rather than boilerplate. Pure functions over plain objects — no Obsidian.
+ * rather than boilerplate. Pure functions over plain objects - no Obsidian.
  */
 
 import { joinPath } from "../links";
@@ -25,7 +25,7 @@ import type { TemplateBuildContext } from "./types";
 
 /**
  * A rank dispenser. Tasks created through the returned function land in call
- * order under the global `rank` — matching how the app itself seeds a batch.
+ * order under the global `rank` - matching how the app itself seeds a batch.
  */
 export function rankSeq(count: number): () => string {
 	const ranks = initialRanks(count);
@@ -135,7 +135,7 @@ export function makeView(
  * A dashboard widget, built declaratively. Templates can't call the runtime
  * `newWidget()` / `widgetFromConfig()` helpers (those need a live `ViewContext`
  * that doesn't exist at template-authoring time), so they pass an explicit
- * `fieldMapping`, `layout`, and title here. `titleIsCustom` stays `false` — the
+ * `fieldMapping`, `layout`, and title here. `titleIsCustom` stays `false` - the
  * title is the auto-generated default and the app is free to regenerate it if
  * the user later re-maps the widget.
  */
@@ -151,7 +151,7 @@ export function makeWidget(
 
 /**
  * A dashboard for a template's example content, mirroring `makeView`. Starts
- * with an empty filter set — every widget aggregates over the whole workspace.
+ * with an empty filter set - every widget aggregates over the whole workspace.
  */
 export function makeDashboard(
 	id: string,
@@ -164,7 +164,7 @@ export function makeDashboard(
 
 /**
  * Derives each task's `mentions` from its comment bodies, exactly as the
- * indexer does — so a populated template snapshot matches a re-indexed vault.
+ * indexer does - so a populated template snapshot matches a re-indexed vault.
  */
 export function deriveMentions(
 	tasks: Task[],

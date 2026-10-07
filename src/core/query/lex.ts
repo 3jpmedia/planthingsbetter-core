@@ -3,7 +3,7 @@
  *
  * Splits a query into `field:a,b` clauses and bare words, carrying source spans
  * so diagnostics can quote the exact offending text. Knows nothing about which
- * fields exist — that's `parse.ts`'s job.
+ * fields exist - that's `parse.ts`'s job.
  *
  * Two lexical rules carry meaning downstream:
  *
@@ -11,7 +11,7 @@
  *   searches for that literal string, which is the escape hatch that lets an
  *   unknown `field:` be treated as an error rather than as text.
  * - A leading `=` **outside** the quotes marks a value verbatim. It sits outside
- *   so "is this verbatim?" is decided lexically, before any string processing —
+ *   so "is this verbatim?" is decided lexically, before any string processing -
  *   `="a b"` is verbatim, `"=a b"` is the literal text `=a b`.
  */
 
@@ -36,7 +36,7 @@ export type LexedToken =
 			fieldSpan: QuerySpan;
 			values: LexedValue[];
 			span: QuerySpan;
-			/** A leading `-` before the field name (`-status:done`) — this
+			/** A leading `-` before the field name (`-status:done`) - this
 			 *  clause excludes rather than includes. Decided lexically, the
 			 *  same way the `=` verbatim prefix is; `parse.ts` decides
 			 *  whether the field it landed on can actually be excluded. */
@@ -107,7 +107,7 @@ export function lex(source: string): LexResult {
 			i += 1;
 		}
 
-		// Nothing consumed and no `=` seen — there was no value here at all.
+		// Nothing consumed and no `=` seen - there was no value here at all.
 		if (text === "" && !verbatim) return null;
 		return { text, verbatim, span: { start, end: i } };
 	}

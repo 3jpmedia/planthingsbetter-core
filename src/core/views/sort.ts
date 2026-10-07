@@ -2,7 +2,7 @@
  * Saved View sorting.
  *
  * `rank` sorts through the LexoRank engine; everything else is a conventional
- * field sort. Unset values always sort last regardless of direction — a task
+ * field sort. Unset values always sort last regardless of direction - a task
  * with no due date is not "the most urgent thing", and flipping to descending
  * shouldn't suddenly make it so.
  */
@@ -29,7 +29,7 @@ function compareNullable<T>(
 	b: T | null,
 	compare: (x: T, y: T) => number,
 ): number {
-	// Nulls last, always — the caller applies direction *after* this, and these
+	// Nulls last, always - the caller applies direction *after* this, and these
 	// return values are deliberately excluded from that flip.
 	if (a == null && b == null) return 0;
 	if (a == null) return 1;
@@ -92,7 +92,7 @@ export function compareField(
 		}
 
 		case "project": {
-			// Compare by project *title*, not path — the path is a storage
+			// Compare by project *title*, not path - the path is a storage
 			// detail and sorting by it would look arbitrary on screen. A
 			// context without `titles` falls back to the raw link.
 			const na = a.project ? (context.titles?.get(a.project) ?? a.project) : null;
@@ -161,7 +161,7 @@ export function compareField(
 		}
 
 		case "relations":
-			// Zero is a real value here, not an absence — a task with no
+			// Zero is a real value here, not an absence - a task with no
 			// relations is meaningfully "least related", so this is never
 			// null-skewed and descending order behaves as expected.
 			return {
@@ -179,7 +179,7 @@ export function compareField(
 
 		case "subtasks": {
 			// Follows `progress`'s rule: no scope means absent, and a task with
-			// no children is zero — not "missing data".
+			// no children is zero - not "missing data".
 			if (!context.scope) return { value: 0, nullSkewed: false };
 			const count = (task: Task) => childTasks(context.scope!, task.path).length;
 			return {
@@ -215,7 +215,7 @@ export function sortTasks(
 /**
  * The click-cycle state transition for a Table column header.
  *
- * Plain click: replaces `tableSort` entirely with `[{field, asc}]` — unless
+ * Plain click: replaces `tableSort` entirely with `[{field, asc}]` - unless
  * `field` is already the *sole* active key, in which case it cycles
  * asc → desc → cleared (third click returns to `[]`, i.e. rank order).
  *
@@ -248,7 +248,7 @@ export function nextTableSort(
 
 /**
  * Table-only multi-column sort. Each key in turn, first non-zero result wins;
- * rank breaks a total tie — same null-handling and tiebreak convention as
+ * rank breaks a total tie - same null-handling and tiebreak convention as
  * `sortTasks`.
  */
 export function sortTasksMulti(

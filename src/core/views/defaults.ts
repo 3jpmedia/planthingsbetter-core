@@ -1,7 +1,7 @@
 /**
  * System Views.
  *
- * V1 ships two permanent System Views — "All Tasks" and "Untriaged". Neither is
+ * V1 ships two permanent System Views - "All Tasks" and "Untriaged". Neither is
  * a file: they're injected into every workspace by the index. Everything else is
  * a user-created `Views/<id>.md` note: layout (list/board), grouping, sorting,
  * and filters are all live-editable per view and persisted to that one file. The
@@ -61,7 +61,7 @@ export const DEFAULT_DEFINITION: ViewDefinition & {
 function view(partial: Partial<SavedView> & Pick<SavedView, "id" | "name">): SavedView {
 	return {
 		type: "vertex-flow-view",
-		// A real vault path is assigned by the glue layer — on write for a user
+		// A real vault path is assigned by the glue layer - on write for a user
 		// view, or on injection for a System View. Core constructors don't know
 		// the workspace root, exactly as a brand-new Project's path is filled in
 		// by `createProject`.
@@ -74,7 +74,7 @@ function view(partial: Partial<SavedView> & Pick<SavedView, "id" | "name">): Sav
 	};
 }
 
-/** The "All Tasks" System View id — protected from deletion in the sidebar. */
+/** The "All Tasks" System View id - protected from deletion in the sidebar. */
 export const SYSTEM_VIEW_ALL_TASKS_ID = "tasks";
 
 /** Its name. Everything hangs off Tasks, so it reads as the "all" view. */
@@ -90,12 +90,12 @@ export const LEGACY_SYSTEM_VIEW_ALL_TASKS_NAME = "Tasks";
 /**
  * The second permanent System View: a queue of genuinely untriaged captures.
  * Like "All Tasks" it can't be deleted from the sidebar and doesn't appear in
- * the Views section — it renders as its own bare row.
+ * the Views section - it renders as its own bare row.
  *
  * "Untriaged" means all four of: no Project (`project: [NONE]`), top-level
- * (`parent: [NONE]` — a project-less sub-task is still anchored to its parent),
- * still outstanding (`openOnly` — not Completed/Canceled), and not yet scheduled
- * (`unscheduled` — a date is itself a triage decision). The link sentinels lean
+ * (`parent: [NONE]` - a project-less sub-task is still anchored to its parent),
+ * still outstanding (`openOnly` - not Completed/Canceled), and not yet scheduled
+ * (`unscheduled` - a date is itself a triage decision). The link sentinels lean
  * on the existing filter-engine `matchesLink` handling; `openOnly`/`unscheduled`
  * are plain `ViewFilters` flags, also typeable as `is:open` / `is:unscheduled`.
  */
@@ -104,7 +104,7 @@ export const SYSTEM_VIEW_UNTRIAGED_NAME = "Untriaged";
 
 /**
  * This View was called "Inbox" until "Inbox" was reserved for a future,
- * unrelated feature. Only for recognizing pre-rename data during migration —
+ * unrelated feature. Only for recognizing pre-rename data during migration -
  * not used elsewhere.
  */
 export const LEGACY_SYSTEM_VIEW_UNTRIAGED_ID = "inbox";
@@ -120,7 +120,7 @@ export function isSystemViewId(id: string): boolean {
 /**
  * The id scheme for a Project's synthesised task-list view (`projectView()`
  * in `ui/App.tsx`). Unlike a System View it has no `Views/*.md` file of its
- * own — its save target is the Project note's own `view:` frontmatter block
+ * own - its save target is the Project note's own `view:` frontmatter block
  * instead (see `Project.view`).
  */
 const PROJECT_VIEW_ID_PREFIX = "project:";

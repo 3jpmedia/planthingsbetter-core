@@ -3,7 +3,7 @@
  *
  * The rule that shapes this entire module: **one level of nesting at a time.**
  * A dialog never reasons about more than one level. Deleting a Project and
- * choosing "cascade" does not silently wipe out its tasks' sub-tasks — each
+ * choosing "cascade" does not silently wipe out its tasks' sub-tasks - each
  * task that has children comes back as its own follow-up plan, and asks its
  * own question.
  */
@@ -31,7 +31,7 @@ export interface DeletionPlan {
 	kind: DeletableKind;
 	path: LinkTarget;
 	title: string;
-	/** Direct children only — never grandchildren. */
+	/** Direct children only - never grandchildren. */
 	childTasks: Task[];
 	/** False when there is nothing underneath: delete without a dialog. */
 	hasChildren: boolean;
@@ -48,7 +48,7 @@ export interface DeletionOutcome {
 	/**
 	 * Further deletions that each need their own dialog. This is how the
 	 * one-level-at-a-time rule is enforced structurally rather than by
-	 * convention — a cascade cannot reach past the next level even if it wanted.
+	 * convention - a cascade cannot reach past the next level even if it wanted.
 	 */
 	followUps: DeletionPlan[];
 }
@@ -67,7 +67,7 @@ export function planProjectDeletion(
 ): DeletionPlan {
 	// Direct hierarchical children only (the one-level-at-a-time rule). A
 	// nested sub-task that merely carries this project as denormalized metadata
-	// is a child of its parent *task*, not of the project — it isn't part of
+	// is a child of its parent *task*, not of the project - it isn't part of
 	// this cascade/unparent choice. `danglingProjectEdits` tidies its stale
 	// `project` link afterwards, silently.
 	return makePlan(
@@ -119,7 +119,7 @@ export function planDeletion(
  *
  * - `cancel`   → nothing happens.
  * - `unparent` → children lose only their reference to the deleted entity. A
- *                task under a deleted project is *not* re-pointed anywhere —
+ *                task under a deleted project is *not* re-pointed anywhere -
  *                inventing a new parent is a hierarchy decision the user didn't
  *                make.
  * - `cascade`  → the entity and its childless children go now; any child that
@@ -168,7 +168,7 @@ function unparentEdits(plan: DeletionPlan): FieldEdit[] {
 /**
  * Relations that point at notes being deleted.
  *
- * These are *not* part of the cascade dialog — they're not hierarchy, so
+ * These are *not* part of the cascade dialog - they're not hierarchy, so
  * deleting a task never prompts about the tasks that merely reference it. The
  * plugin just tidies them up afterwards so no view renders a broken link.
  */
@@ -207,8 +207,8 @@ export function danglingRelationEdits(
 /**
  * Tasks whose `project` points at a note being deleted (the denormalized
  * link). Same spirit as `danglingRelationEdits`: **not** part of the cascade
- * dialog — a deep sub-task carrying a project as metadata isn't a hierarchical
- * child of it — so deleting a project never prompts about these. The plugin
+ * dialog - a deep sub-task carrying a project as metadata isn't a hierarchical
+ * child of it - so deleting a project never prompts about these. The plugin
  * just clears the stale link afterwards so no view renders it broken.
  *
  * Scans every task *not* already being deleted, so a top-level task that the

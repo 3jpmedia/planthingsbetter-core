@@ -1,5 +1,5 @@
 /**
- * The Recurring Overview — every live recurrence definition in a workspace, in
+ * The Recurring Overview - every live recurrence definition in a workspace, in
  * one queried list for the Overview modal and its command.
  */
 
@@ -16,21 +16,21 @@ export interface RecurringOverviewRow {
 	 * The next date this series can surface: its own `nextDate` when still in
 	 * the future, else the next future cadence point (an on-date series will
 	 * backfill to today on the next reconcile). Status-driven (on-close) series
-	 * always report `null` here — there is no calendar date to surface.
+	 * always report `null` here - there is no calendar date to surface.
 	 */
 	nextDate: IsoDate | null;
 	recurrence: RecurrenceConfig;
 }
 
 /**
- * One row per live chain, ordered by title then id — deterministic across
+ * One row per live chain, ordered by title then id - deterministic across
  * rebuilds, which the modal's render-key needs.
  *
  * Every spawned occurrence in a chain carries its own copy of the
  * recurrence block, so walking `snapshot.tasks` directly would produce one
  * row per occurrence ever created, not per series. Only the chain's
  * newest member is the one that will actually fire next, so that's the
- * only row worth surfacing — a `seen` set collapses every other member of
+ * only row worth surfacing - a `seen` set collapses every other member of
  * the same chain into it. An archived newest member is excluded
  * entirely: it can't spawn (see `spawnPlans`), so there's nothing live
  * left to report.

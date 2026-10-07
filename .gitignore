@@ -8,5 +8,5 @@ repomix-*
 CLAUDE.md
 .claude/
 
-# Generated from templates/*.md by scripts/build-templates.mjs — never edit by hand.
+# Generated from templates/*.md by scripts/build-templates.mjs - never edit by hand.
 /src/core/templates/generated.ts

@@ -4,7 +4,7 @@
  * of `src/core/history/`.
  *
  * The rules that matter:
- *   - `updatedAt` is never a change — it changes on *every* write and would
+ *   - `updatedAt` is never a change - it changes on *every* write and would
  *     drown the signal. Same for `rank` during a drag (see `moveTask`), which
  *     is why callers can opt fields out.
  *   - Deeper relations/body are intentionally out of scope: the log records the
@@ -23,11 +23,11 @@ import type {
 
 /**
  * Fields the ledger reads naturally when a Task changes, excluding
- * always-churn fields (`updatedAt`; `completedAt` too — it's auto-derived from
+ * always-churn fields (`updatedAt`; `completedAt` too - it's auto-derived from
  * `status`, and the status change itself is already logged) and noisy/
- * fine-grained ones (`rank` —
+ * fine-grained ones (`rank` -
  * it changes on literally every drag; `relations`/`mentions` edit via
- * frontmatter they're derived from — nothing to log; `createdAt`/`path`).
+ * frontmatter they're derived from - nothing to log; `createdAt`/`path`).
  */
 const TASK_DIFF_FIELDS: ReadonlyArray<keyof Task> = [
 	"title",
@@ -104,8 +104,8 @@ export function diffProjectFields(
 }
 
 /**
- * Identity deltas for Saved Views. Views churn their *definition* constantly —
- * column drags, filter tweaks, sort/group picks — and that state is not
+ * Identity deltas for Saved Views. Views churn their *definition* constantly -
+ * column drags, filter tweaks, sort/group picks - and that state is not
  * history. But what the view *is called* (and its icon/description) is, exactly
  * like renaming a Task or a Project.
  */

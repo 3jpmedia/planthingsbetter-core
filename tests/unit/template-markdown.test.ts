@@ -1,9 +1,9 @@
 /**
  * Error paths in the markdown template parser.
  *
- * Deliberately narrow. The happy path — every taxonomy shorthand, every date
+ * Deliberately narrow. The happy path - every taxonomy shorthand, every date
  * form, both comment forms, both dashboard layout forms, relation synthesis,
- * `query:` resolution — is carried by the two real templates in `templates/`,
+ * `query:` resolution - is carried by the two real templates in `templates/`,
  * which the whole-gallery suite in `templates.test.ts` already instantiates and
  * inspects. Re-asserting the same ground here would be a second copy of the
  * grammar to keep in sync.
@@ -50,7 +50,7 @@ function context(): TemplateBuildContext {
 }
 
 /** Parses and resolves, so errors raised in either phase are caught the same
- *  way — an author doesn't care which pass rejected their file. */
+ *  way - an author doesn't care which pass rejected their file. */
 function build(source: string): void {
 	resolveTemplateContent(parseTemplateMarkdown(source), context());
 }
@@ -69,7 +69,7 @@ function expectFailure(source: string, matcher: RegExp): TemplateParseError {
 	return caught as TemplateParseError;
 }
 
-describe("template markdown — schema gate", () => {
+describe("template markdown - schema gate", () => {
 	it("rejects a file with no templateSchema", () => {
 		expectFailure(
 			template(
@@ -117,13 +117,13 @@ describe("template markdown — schema gate", () => {
 	});
 });
 
-describe("template markdown — supportsExampleContent", () => {
-	it("is derived from the body's Tasks when omitted — false with none", () => {
+describe("template markdown - supportsExampleContent", () => {
+	it("is derived from the body's Tasks when omitted - false with none", () => {
 		const parsed = parseTemplateMarkdown(template(HEADER));
 		expect(parsed.meta.supportsExampleContent).toBe(false);
 	});
 
-	it("is derived from the body's Tasks when omitted — true with Tasks", () => {
+	it("is derived from the body's Tasks when omitted - true with Tasks", () => {
 		const parsed = parseTemplateMarkdown(
 			template(HEADER, "\n# Projects\n\n# Tasks\n\n## Something\n"),
 		);
@@ -152,7 +152,7 @@ describe("template markdown — supportsExampleContent", () => {
 	});
 });
 
-describe("template markdown — taskCount", () => {
+describe("template markdown - taskCount", () => {
 	it("computes taskCount from the parsed body", () => {
 		const withTasks = parseTemplateMarkdown(
 			template(HEADER, "\n# Projects\n\n# Tasks\n\n## First\n\n## Second\n"),
@@ -164,7 +164,7 @@ describe("template markdown — taskCount", () => {
 	});
 });
 
-describe("template markdown — nested ::: fences", () => {
+describe("template markdown - nested ::: fences", () => {
 	it("keeps a nested :::description from closing its parent :::comment early", () => {
 		const body = [
 			"",
@@ -308,12 +308,12 @@ describe("template markdown — nested ::: fences", () => {
 	});
 });
 
-describe("template markdown — card settings", () => {
+describe("template markdown - card settings", () => {
 	it("lists no taxonomy rows for a template that overrides nothing", () => {
 		const parsed = parseTemplateMarkdown(template(HEADER));
 		const labels = parsed.meta.settings.map((s) => s.label);
 		// A "blank" template (no taxonomy overrides) shouldn't restate the
-		// workspace defaults as if it chose them — only "Default view" applies.
+		// workspace defaults as if it chose them - only "Default view" applies.
 		expect(labels).toEqual(["Default view"]);
 	});
 
@@ -397,7 +397,7 @@ describe("template markdown — card settings", () => {
 	});
 });
 
-describe("template markdown — frontmatter projects", () => {
+describe("template markdown - frontmatter projects", () => {
 	const PROJECT_FM = [
 		HEADER,
 		"statuses: [Todo (unstarted), Done (completed)]",
@@ -470,7 +470,7 @@ describe("template markdown — frontmatter projects", () => {
 	});
 });
 
-describe("template markdown — anchors", () => {
+describe("template markdown - anchors", () => {
 	it("rejects two nodes sharing an explicit anchor", () => {
 		const error = expectFailure(
 			template(
@@ -507,7 +507,7 @@ describe("template markdown — anchors", () => {
 	});
 });
 
-describe("template markdown — unresolvable references", () => {
+describe("template markdown - unresolvable references", () => {
 	const cases: [string, string, RegExp][] = [
 		["blocks", "blocks: [nope]", /"blocks: nope" does not name any Project or Task/],
 		["blockedBy", "blockedBy: [nope]", /"blockedBy: nope" does not name any Project or Task/],
@@ -541,11 +541,11 @@ describe("template markdown — unresolvable references", () => {
 			/does not name any/,
 		);
 		expect(error.line).toBeGreaterThan(0);
-		expect(error.describe()).toMatch(/^\d+ — /);
+		expect(error.describe()).toMatch(/^\d+ - /);
 	});
 });
 
-describe("template markdown — contradictory block relations", () => {
+describe("template markdown - contradictory block relations", () => {
 	const body = (a: string, b: string) =>
 		[
 			"",
@@ -596,13 +596,13 @@ describe("template markdown — contradictory block relations", () => {
 		const { tasks } = resolveTemplateContent(parsed, context());
 		const alpha = tasks.find((t) => t.title === "Alpha")!;
 		const beta = tasks.find((t) => t.title === "Beta")!;
-		// Synthesis is idempotent — the edge isn't recorded twice.
+		// Synthesis is idempotent - the edge isn't recorded twice.
 		expect(alpha.relations.blocks).toEqual([beta.path]);
 		expect(beta.relations.blockedBy).toEqual([alpha.path]);
 	});
 });
 
-describe("template markdown — taxonomy descriptions", () => {
+describe("template markdown - taxonomy descriptions", () => {
 	it("carries a trailing ` - description` on statuses", () => {
 		const parsed = parseTemplateMarkdown(
 			template(
@@ -660,7 +660,7 @@ describe("template markdown — taxonomy descriptions", () => {
 	});
 });
 
-describe("template markdown — repeat", () => {
+describe("template markdown - repeat", () => {
 	const withTask = (fieldLine: string) =>
 		template(HEADER, `\n# Projects\n\n# Tasks\n\n## A task\n${fieldLine}\n`);
 
@@ -702,7 +702,7 @@ describe("template markdown — repeat", () => {
 	it("seeds the first landing one cadence past the task's own due date", () => {
 		const task = resolveTask("repeat: weekly | due: +3d");
 		// Strictly past the anchor: the due date is *this* occurrence, so the
-		// first landing is a full cadence ahead of it — not the same day.
+		// first landing is a full cadence ahead of it - not the same day.
 		expect(task.recurrence).toMatchObject({
 			anchor: "dueDate",
 			nextDate: "2026-09-05",
@@ -718,7 +718,7 @@ describe("template markdown — repeat", () => {
 	});
 });
 
-describe("template markdown — dashboard xFields and task completed token", () => {
+describe("template markdown - dashboard xFields and task completed token", () => {
 	/** A template with an updatedAt + completedAt chart pair and one done task. */
 	function withTrends() {
 		return template(

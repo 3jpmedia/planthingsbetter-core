@@ -174,7 +174,7 @@ export function exportSlug(input: string): string {
  * date+time pair (not just a date) makes every export's filename unique on
  * its own, without leaning on `availableRawPath`'s " 2"/" 3" collision
  * suffix. `identity.name` is omitted when null (only the "workspace" kind
- * does this today) — the workspace is already named in the slug just before
+ * does this today) - the workspace is already named in the slug just before
  * it, so repeating it would be redundant. Templates pass an identity of
  * their own (`{ kind: "template", name }`) rather than one derived from
  * `scopeIdentity()`, since a template capture isn't scoped to any single

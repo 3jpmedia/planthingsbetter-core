@@ -58,7 +58,7 @@ function quote(text: string): string {
 
 /**
  * Render one value to source, quoting only when the bare form doesn't survive
- * the lexer — decided by running it, not by a character blacklist.
+ * the lexer - decided by running it, not by a character blacklist.
  */
 function valueSource(candidate: Candidate): string {
 	const prefix = candidate.verbatim ? VERBATIM_PREFIX : "";
@@ -140,8 +140,8 @@ function candidatesFor(
 			const stem = basename(entity.path);
 			if (stem !== entity.title) pretty.push(stem);
 		}
-		// The stored value for an entity is a full vault path — or, for some
-		// callers, a raw document id — so try the name *first*. `printValue`
+		// The stored value for an entity is a full vault path - or, for some
+		// callers, a raw document id - so try the name *first*. `printValue`
 		// still verifies every candidate round-trips, so an ambiguous or
 		// unresolvable name is skipped and the raw value is used instead.
 		return [
@@ -169,7 +169,7 @@ function candidatesFor(
 		else if (person) pretty.push(person.name);
 	}
 
-	// The name reads better than the raw id whenever one resolves — same
+	// The name reads better than the raw id whenever one resolves - same
 	// ordering the entity branch above already uses. Falls back to the id
 	// itself (and finally its verbatim form) only when no name is found, or
 	// the name is ambiguous and fails to round-trip (`printValue` verifies
@@ -228,7 +228,7 @@ function printText(text: string): string {
 }
 
 /**
- * The filter-and-flags portion of a query — everything that reads only from
+ * The filter-and-flags portion of a query - everything that reads only from
  * `filters`, and nothing that configures a *layout* (`group:`/`sort:`/`hide:`/…).
  *
  * `printQuery` uses this for its own filter clauses; the workspace-template
@@ -362,7 +362,7 @@ export function printQuery(
 	if (canonical.emptyColumnBehavior !== DEFAULT_DEFINITION.emptyColumnBehavior) {
 		parts.push(`empty:${EMPTY_VALUES[canonical.emptyColumnBehavior].token}`);
 	}
-	// Calendar-only, but printed whenever non-default regardless of layout —
+	// Calendar-only, but printed whenever non-default regardless of layout -
 	// `hide:` and `empty:` follow the same "keep the clause even if this layout
 	// ignores it" rule, so switching layouts never silently drops the setting.
 	const calendarEndField = canonical.calendarEndField ?? null;
@@ -375,7 +375,7 @@ export function printQuery(
 	if (calendarMode !== DEFAULT_DEFINITION.calendarMode) {
 		parts.push(`calendar:${CALENDAR_MODE_VALUES[calendarMode].token}`);
 	}
-	// Printed whenever non-default, like `hide:` — kept even when the layout
+	// Printed whenever non-default, like `hide:` - kept even when the layout
 	// ignores it, so switching layouts never silently drops the setting.
 	if (canonical.subtaskDisplay !== DEFAULT_DEFINITION.subtaskDisplay) {
 		parts.push(`subtasks:${SUBTASK_VALUES[canonical.subtaskDisplay].token}`);

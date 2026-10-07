@@ -1,12 +1,12 @@
 /**
- * The spawn planner — the pure half of "when does a chain advance".
+ * The spawn planner - the pure half of "when does a chain advance".
  *
  * `spawnPlans` turns one node into zero or more `OccurrencePlan`s; the Obsidian
  * glue layer writes them. All of the rules below live here so the flooding and
  * gap-policy behavior is unit-testable without a vault:
  *
  * - A node only fires when its trigger condition and its schedule both say so.
- * - A node never spawns while a successor already exists (idempotency — a
+ * - A node never spawns while a successor already exists (idempotency - a
  *   deleted successor can legitimately re-extend the chain).
  * - `on-close` is a pure status trigger with no cadence: it always lands the
  *   occurrence on today; whether Start/Due are set on that day, shifted to
@@ -39,7 +39,7 @@ export { MAX_RECURRENCE_BACKFILL } from "./engine";
 /**
  * Whether `node`'s status has satisfied its trigger. `triggerStatus` is
  * deliberately permissive: any configured status can fire, so "when it reaches
- * Review" is a real, supported workflow — not just completed.
+ * Review" is a real, supported workflow - not just completed.
  */
 export function nodeMatchesTrigger(
 	node: Task,
@@ -65,7 +65,7 @@ export interface OccurrencePlan {
 	startDate: IsoDate | null;
 	dueDate: IsoDate | null;
 	/**
-	 * The recurrence block the successor note carries — an advanced copy of the
+	 * The recurrence block the successor note carries - an advanced copy of the
 	 * source's, or `null` when this occurrence is the series' terminal note.
 	 */
 	recurrence: RecurrenceConfig | null;
@@ -108,7 +108,7 @@ function buildPlan(
 		};
 	}
 	if (rule.trigger === "on-close") {
-		// Status-driven: no cadence, so there's nothing to advance — only
+		// Status-driven: no cadence, so there's nothing to advance - only
 		// today's date and each field's own mode decide what lands. "shifted"
 		// reuses the same anchor-preserving math on-date relies on, computed
 		// once and read into whichever field(s) asked for it.
@@ -155,12 +155,12 @@ export function spawnPlans(
 	const rule = node.recurrence;
 	if (!rule) return [];
 
-	// An archived task is dormant by definition — it shouldn't keep
+	// An archived task is dormant by definition - it shouldn't keep
 	// spawning while hidden from view.
 	if (node.archived) return [];
 
 	// Idempotency: a successor sitting after this node means the chain already
-	// advanced past it. Flood-proof by construction — a completed reconcile is
+	// advanced past it. Flood-proof by construction - a completed reconcile is
 	// a no-op on relaunch.
 	if (nextInChain(snapshot, node)) return [];
 
@@ -194,7 +194,7 @@ export function spawnPlans(
 	const remaining = remainingOccurrences(node, rule, snapshot);
 	if (remaining <= 0) return [];
 
-	// On date — gap policy. Every missed cadence point through today would
+	// On date - gap policy. Every missed cadence point through today would
 	// otherwise cascade one-file-per-point on reopen.
 	let points = cadencePoints(rule, rule.nextDate, today);
 	if (points.length === 0) return [];
@@ -215,7 +215,7 @@ export function spawnPlans(
 		points = points.slice(points.length - remaining);
 	}
 
-	// Only the newest occurrence in this batch should ever end up "live" —
+	// Only the newest occurrence in this batch should ever end up "live" -
 	// a catch-up batch backfilling several missed points at once would
 	// otherwise leave every intermediate one carrying its own active
 	// schedule, when only the very last one is what the engine will

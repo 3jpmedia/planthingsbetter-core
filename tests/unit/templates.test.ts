@@ -31,7 +31,7 @@ const base = {
 
 describe("every template's example content is a full feature showcase", () => {
 	// Templates that opt out (`supportsExampleContent: false`) are verified
-	// separately — they deliberately generate none of this.
+	// separately - they deliberately generate none of this.
 	const showcaseTemplates = WORKSPACE_TEMPLATES.filter(
 		(t) => t.supportsExampleContent !== false,
 	);
@@ -69,7 +69,7 @@ describe("every template's example content is a full feature showcase", () => {
 				// agency template deliberately keeps exactly one (everything else
 				// belongs to a client Project or to "Internal"), because a large
 				// loose bucket would misrepresent the one-Project-per-client
-				// workflow it exists to teach — so the floor is "at least one",
+				// workflow it exists to teach - so the floor is "at least one",
 				// not "at least three".
 				expect(
 					tasks.filter((t) => t.project === null && t.parent === null).length,
@@ -112,11 +112,11 @@ describe("every template's example content is a full feature showcase", () => {
 			});
 
 			it("ships at least one dashboard, each with at least two widgets", () => {
-				// The TS templates each ship a single 2–3 widget dashboard. The
+				// The TS templates each ship a single 2-3 widget dashboard. The
 				// markdown format made multi-dashboard templates cheap to author,
 				// and agency-client-management uses two (a whole-business overview
-				// and a client-scoped one), so this asserts the quality floor —
-				// every dashboard is populated — rather than a fixed count.
+				// and a client-scoped one), so this asserts the quality floor -
+				// every dashboard is populated - rather than a fixed count.
 				expect(snapshot.dashboards.length).toBeGreaterThanOrEqual(1);
 				for (const dashboard of snapshot.dashboards) {
 					expect(
@@ -157,7 +157,7 @@ describe("every template's example content is a full feature showcase", () => {
 	}
 });
 
-describe("instantiateTemplate — self person seeding", () => {
+describe("instantiateTemplate - self person seeding", () => {
 	it("leaves the register untouched when no name is given", () => {
 		const { workspace, personId } = instantiateTemplate({
 			...base,
@@ -230,7 +230,7 @@ describe("views, dashboards, people and Projects are structure, not example mate
 		expect(
 			notes.some((n) => n.path.startsWith(`${base.root}/Dashboards/`)),
 		).toBe(true);
-		// Projects are structure — they come along even without populate, and
+		// Projects are structure - they come along even without populate, and
 		// their notes are emitted. Only Tasks stay gated on the toggle.
 		expect(snapshot.projects.length).toBeGreaterThan(0);
 		expect(
@@ -267,7 +267,7 @@ describe("blank workspace template", () => {
 		});
 		// No user views beyond the injected "All Tasks" System View.
 		expect(snapshot.views).toHaveLength(1);
-		// A blank template overrides every taxonomy to empty — so the in-memory
+		// A blank template overrides every taxonomy to empty - so the in-memory
 		// config is empty, and the written `_workspace.md` frontmatter carries no
 		// taxonomy at all. With no statuses there's also no default status, so
 		// new tasks/projects would carry no status rather than a phantom id.
@@ -322,7 +322,7 @@ describe("instantiated task notes carry a parseable description block", () => {
 		);
 		expect(note.body).toContain(DESCRIPTION_START_TAG);
 		expect(note.body).toContain("<!-- PLUGIN_DESCRIPTION_END -->");
-		// The structural heading is written exactly once — not doubled by the
+		// The structural heading is written exactly once - not doubled by the
 		// template fence's own `## Description`.
 		expect(note.body.match(/^## Description$/gm)).toHaveLength(1);
 		const desc = parseDescription(note.body);
@@ -361,7 +361,7 @@ describe("instantiated task notes carry a parseable description block", () => {
 		for (const task of generated.snapshot.tasks) {
 			const note = generated.notes.find((n) => n.path === task.path)!;
 			if (note.body === "") continue;
-			// Whatever was authored, `parseDescription` must be able to find it —
+			// Whatever was authored, `parseDescription` must be able to find it -
 			// that's the exact call `mutations.readDocument` makes for the editor.
 			expect(
 				parseDescription(note.body),
@@ -377,7 +377,7 @@ describe("instantiated task notes carry a parseable description block", () => {
 			template: sampleWorkspaceTemplate,
 			includeExampleContent: true,
 		});
-		// The fixture only describes 4 of its 25 tasks — every other note must be
+		// The fixture only describes 4 of its 25 tasks - every other note must be
 		// emitted with no description block rather than an empty scaffold, and
 		// any non-empty body must start with a plugin-owned block.
 		expect(

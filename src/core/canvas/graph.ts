@@ -5,12 +5,12 @@
  * isolation (Golden Rule: `src/core/` never imports the Obsidian API). The
  * component feeds the result straight into `elkjs` for layout.
  *
- * This computes the *edges* only. Grouping into boxes is the component's job —
+ * This computes the *edges* only. Grouping into boxes is the component's job -
  * it reuses `evaluated.groups` (the same `TaskGroup[]` the Board renders its
  * columns from) so the "None" group, hidden-group filtering and per-group
  * colour all come for free.
  *
- * `task.parent` is read directly here — this deliberately does *not* use
+ * `task.parent` is read directly here - this deliberately does *not* use
  * `primaryParent()`, which collapses a task to one hierarchy position for the
  * List view and would silently drop the parent → child edge of any grouped
  * task.
@@ -43,7 +43,7 @@ export const CANVAS_BOX_GROUPINGS: readonly GroupByField[] = [
 export interface CanvasGrouping {
 	/** True when `groupBy` maps to compound boxes. */
 	grouped: boolean;
-	/** The boxes to draw — non-hidden, non-empty. Empty when not grouped. */
+	/** The boxes to draw - non-hidden, non-empty. Empty when not grouped. */
 	boxes: TaskGroup[];
 	/** The tasks that actually render (hidden-group members already removed). */
 	tasks: Task[];
@@ -74,7 +74,7 @@ export function canvasGrouping(
 }
 
 export interface CanvasNode {
-	/** Stable id — the task's vault path. */
+	/** Stable id - the task's vault path. */
 	id: string;
 	task: Task;
 }
@@ -89,7 +89,7 @@ export interface LayeringEdge {
 	kind: LayeringEdgeKind;
 }
 
-/** An undirected `related` link — rendered between final node centres only. */
+/** An undirected `related` link - rendered between final node centres only. */
 export interface RelatedEdge {
 	/** Lexicographically smaller endpoint (so `{X,Y}` and `{Y,X}` collapse). */
 	a: string;
@@ -172,7 +172,7 @@ export function buildCanvasGraph(tasks: Task[]): CanvasGraph {
  * Drop the relation kinds the view has toggled off.
  *
  * A hidden `dependency`/`hierarchy` kind is removed from `layeringEdges` *before*
- * they reach ELK, so it stops influencing the layered ranking — not merely
+ * they reach ELK, so it stops influencing the layered ranking - not merely
  * hidden after layout. `related` is removed from `relatedEdges` only; it never
  * fed the layout, so hiding it moves nothing.
  */
@@ -193,7 +193,7 @@ export function filterCanvasGraph(
 
 /**
  * ELK options a Canvas view feeds into every layout pass (root and each group
- * box alike — ELK doesn't inherit a compound's options into its nested pass).
+ * box alike - ELK doesn't inherit a compound's options into its nested pass).
  *
  * The arrangement/direction pair is the view's intent; the ELK algorithm and
  * axis literal are implementation details nobody else should name.
@@ -212,9 +212,9 @@ export function getCanvasElkOptions(
  * Which layering edges feed ELK's ranking, and which get drawn as an overlay
  * *after* layout instead.
  *
- * - `flow` — every layering edge (dependency + hierarchy) participates; nothing
+ * - `flow` - every layering edge (dependency + hierarchy) participates; nothing
  *   is overlaid. This is the dependency-first mental model.
- * - `tree` — only parent → child edges reach ELK (the `mrtree` ranking is a
+ * - `tree` - only parent → child edges reach ELK (the `mrtree` ranking is a
  *   pure hierarchy); `blocks`/`blockedBy` edges are drawn between final node
  *   centres after layout, exactly like `related`, because ranking a tree by its
  *   dependencies would tangle it.
@@ -243,18 +243,18 @@ export function canvasEdgePlan(
 
 /**
  * Split a node set into what ELK's ranking actually reaches (`connected`) and
- * what it doesn't (`isolated`) — judged against `layoutEdges` specifically
+ * what it doesn't (`isolated`) - judged against `layoutEdges` specifically
  * (the arrangement-aware set `canvasEdgePlan` already computed), never
  * `graph.layeringEdges` directly. That distinction matters twice over:
- *   - a `related`-only task is isolated regardless of arrangement — `related`
+ *   - a `related`-only task is isolated regardless of arrangement - `related`
  *     never feeds ELK's ranking in either `flow` or `tree`, so it's exactly
  *     as unranked as a task with no edges at all;
  *   - a `blocks`-only task is connected in `flow` but isolated in `tree`,
  *     since `tree` only ranks hierarchy edges (`canvasEdgePlan` already
- *     encodes that split — this function just has to respect it).
+ *     encodes that split - this function just has to respect it).
  *
  * One function, reused at every granularity (once for the flat/root case,
- * once per group when grouped) — a scope with zero connected members simply
+ * once per group when grouped) - a scope with zero connected members simply
  * comes back with everything in `isolated`, no special-casing needed for the
  * fully-edgeless case.
  */
@@ -280,7 +280,7 @@ export function partitionByConnectivity(
  *
  * This is the whole *placement-relevant* content of a task: identity, parent,
  * its three relation arrays, and which box it renders inside. Everything else
- * a card draws — title, status, dates, assignee — repaints in place and so is
+ * a card draws - title, status, dates, assignee - repaints in place and so is
  * deliberately absent here.
  */
 export function canvasTopologyKey(
@@ -302,12 +302,12 @@ export function canvasTopologyKey(
 }
 
 /**
- * The full layout signature — everything that, when it changes, must request a
+ * The full layout signature - everything that, when it changes, must request a
  * fresh ELK pass. Title/status/date edits leave it untouched (the cards update
  * in place); a re-parent, a relation, a grouping change, or the arrangement/
  * direction pair flips it.
  *
- * Hidden relation kinds aren't part of the string themselves — `filterCanvasGraph`
+ * Hidden relation kinds aren't part of the string themselves - `filterCanvasGraph`
  * already turns them into a different edge set, and the caller keys on the
  * filtered graph as well as this key.
  */

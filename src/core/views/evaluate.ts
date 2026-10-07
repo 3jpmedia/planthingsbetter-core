@@ -21,9 +21,9 @@ import { sortTasks, sortTasksMulti } from "./sort";
 export interface EvaluatedView {
 	view: SavedView;
 	context: ViewContext;
-	/** Filtered + sorted, before grouping — what the List view renders. */
+	/** Filtered + sorted, before grouping - what the List view renders. */
 	tasks: Task[];
-	/** Grouped — what the Board view renders. */
+	/** Grouped - what the Board view renders. */
 	groups: TaskGroup[];
 	/** Tasks matching the filters. Excludes nothing that grouping hid. */
 	total: number;
@@ -36,7 +36,7 @@ export function evaluateView(
 	view: SavedView,
 	// The default context has `selfId: null`, so `self` filters resolve to
 	// nothing. Real callers (the UI) must pass a context built with the
-	// device's per-workspace "me" id — see `useActiveWorkspace`. The default is
+	// device's per-workspace "me" id - see `useActiveWorkspace`. The default is
 	// only for tests and callers that provably have no `self` filter.
 	context: ViewContext = snapshotContext(snapshot),
 	// The local calendar day, for the `show:recurring` projection. Omitted =>
@@ -46,13 +46,13 @@ export function evaluateView(
 ): EvaluatedView {
 	const filtered = applyFilters(snapshot.tasks, view.filters, context);
 	// `hidden` drops sub-tasks outright; `nested` and `flat` both keep them in the
-	// evaluated set (the List view derives the tree from it — see `nest.ts`).
+	// evaluated set (the List view derives the tree from it - see `nest.ts`).
 	const visible =
 		view.subtaskDisplay === "hidden"
 			? filtered.filter((task) => task.parent == null)
 			: filtered;
 
-	// `total` / `filteredOut` count real tasks only — projected ghosts are a
+	// `total` / `filteredOut` count real tasks only - projected ghosts are a
 	// presentation layer, not "more tasks matched". They merge *after* filtering
 	// (projected from filter-matched sources), then sort and group like any row.
 	const projected =
@@ -94,7 +94,7 @@ export function toggleColumnCollapsed(view: SavedView, key: string): SavedView {
 }
 
 /**
- * Collapse or expand a whole set of columns at once — the "collapse all" /
+ * Collapse or expand a whole set of columns at once - the "collapse all" /
  * "expand all" list-view control. Collapsing is a union (keys already collapsed
  * stay collapsed); expanding removes exactly the given keys.
  */
