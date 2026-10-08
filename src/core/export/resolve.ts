@@ -9,7 +9,7 @@
 
 import { basename } from "../links";
 import { displayName } from "../taxonomy";
-import type { Comment, IsoDate, LinkTarget, Task } from "../types";
+import type { Comment, CustomFieldDef, CustomFieldValue, IsoDate, LinkTarget, Task } from "../types";
 import type { ViewContext } from "../views";
 import type { FieldId } from "./fields";
 
@@ -99,4 +99,24 @@ export function resolveDisplayRecord(
 		estimate: task.estimate == null ? "" : String(task.estimate),
 		relations: formatRelations(task, lookups),
 	};
+}
+
+/** A custom field's value as a sheet shows it: a choice's name, people's
+ *  names, a day, a number, "Yes" for a ticked box; "" for none. */
+export function customFieldText(field: CustomFieldDef, value: CustomFieldValue | undefined, context: ViewContext): string {
+	if (value == null || value === "" || value === false) return "";
+	const list = Array.isArray(value) ? value : [value];
+	switch (field.type) {
+		case "select":
+		case "multiSelect":
+			return list.map((id) => field.options?.find((option) => option.id === id)?.name ?? String(id)).join(", ");
+		case "member":
+			return list.map((id) => context.people.find((person) => person.id === id)?.name ?? String(id)).join(", ");
+		case "checkbox":
+			return value === true ? "Yes" : "";
+		case "date":
+			return String(value).slice(0, 10);
+		default:
+			return String(value);
+	}
 }

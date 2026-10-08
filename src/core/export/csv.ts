@@ -14,7 +14,8 @@ import type { FieldId } from "./fields";
 export const UTF8_BOM = "﻿";
 
 export interface CsvColumn {
-	id: FieldId;
+	/** A built-in field, or a custom field's column (`field:<key>`). */
+	id: FieldId | `field:${string}`;
 	label: string;
 }
 
@@ -26,7 +27,7 @@ function quoteCell(value: string): string {
 }
 
 export function buildCsv(
-	rows: DisplayRecord[],
+	rows: (DisplayRecord & Partial<Record<`field:${string}`, string>>)[],
 	columns: CsvColumn[],
 ): string {
 	const lines: string[] = [];

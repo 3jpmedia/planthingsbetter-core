@@ -77,6 +77,8 @@ export function buildWorkspaceJson(
 		views: snapshot.views,
 		dashboards: snapshot.dashboards,
 		trash: snapshot.trash,
+		// Custom fields: each task's `fields` are by field id, named here.
+		...(snapshot.customFields?.length ? { customFields: snapshot.customFields } : {}),
 		resolved: buildResolved(context),
 	};
 

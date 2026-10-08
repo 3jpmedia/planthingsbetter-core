@@ -323,7 +323,7 @@ export function instantiateTemplate(
 		notes,
 		history,
 		personId,
-		snapshot: { workspace, tasks, projects, views, dashboards, trash: [] },
+		snapshot: { workspace, tasks, projects, views, dashboards, trash: [], ...(content.customFields?.length ? { customFields: content.customFields } : {}) },
 	};
 }
 

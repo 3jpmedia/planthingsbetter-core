@@ -3,6 +3,7 @@ import { sampleSnapshot } from "../../src/core/templates/instantiate";
 import { parseQuery, printQuery, queryContext } from "../../src/core/query";
 import { applyFilters, canonicalizeDefinition, shownCustomFields, snapshotContext, sortTasks } from "../../src/core/views";
 import { DEFAULT_DEFINITION } from "../../src/core/views/defaults";
+import { buildExport } from "../../src/core/export";
 import type { CustomFieldDef, ViewDefinition, WorkspaceSnapshot } from "../../src/core/types";
 import { task } from "./fixtures";
 
@@ -169,5 +170,23 @@ describe("which custom fields a view shows", () => {
 
 	it("leaves out what the view hides", () => {
 		expect(shown("hide:custom.points,custom.notes")).toEqual(["client", "due-to-client", "signed-off", "status", "owner"]);
+	});
+});
+
+describe("custom fields in exports", () => {
+	const exported = (format: "csv" | "json") =>
+		buildExport({ snapshot, context: vctx, scope: { kind: "workspace" }, format, fields: ["id", "title", "status"], today: "2026-10-08", includeArchived: false, pluginVersion: "test" }).content;
+
+	it("adds a CSV column per field, by name, '(custom)' where a built-in column has it", () => {
+		const [header, first] = exported("csv").replace(/^﻿/, "").split("\r\n");
+		expect(header).toBe("ID,Title,Status,Points,Client,Due to client,Signed off,Notes,Status (custom),Owner");
+		const person = snapshot.workspace.people[0]?.name ?? "";
+		expect(first).toContain(`8,Acme Corp,2026-11-01,Yes,Waiting on legal,,${person}`);
+	});
+
+	it("keeps JSON's values by field id, and names the fields", () => {
+		const json = JSON.parse(exported("json"));
+		expect(json.customFields.map((field: { key: string }) => field.key)).toEqual(fields.map((field) => field.key));
+		expect(json.tasks[0].fields["f-points"]).toBe(8);
 	});
 });

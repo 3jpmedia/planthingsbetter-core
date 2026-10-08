@@ -13,6 +13,7 @@
 
 import type {
 	Comment,
+	CustomFieldDef,
 	DashboardConfig,
 	Project,
 	SavedView,
@@ -106,6 +107,9 @@ export interface TemplateContent {
 	projectDescriptions?: Map<string, string>;
 	/** The `people` id a template's `"Name*"` marks as "me", when it claims one. */
 	mePersonId?: string;
+	/** The workspace's custom fields -- structure, like the taxonomy, so they
+	 *  come along with or without example content. */
+	customFields?: CustomFieldDef[];
 }
 
 export interface WorkspaceTemplate extends TemplateMeta {

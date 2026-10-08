@@ -34,6 +34,8 @@ import {
 } from "../../taxonomy/defaults";
 import type {
 	Comment,
+	CustomFieldDef,
+	CustomFieldValue,
 	DashboardConfig,
 	DashboardFieldMapping,
 	DashboardWidget,
@@ -51,6 +53,7 @@ import type {
 	WorkspaceConfig,
 } from "../../types";
 import { nextOccurrence } from "../../recurrence";
+import { parseDateToken } from "./parse";
 import {
 	makeDashboard,
 	makeProject,
@@ -158,6 +161,68 @@ function resolveDateTime(
  *  every hand-written template and the task editor produce. */
 function resolveDay(date: ParsedDate, ctx: TemplateBuildContext): IsoDate {
 	return date.kind === "relative" ? ctx.day(date.days) : date.iso.slice(0, 10);
+}
+
+const YES = new Set(["true", "yes", "y", "1", "on", "checked", "done"]);
+const NO = new Set(["false", "no", "n", "0", "off", "unchecked"]);
+
+/** A task's custom field values as written (by field id) -> as stored: a
+ *  choice's id, people's ids, a number, a day, yes/no. */
+function resolveFieldValues(
+	written: Record<string, string> | undefined,
+	fields: readonly CustomFieldDef[],
+	ctx: TemplateBuildContext,
+	resolvePerson: (name: string, line: number) => string,
+	line: number,
+): Record<string, CustomFieldValue> | undefined {
+	if (!written) return undefined;
+	const out: Record<string, CustomFieldValue> = {};
+	for (const [id, raw] of Object.entries(written)) {
+		const field = fields.find((candidate) => candidate.id === id);
+		if (!field || raw.trim() === "") continue;
+		const choice = (name: string) => {
+			const option = field.options?.find((candidate) => candidate.name.toLowerCase() === name.trim().toLowerCase());
+			if (!option) fail(`${field.name} has no choice "${name.trim()}" - its choices are ${(field.options ?? []).map((o) => o.name).join(", ")}`, line);
+			return option.id;
+		};
+		const list = () => readValues(raw);
+		switch (field.type) {
+			case "number": {
+				const n = Number(raw);
+				if (!Number.isFinite(n)) fail(`"${field.name}: ${raw}" is not a number`, line);
+				out[id] = n;
+				break;
+			}
+			case "checkbox":
+				if (!YES.has(raw.trim().toLowerCase()) && !NO.has(raw.trim().toLowerCase())) fail(`"${field.name}: ${raw}" - expected yes or no`, line);
+				if (YES.has(raw.trim().toLowerCase())) out[id] = true;
+				break;
+			case "date":
+				out[id] = resolveDay(parseDateToken(raw, line), ctx);
+				break;
+			case "select":
+				out[id] = choice(raw);
+				break;
+			case "multiSelect":
+				out[id] = list().map(choice);
+				break;
+			case "member":
+				out[id] = list().map((name) => resolvePerson(name, line));
+				break;
+			default:
+				out[id] = raw.trim();
+		}
+	}
+	return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** `[a, b]` or `a, b` -> its items. */
+function readValues(raw: string): string[] {
+	const inner = /^\[(.*)\]$/s.exec(raw.trim());
+	return (inner ? inner[1] : raw)
+		.split(",")
+		.map((item) => item.trim())
+		.filter(Boolean);
 }
 
 function resolveArchived(
@@ -507,6 +572,9 @@ export function resolveTemplateContent(
 				: null,
 			estimate: parsedTask.estimate ?? null,
 			labels: (parsedTask.labels ?? []).map((l) => resolveLabel(l, line)),
+			...(parsedTask.fields
+				? { fields: resolveFieldValues(parsedTask.fields, parsed.customFields ?? [], ctx, resolvePerson, line) }
+				: {}),
 			startDate,
 			dueDate,
 			recurrence: parsedTask.repeat
@@ -609,6 +677,7 @@ export function resolveTemplateContent(
 		projectDescriptions:
 			projectDescriptions.size > 0 ? projectDescriptions : undefined,
 		mePersonId: parsed.mePersonId,
+		...(parsed.customFields ? { customFields: parsed.customFields } : {}),
 	};
 }
 
