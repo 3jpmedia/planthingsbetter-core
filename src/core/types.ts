@@ -355,6 +355,9 @@ export interface CustomFieldDef {
 	key: string;
 	/** Its name in query text, after `custom.` ("due-to-client"). */
 	slug: string;
+	/** Names it went by before a rename: query text saved with one (a saved
+	 *  view, a dashboard's filter) still reads, and prints with `slug`. */
+	formerSlugs?: string[];
 	/** Its name as typed ("Due to client"). */
 	name: string;
 	type: CustomFieldType;

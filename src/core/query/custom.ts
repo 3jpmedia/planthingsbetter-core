@@ -29,11 +29,17 @@ const lower = (text: string) => text.trim().toLowerCase();
 const TRUE = new Set(["true", "yes", "y", "checked", "1", "on", "done"]);
 const FALSE = new Set(["false", "no", "n", "unchecked", "0", "off"]);
 
-/** The field `custom.<name>` names: by slug, or by key. */
+/** The field `custom.<name>` names: by slug, by key, or by a name it had
+ *  before a rename (a field's own name now always wins over another's old
+ *  one). */
 export function customFieldForToken(name: string, context: Pick<QueryContext, "customFields">): CustomFieldDef | undefined {
 	const wanted = lower(name);
 	const fields = context.customFields ?? [];
-	return fields.find((field) => field.slug.toLowerCase() === wanted) ?? fields.find((field) => field.key.toLowerCase() === wanted);
+	return (
+		fields.find((field) => field.slug.toLowerCase() === wanted) ??
+		fields.find((field) => field.key.toLowerCase() === wanted) ??
+		fields.find((field) => (field.formerSlugs ?? []).some((slug) => slug.toLowerCase() === wanted))
+	);
 }
 
 /** How a query names the field with key `key`: `custom.<slug>`, or

@@ -115,6 +115,17 @@ describe("custom fields in the query language", () => {
 		expect(printed).toContain("hide:custom.story-points");
 	});
 
+	it("reads a name a field had before a rename, and prints its name now", () => {
+		const renamed = { ...qctx, customFields: fields.map((field) => (field.key === "CF-0001" ? { ...field, slug: "story-points", formerSlugs: ["points"] } : field)) };
+		const parsed = parseQuery("custom.points:>3 sort:custom.points", renamed);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.custom?.[0].field).toBe("CF-0001");
+		expect(printQuery(parsed.definition, renamed)).toContain("custom.story-points:>3");
+		// Another field now called that wins over the old name.
+		const taken = { ...renamed, customFields: [...renamed.customFields, { id: "f-new", key: "CF-0099", slug: "points", name: "Points", type: "number" as const }] };
+		expect(parseQuery("custom.points:1", taken).definition.filters.custom?.[0].field).toBe("CF-0099");
+	});
+
 	it("falls back to the key without the field list, and reads it back", () => {
 		const parsed = parseQuery("custom.points:>3", qctx);
 		const bare = { ...qctx, customFields: undefined };
