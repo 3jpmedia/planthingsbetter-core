@@ -15,7 +15,8 @@
 
 import { basename } from "../links";
 import { getValue, type Taxonomy } from "../taxonomy";
-import { NONE, SELF, type ViewDefinition, type ViewFilters } from "../types";
+import { NONE, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
+import { customFieldToken, printCustomMatch } from "./custom";
 import {
 	canonicalizeDefinition,
 	canonicalizeFilters,
@@ -259,6 +260,21 @@ export function printFilters(
 		parts.push(`-${spec.token}:${rendered.join(",")}`);
 	}
 
+	// Custom fields (query/custom.ts): `has:` for "any value", else each
+	// clause with its tests.
+	for (const clause of canonical.custom ?? []) {
+		const token = customFieldToken(clause.field, context);
+		if (clause.exclude && clause.matches.length === 1 && clause.matches[0].op === "unset") {
+			parts.push(`has:${token}`);
+			continue;
+		}
+		const field = context.customFields?.find((candidate) => candidate.key.toUpperCase() === clause.field.toUpperCase());
+		const rendered = field
+			? clause.matches.map((match) => printCustomMatch(field, match, context))
+			: clause.matches.map((match) => (match.op === "unset" ? "unset" : `${{ eq: "", gt: ">", gte: ">=", lt: "<", lte: "<=" }[match.op]}${match.value ?? ""}`));
+		parts.push(`${clause.exclude ? "-" : ""}${token}:${rendered.join(",")}`);
+	}
+
 	if (canonical.text) parts.push(printText(canonical.text));
 
 	if (canonical.archived === "included") {
@@ -296,6 +312,11 @@ export function printFilters(
 	return parts.join(" ");
 }
 
+/** A sort field as query text: a built-in's token, or `custom.<slug>`. */
+function sortToken(field: SortField, context: QueryContext): string {
+	return isCustomFieldRef(field) ? customFieldToken(field.slice(6), context) : SORT_VALUES[field].token;
+}
+
 export function printQuery(
 	definition: ViewDefinition,
 	context: QueryContext,
@@ -320,11 +341,11 @@ export function printQuery(
 	}
 	parts.push(`group:${GROUP_VALUES[canonical.groupBy].token}`);
 	parts.push(
-		`sort:${canonical.sortDirection === "desc" ? "-" : ""}${SORT_VALUES[canonical.sortBy].token}`,
+		`sort:${canonical.sortDirection === "desc" ? "-" : ""}${sortToken(canonical.sortBy, context)}`,
 	);
 	if (canonical.tableSort.length > 0) {
 		const tokens = canonical.tableSort.map(
-			(key) => `${key.direction === "desc" ? "-" : ""}${SORT_VALUES[key.field].token}`,
+			(key) => `${key.direction === "desc" ? "-" : ""}${sortToken(key.field, context)}`,
 		);
 		parts.push(`table-sort:${tokens.join(",")}`);
 	}
@@ -381,7 +402,9 @@ export function printQuery(
 		parts.push(`subtasks:${SUBTASK_VALUES[canonical.subtaskDisplay].token}`);
 	}
 	if (canonical.hiddenFields.length > 0) {
-		const tokens = canonical.hiddenFields.map((field) => FIELD_VALUES[field].token);
+		const tokens = canonical.hiddenFields.map((field) =>
+			isCustomFieldRef(field) ? customFieldToken(field.slice(6), context) : FIELD_VALUES[field].token,
+		);
 		parts.push(`hide:${tokens.join(",")}`);
 	}
 

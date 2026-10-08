@@ -7,6 +7,7 @@
  */
 
 import type {
+	CustomFieldDef,
 	LinkTarget,
 	Person,
 	WorkspaceConfig,
@@ -33,6 +34,9 @@ export interface QueryContext {
 	 *  it out. */
 	milestones?: QueryEntity[];
 	tasks: QueryEntity[];
+	/** The workspace's custom fields, for `custom.<slug>` clauses. Hosts
+	 *  without them leave it out. */
+	customFields?: CustomFieldDef[];
 }
 
 export function queryContext(
@@ -47,6 +51,7 @@ export function queryContext(
 		projects: snapshot.projects.map((p) => ({ path: p.path, title: p.id ?? p.title })),
 		milestones: (snapshot.milestones ?? []).map((m) => ({ path: m.path, title: m.id ?? m.title, alias: m.title })),
 		tasks: snapshot.tasks.map((t) => ({ path: t.path, title: t.id })),
+		customFields: snapshot.customFields,
 	};
 }
 

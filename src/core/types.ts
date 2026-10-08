@@ -372,6 +372,30 @@ export type CustomFieldRef = `field:${string}`;
 export const customFieldRef = (key: string): CustomFieldRef => `field:${key}`;
 /** The key in a `field:<key>` reference, or null when it isn't one. */
 export const customFieldKeyOf = (value: string): string | null => (value.startsWith("field:") ? value.slice(6) || null : null);
+export const isCustomFieldRef = (value: unknown): value is CustomFieldRef => typeof value === "string" && value.startsWith("field:") && value.length > 6;
+
+/**
+ * One test of a custom field's value, from a query value:
+ * - `eq`: a choice's or a person's id (any of a multi-select's or member
+ *   field's), the same number, the same day, a checkbox's `"true"`/`"false"`,
+ *   or text the value contains (case-insensitive);
+ * - `gt`/`gte`/`lt`/`lte`: a number or a day (YYYY-MM-DD) compared;
+ * - `unset`: no value.
+ */
+export interface CustomFieldMatch {
+	op: "eq" | "gt" | "gte" | "lt" | "lte" | "unset";
+	value?: string;
+}
+
+/** A custom field clause (`custom.points:>3`): the task matches when any of
+ *  `matches` holds -- or, `exclude`d (`-custom.client:acme`), when none does.
+ *  Several clauses all have to hold. */
+export interface CustomFieldFilter {
+	/** The field's key ("CF-0003"). */
+	field: string;
+	matches: CustomFieldMatch[];
+	exclude?: boolean;
+}
 
 export interface Task {
 	type: "vertex-flow-task";
@@ -731,6 +755,8 @@ export type GroupByField =
 	| "label";
 
 export type SortField =
+	/** A custom field (`field:CF-0003`). */
+	| CustomFieldRef
 	| "rank"
 	| "priority"
 	| "status"
@@ -876,6 +902,8 @@ export interface ViewFilters {
 	 * are independent, not complementary. No companion exists for the
 	 * range-bound fields (`*Before`/`*After`) - see `ArrayFilterKey`.
 	 */
+	/** Custom field clauses (`custom.<slug>:…`), each by the field's key. */
+	custom?: CustomFieldFilter[];
 	excludeStatus?: string[];
 	excludePriority?: string[];
 	excludeTaskType?: string[];
@@ -997,7 +1025,8 @@ export interface SavedView {
 	columns: ViewColumnState;
 	emptyColumnBehavior: EmptyColumnBehavior;
 	/** Task fields hidden from this view's rows/cards; `[]` shows all. */
-	hiddenFields: TaskField[];
+	/** Built-in fields, and custom ones as `field:<key>`. */
+	hiddenFields: Array<TaskField | CustomFieldRef>;
 	/**
 	 * How this view treats sub-tasks. Definitional - it changes what the
 	 * view shows - so it rides in `ViewDefinition` and the draft/Save cycle.
@@ -1331,6 +1360,9 @@ export interface WorkspaceSnapshot {
 	projects: Project[];
 	/** Hosts without milestones leave this out. */
 	milestones?: Milestone[];
+	/** The workspace's custom fields, in their order. Hosts without them
+	 *  leave this out. */
+	customFields?: CustomFieldDef[];
 	views: SavedView[];
 	dashboards: DashboardConfig[];
 	/** Items sitting in this workspace's `Trash/` folder (see `TrashedItem`). */

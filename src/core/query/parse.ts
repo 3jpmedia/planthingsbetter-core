@@ -24,6 +24,7 @@ import type {
 	SubtaskDisplay,
 	TableSortKey,
 	TaskField,
+	CustomFieldRef,
 	ViewDefinition,
 	ViewFilters,
 	ViewType,
@@ -57,6 +58,7 @@ import {
 } from "./grammar";
 import { lex, type LexedToken } from "./lex";
 import { resolveValue } from "./resolve";
+import { CUSTOM_PREFIX, customFieldForToken, customFieldTokens, parseCustomValue } from "./custom";
 import type { ParsedQuery, QueryIssue, QuerySpan } from "./types";
 
 /* --------------------------------------------------------- suggestions ---- */
@@ -126,7 +128,7 @@ export function parseQueryTokens(
 	let sortDirection = DEFAULT_DEFINITION.sortDirection;
 	let emptyColumnBehavior: EmptyColumnBehavior =
 		DEFAULT_DEFINITION.emptyColumnBehavior;
-	const hiddenFields: TaskField[] = [...DEFAULT_DEFINITION.hiddenFields];
+	const hiddenFields: Array<TaskField | CustomFieldRef> = [...DEFAULT_DEFINITION.hiddenFields];
 	let subtaskDisplay: SubtaskDisplay = DEFAULT_DEFINITION.subtaskDisplay;
 	let calendarDateField = DEFAULT_DEFINITION.calendarDateField;
 	let calendarEndField: CalendarDateField | null = DEFAULT_DEFINITION.calendarEndField;
@@ -173,6 +175,15 @@ export function parseQueryTokens(
 		return token.values[0];
 	};
 
+	/** The custom field a `custom.<name>` names, as a stored reference
+	 *  (`field:<key>`) -- or an error, with the nearest name. */
+	const customRef = (raw: string, span: QuerySpan): CustomFieldRef | null => {
+		const field = customFieldForToken(raw.slice(CUSTOM_PREFIX.length), context);
+		if (field) return `field:${field.key}`;
+		fail("unknown-field", `"${raw}" isn't a custom field`, span, nearestField(raw, customFieldTokens(context)));
+		return null;
+	};
+
 	for (const token of tokens) {
 		if (token.kind === "bare") {
 			textParts.push(token.value.text);
@@ -194,6 +205,50 @@ export function parseQueryTokens(
 				);
 				continue;
 			}
+		}
+
+		/* -- custom fields: `custom.<slug>:…` (query/custom.ts) -- */
+
+		if (field.startsWith(CUSTOM_PREFIX)) {
+			const def = customFieldForToken(field.slice(CUSTOM_PREFIX.length), context);
+			if (!def) {
+				fail(
+					"unknown-field",
+					`"${token.field}" isn't a custom field`,
+					token.fieldSpan,
+					nearestField(token.field, customFieldTokens(context)),
+				);
+				continue;
+			}
+			if (token.values.length === 0) {
+				fail("empty-value", `"${token.field}" needs a value`, token.span);
+				continue;
+			}
+			const matches = token.values.map((value) => {
+				const parsed = parseCustomValue(def, value.text, value.verbatim, context);
+				if (parsed.issue) issues.push({ ...parsed.issue, span: value.span });
+				return parsed.match;
+			});
+			(filters.custom ??= []).push({ field: def.key, matches, ...(token.excluded ? { exclude: true } : {}) });
+			continue;
+		}
+
+		// `has:custom.points` -- a task with any value for the field.
+		if (field === "has" && !token.excluded) {
+			if (token.values.length === 0) {
+				fail("empty-value", `"has" needs a custom field`, token.span);
+				continue;
+			}
+			for (const value of token.values) {
+				const raw = value.text.trim().toLowerCase();
+				if (!raw.startsWith(CUSTOM_PREFIX)) {
+					fail("unknown-value", `"has:" takes a custom field, like has:custom.points`, value.span);
+					continue;
+				}
+				const ref = customRef(raw, value.span);
+				if (ref) (filters.custom ??= []).push({ field: ref.slice(6), matches: [{ op: "unset" }], exclude: true });
+			}
+			continue;
 		}
 
 		// Exclusion only makes sense on a real filter field, never on layout
@@ -310,8 +365,10 @@ export function parseQueryTokens(
 				if (!match) fail("unknown-value", `"${raw}" isn't a grouping`, value.span);
 				else groupBy = match;
 			} else if (field === "sort") {
-				const match = SORT_BY_TOKEN.get(raw);
-				if (!match) fail("unknown-value", `"${raw}" isn't a sort field`, value.span);
+				const match = raw.startsWith(CUSTOM_PREFIX) ? customRef(raw, value.span) : SORT_BY_TOKEN.get(raw);
+				if (!match) {
+					if (!raw.startsWith(CUSTOM_PREFIX)) fail("unknown-value", `"${raw}" isn't a sort field`, value.span);
+				}
 				else {
 					sortBy = match;
 					sortDirection = descending ? "desc" : "asc";
@@ -370,9 +427,9 @@ export function parseQueryTokens(
 			noteDuplicate("hide", token.span);
 			for (const value of token.values) {
 				const raw = value.text.trim().toLowerCase();
-				const match = FIELD_BY_TOKEN.get(raw);
+				const match = raw.startsWith(CUSTOM_PREFIX) ? customRef(raw, value.span) : FIELD_BY_TOKEN.get(raw);
 				if (!match) {
-					fail("unknown-value", `"${raw}" isn't a task field`, value.span);
+					if (!raw.startsWith(CUSTOM_PREFIX)) fail("unknown-value", `"${raw}" isn't a task field`, value.span);
 				} else if (!hiddenFields.includes(match)) {
 					hiddenFields.push(match);
 				}
@@ -415,9 +472,9 @@ export function parseQueryTokens(
 					descending = true;
 					raw = raw.slice(1);
 				}
-				const match = SORT_BY_TOKEN.get(raw);
+				const match = raw.startsWith(CUSTOM_PREFIX) ? customRef(raw, value.span) : SORT_BY_TOKEN.get(raw);
 				if (!match) {
-					fail("unknown-value", `"${raw}" isn't a sort field`, value.span);
+					if (!raw.startsWith(CUSTOM_PREFIX)) fail("unknown-value", `"${raw}" isn't a sort field`, value.span);
 				} else if (!tableSort.some((key) => key.field === match)) {
 					tableSort.push({ field: match, direction: descending ? "desc" : "asc" });
 				}

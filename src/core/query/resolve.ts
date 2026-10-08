@@ -130,7 +130,7 @@ function resolveGroupWildcard(
 	};
 }
 
-function resolvePerson(raw: string, context: QueryContext): Resolved {
+export function resolvePerson(raw: string, context: QueryContext): Resolved {
 	const { people } = context;
 
 	const exact = people.find((person) => person.id === raw);

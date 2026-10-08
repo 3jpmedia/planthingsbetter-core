@@ -539,4 +539,5 @@ export const ALL_FIELD_TOKENS: readonly string[] = [
 	"is",
 	"show",
 	"include",
+	"has",
 ];

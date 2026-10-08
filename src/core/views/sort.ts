@@ -12,6 +12,7 @@ import { compareTasksByRank } from "../ranking";
 import { getValue } from "../taxonomy/engine";
 import { relationCount, type SortDirection, type SortField, type TableSortKey, type Task } from "../types";
 import { milestoneOrderKey, type ViewContext } from "./context";
+import { compareCustomField } from "./custom-fields";
 
 /** Ordered-taxonomy position, or `Infinity` for unset/unknown values. */
 function taxonomyOrder(
@@ -44,6 +45,9 @@ export function compareField(
 	field: SortField,
 	context: ViewContext,
 ): { value: number; nullSkewed: boolean } {
+	// A custom field (`field:<key>`, views/custom-fields.ts).
+	const custom = compareCustomField(a, b, field, context);
+	if (custom) return custom;
 	switch (field) {
 		case "rank":
 			return { value: compareTasksByRank(a, b), nullSkewed: false };
@@ -188,6 +192,8 @@ export function compareField(
 			};
 		}
 	}
+	// A custom field the host doesn't have (handled above when it does).
+	return { value: 0, nullSkewed: false };
 }
 
 export function sortTasks(
