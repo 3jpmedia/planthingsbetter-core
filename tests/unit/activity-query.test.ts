@@ -160,3 +160,16 @@ describe("dashboard fields", () => {
 		expectRoundTrip(parsed.query);
 	});
 });
+
+describe("custom fields", () => {
+	it("filter by a field's definition changes, and by value changes", () => {
+		const parsed = parseActivityQuery("activityItem:field activityField:name,field-type,choices", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query.activity.kind).toEqual(["taskField"]);
+		expect(parsed.query.activity.field).toEqual(["name", "fieldType", "options"]);
+		expectRoundTrip(parsed.query);
+		const values = parseActivityQuery("activityItem:task activityField:custom", ctx);
+		expect(values.query.activity.field).toEqual(["customField"]);
+		expectRoundTrip(values.query);
+	});
+});

@@ -61,6 +61,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	space: { token: "space", aliases: ["spaces"] },
 	template: { token: "template", aliases: ["templates", "task-template"] },
 	milestone: { token: "milestone", aliases: ["milestones"] },
+	taskField: { token: "field", aliases: ["fields", "custom-field", "custom-fields"] },
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {
@@ -134,6 +135,9 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	subtasks: { token: "subtasks", aliases: ["sub-tasks"] },
 	targetDate: { token: "target", aliases: ["targetdate", "target-date"], resolveAs: "date" },
 	milestoneState: { token: "milestone-state", aliases: ["milestonestate"] },
+	customField: { token: "custom", aliases: ["custom-field", "customfield"] },
+	fieldType: { token: "field-type", aliases: ["fieldtype"] },
+	options: { token: "choices", aliases: ["options"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's
