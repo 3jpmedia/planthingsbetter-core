@@ -334,7 +334,7 @@ export interface RecurrenceConfig {
  * database doc's columns, so a field behaves the same in both.
  *
  * A host keeps the definitions; core sees each one as a `CustomFieldDef` and
- * a task's values keyed by the field's `key`. In query text a field is
+ * a task's values keyed by the field's `id`. In query text a field is
  * always `custom.<slug>` (never a bare name, so it can't collide with a
  * built-in field, today's or a later one); in stored settings -- filters,
  * sort, hidden fields -- it's `field:<key>`, so renaming one breaks nothing.
@@ -349,7 +349,9 @@ export interface CustomFieldOption {
 }
 
 export interface CustomFieldDef {
-	/** Its permanent key ("CF-0003"); what stored settings and task values use. */
+	/** Its id: what a task's values are keyed by (`Task.fields`). */
+	id: string;
+	/** Its permanent key ("CF-0003"): what stored settings use (`field:CF-0003`). */
 	key: string;
 	/** Its name in query text, after `custom.` ("due-to-client"). */
 	slug: string;
@@ -439,8 +441,9 @@ export interface Task {
 	 */
 	completedAt: IsoDate | null;
 	/**
-	 * Custom field values, by field key ("CF-0003"). Optional: hosts without
-	 * custom fields (the Obsidian plugin) leave it out.
+	 * Custom field values, by field id (`CustomFieldDef.id`). Values of a field
+	 * the host no longer has are ignored. Optional: hosts without custom
+	 * fields (the Obsidian plugin) leave it out.
 	 */
 	fields?: Record<string, CustomFieldValue>;
 
