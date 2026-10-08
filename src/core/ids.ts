@@ -198,6 +198,9 @@ export const ENTITY_KEY_LETTERS = {
 	support: "H",
 	/** A milestone: a dated target tasks count toward ("R" -- `M` is members). */
 	milestone: "R",
+	/** A workspace's own task field, a custom field: "CF-0003". A key's
+	 *  letters can be as many as a kind needs (`parseKey`). */
+	field: "CF",
 } as const;
 
 export type KeyedEntity = keyof typeof ENTITY_KEY_LETTERS;
@@ -213,7 +216,10 @@ export function formatKey(kind: KeyedEntity, sequence: number): string {
  * Case-insensitive, and the padding is optional (`"t-42"` works).
  */
 export function parseKey(key: string, kind: KeyedEntity): number | null {
-	const match = /^([A-Z])-(\d+)$/.exec(key.trim().toUpperCase());
+	// Any number of letters (`T`, a custom field's `CF`, whatever comes
+	// next). A new kind's letters must not be `T` + another kind's letter:
+	// that's a template's key (`TT-0012`, `parseTemplateKey`).
+	const match = /^([A-Z]+)-(\d+)$/.exec(key.trim().toUpperCase());
 	if (!match || match[1] !== ENTITY_KEY_LETTERS[kind]) return null;
 	return Number.parseInt(match[2], 10);
 }
@@ -277,7 +283,7 @@ export function slugify(input: string, taken: Iterable<string> = []): string {
  * reads it whatever the second letter. Single-letter keys (`T-0012`, a
  * task) never parse as a template, nor a template's as anything else.
  */
-export type TemplateKind = Exclude<KeyedEntity, "member" | "channel" | "support" | "milestone">;
+export type TemplateKind = Exclude<KeyedEntity, "member" | "channel" | "support" | "milestone" | "field">;
 
 export function formatTemplateKey(kind: TemplateKind, sequence: number): string {
 	return `T${ENTITY_KEY_LETTERS[kind]}-${String(sequence).padStart(ID_DIGITS, "0")}`;
@@ -291,6 +297,6 @@ export function parseTemplateKey(key: string): { kind: TemplateKind; sequence: n
 	const kind = (Object.keys(ENTITY_KEY_LETTERS) as KeyedEntity[]).find(
 		(entity) => ENTITY_KEY_LETTERS[entity] === match[1],
 	);
-	if (!kind || kind === "member" || kind === "channel" || kind === "support" || kind === "milestone") return null;
+	if (!kind || kind === "member" || kind === "channel" || kind === "support" || kind === "milestone" || kind === "field") return null;
 	return { kind, sequence: Number.parseInt(match[2], 10) };
 }

@@ -109,9 +109,23 @@ describe("entity keys", () => {
 	});
 
 	it("round-trips every kind", () => {
-		for (const kind of ["task", "project", "view", "dashboard", "doc", "label", "member", "channel"] as const) {
+		for (const kind of ["task", "project", "view", "dashboard", "doc", "label", "member", "channel", "field"] as const) {
 			expect(parseKey(formatKey(kind, 7), kind)).toBe(7);
 		}
+	});
+
+	it("gives a custom field a two-letter key", () => {
+		expect(formatKey("field", 3)).toBe("CF-0003");
+		expect(parseKey("cf-3", "field")).toBe(3);
+		expect(parseKey("F-0003", "field")).toBeNull();
+		expect(parseKey("CF-0003", "task")).toBeNull();
+		expect(parseTemplateKey("CF-0003")).toBeNull();
+	});
+
+	it("reads keys with any number of letters, strict about which", () => {
+		expect(parseKey("ABC-0012", "task")).toBeNull();
+		expect(parseKey("TT-0012", "task")).toBeNull();
+		expect(parseKey("-0012", "task")).toBeNull();
 	});
 
 	it("is case-insensitive and padding-optional", () => {

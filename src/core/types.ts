@@ -328,6 +328,78 @@ export interface RecurrenceConfig {
 	copyFields: TaskFieldKey[] | null;
 }
 
+/**
+ * Custom fields: a workspace's own task fields -- "Points" (a number),
+ * "Client" (a choice), "Due to client" (a date). The types are the same as a
+ * database doc's columns, so a field behaves the same in both.
+ *
+ * A host keeps the definitions; core sees each one as a `CustomFieldDef` and
+ * a task's values keyed by the field's `id`. In query text a field is
+ * always `custom.<slug>` (never a bare name, so it can't collide with a
+ * built-in field, today's or a later one); in stored settings -- filters,
+ * sort, hidden fields -- it's `field:<key>`, so renaming one breaks nothing.
+ */
+export const CUSTOM_FIELD_TYPES = ["text", "number", "select", "multiSelect", "date", "checkbox", "member", "url"] as const;
+export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number];
+
+export interface CustomFieldOption {
+	id: string;
+	name: string;
+	color: string;
+}
+
+export interface CustomFieldDef {
+	/** Its id: what a task's values are keyed by (`Task.fields`). */
+	id: string;
+	/** Its permanent key ("CF-0003"): what stored settings use (`field:CF-0003`). */
+	key: string;
+	/** Its name in query text, after `custom.` ("due-to-client"). */
+	slug: string;
+	/** Names it went by before a rename: query text saved with one (a saved
+	 *  view, a dashboard's filter) still reads, and prints with `slug`. */
+	formerSlugs?: string[];
+	/** Its name as typed ("Due to client"). */
+	name: string;
+	type: CustomFieldType;
+	/** A select's (or multi-select's) choices, in order. */
+	options?: CustomFieldOption[];
+}
+
+/** A custom field's value on a task: text, url, date (YYYY-MM-DD) and a
+ *  select's option id are strings; a multi-select's option ids and a
+ *  member field's person ids are lists. Unset fields are absent. */
+export type CustomFieldValue = string | number | boolean | string[];
+
+/** How stored settings name a custom field: `field:CF-0003`. */
+export type CustomFieldRef = `field:${string}`;
+export const customFieldRef = (key: string): CustomFieldRef => `field:${key}`;
+/** The key in a `field:<key>` reference, or null when it isn't one. */
+export const customFieldKeyOf = (value: string): string | null => (value.startsWith("field:") ? value.slice(6) || null : null);
+export const isCustomFieldRef = (value: unknown): value is CustomFieldRef => typeof value === "string" && value.startsWith("field:") && value.length > 6;
+
+/**
+ * One test of a custom field's value, from a query value:
+ * - `eq`: a choice's or a person's id (any of a multi-select's or member
+ *   field's), the same number, the same day, a checkbox's `"true"`/`"false"`,
+ *   or text the value contains (case-insensitive);
+ * - `gt`/`gte`/`lt`/`lte`: a number or a day (YYYY-MM-DD) compared;
+ * - `unset`: no value.
+ */
+export interface CustomFieldMatch {
+	op: "eq" | "gt" | "gte" | "lt" | "lte" | "unset";
+	value?: string;
+}
+
+/** A custom field clause (`custom.points:>3`): the task matches when any of
+ *  `matches` holds -- or, `exclude`d (`-custom.client:acme`), when none does.
+ *  Several clauses all have to hold. */
+export interface CustomFieldFilter {
+	/** The field's key ("CF-0003"). */
+	field: string;
+	matches: CustomFieldMatch[];
+	exclude?: boolean;
+}
+
 export interface Task {
 	type: "vertex-flow-task";
 	id: string;
@@ -395,6 +467,12 @@ export interface Task {
 	 * history diffing. The latest completion always wins; reopening clears it.
 	 */
 	completedAt: IsoDate | null;
+	/**
+	 * Custom field values, by field id (`CustomFieldDef.id`). Values of a field
+	 * the host no longer has are ignored. Optional: hosts without custom
+	 * fields (the Obsidian plugin) leave it out.
+	 */
+	fields?: Record<string, CustomFieldValue>;
 
 	// --- Derived at index time; never written to frontmatter. -----------------
 
@@ -680,6 +758,8 @@ export type GroupByField =
 	| "label";
 
 export type SortField =
+	/** A custom field (`field:CF-0003`). */
+	| CustomFieldRef
 	| "rank"
 	| "priority"
 	| "status"
@@ -825,6 +905,8 @@ export interface ViewFilters {
 	 * are independent, not complementary. No companion exists for the
 	 * range-bound fields (`*Before`/`*After`) - see `ArrayFilterKey`.
 	 */
+	/** Custom field clauses (`custom.<slug>:…`), each by the field's key. */
+	custom?: CustomFieldFilter[];
 	excludeStatus?: string[];
 	excludePriority?: string[];
 	excludeTaskType?: string[];
@@ -906,7 +988,8 @@ export interface ViewCalendarState {
  * The list stores what's *hidden*, so a view written before a field existed
  * keeps working - but it also means a newly added field switches itself on
  * everywhere. Where that would be pure noise, suppress it contextually rather
- * than migrating every saved view (see `renderedHiddenFields`).
+ * than migrating every saved view (see `renderedHiddenFields`; custom fields
+ * show only where they're in use, see `shownCustomFields`).
  */
 export const TASK_FIELDS = [
 	"type",
@@ -946,7 +1029,8 @@ export interface SavedView {
 	columns: ViewColumnState;
 	emptyColumnBehavior: EmptyColumnBehavior;
 	/** Task fields hidden from this view's rows/cards; `[]` shows all. */
-	hiddenFields: TaskField[];
+	/** Built-in fields, and custom ones as `field:<key>`. */
+	hiddenFields: Array<TaskField | CustomFieldRef>;
 	/**
 	 * How this view treats sub-tasks. Definitional - it changes what the
 	 * view shows - so it rides in `ViewDefinition` and the draft/Save cycle.
@@ -1280,6 +1364,9 @@ export interface WorkspaceSnapshot {
 	projects: Project[];
 	/** Hosts without milestones leave this out. */
 	milestones?: Milestone[];
+	/** The workspace's custom fields, in their order. Hosts without them
+	 *  leave this out. */
+	customFields?: CustomFieldDef[];
 	views: SavedView[];
 	dashboards: DashboardConfig[];
 	/** Items sitting in this workspace's `Trash/` folder (see `TrashedItem`). */

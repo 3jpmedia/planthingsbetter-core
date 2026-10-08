@@ -13,6 +13,7 @@
  */
 
 import type {
+	CustomFieldDef,
 	DashboardGroupingField,
 	DashboardMetric,
 	DashboardTemporalField,
@@ -126,6 +127,9 @@ export interface ParsedTask {
 	/** `completedAt` - stamped when the task is done. */
 	completed?: ParsedDate;
 	archived?: ParsedDate | boolean;
+	/** Custom field values as written, by field id (the template's
+	 *  `fields`); checked and converted when resolved. */
+	fields?: Record<string, string>;
 	/** Anchors. `undefined` means the field was never declared - which is what
 	 *  makes "declared on both sides and disagreeing" distinguishable from
 	 *  "declared on one side only, synthesize the inverse". */
@@ -194,6 +198,8 @@ export interface ParsedTemplate {
 	dashboards: ParsedDashboard[];
 	projects: ParsedProject[];
 	tasks: ParsedTask[];
+	/** The template's custom fields (frontmatter `fields`). */
+	customFields?: CustomFieldDef[];
 	/** Non-fatal notes (e.g. nesting deeper than markdown can express). */
 	warnings: string[];
 	/** The `people` id starred `"Name*"`, if the template claims one - the

@@ -23,6 +23,8 @@ import type { WorkspaceTemplate } from "./types";
 
 export * from "./types";
 export * from "./instantiate";
+// The markdown format itself, for a host that reads templates of its own.
+export { parseTemplateMarkdown, resolveTemplateContent, TemplateParseError } from "./markdown";
 
 function markdownTemplates(): WorkspaceTemplate[] {
 	const sources = Object.values(TEMPLATE_SOURCES);

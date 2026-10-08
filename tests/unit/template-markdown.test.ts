@@ -753,3 +753,59 @@ describe("template markdown - dashboard xFields and task completed token", () =>
 		expect(task.completedAt).toBe("2026-09-03T00:00:00.000Z");
 	});
 });
+
+describe("custom fields", () => {
+	const FIELDS = [
+		HEADER,
+		"people:",
+		'  - "Maya Chen"',
+		"fields:",
+		'  - "Points (number)"',
+		'  - "Client (select, Acme Corp, Globex)"',
+		'  - "Status (text)"',
+		'  - "Owners (people)"',
+		'  - "Due to client (date)"',
+		'  - "Signed off (checkbox)"',
+	].join("\n");
+	const body = (fieldLine: string) => ["", "# Projects", "", "# Tasks", "", "## Ship it {#task-1}", fieldLine, "", "Note: this colon is prose.", ""].join("\n");
+
+	it("declares fields with keys, slugs and choices, and reads a task's by name or custom.<slug>", () => {
+		const parsed = parseTemplateMarkdown(
+			template(FIELDS, body("status: todo | Points: 5 | client: globex | custom.status: Waiting | Owners: [Maya Chen] | Due to client: +3d | Signed off: yes")),
+		);
+		expect(parsed.customFields?.map((field) => [field.key, field.slug, field.type])).toEqual([
+			["CF-0001", "points", "number"],
+			["CF-0002", "client", "select"],
+			["CF-0003", "status", "text"],
+			["CF-0004", "owners", "member"],
+			["CF-0005", "due-to-client", "date"],
+			["CF-0006", "signed-off", "checkbox"],
+		]);
+		const task = parsed.tasks[0];
+		// The built-in status stays the built-in one.
+		expect(task.status).toBe("todo");
+		expect(task.description).toBe("Note: this colon is prose.");
+		const content = resolveTemplateContent(parsed, context());
+		expect(content.customFields).toHaveLength(6);
+		expect(content.tasks[0].fields).toEqual({
+			"field-points": 5,
+			"field-client": "client-globex",
+			"field-status": "Waiting",
+			"field-owners": [expect.any(String)],
+			"field-due-to-client": "2026-08-29",
+			"field-signed-off": true,
+		});
+	});
+
+	it("says what's wrong with a value or a declaration", () => {
+		expectFailure(template(FIELDS, body("Points: lots")), /Points: lots" is not a number/);
+		expectFailure(template(FIELDS, body("Client: Initech")), /Client has no choice "Initech"/);
+		expectFailure(template([HEADER, "fields:", '  - "Points (decimal)"'].join("\n")), /unknown type "decimal"/);
+	});
+
+	it("leaves an undeclared name as prose", () => {
+		const parsed = parseTemplateMarkdown(template(HEADER, body("Points: 5")));
+		expect(parsed.tasks[0].fields).toBeUndefined();
+		expect(parsed.tasks[0].description).toContain("Points: 5");
+	});
+});

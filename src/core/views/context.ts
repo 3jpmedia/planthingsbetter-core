@@ -5,6 +5,7 @@
 import { scopeOf, type HierarchyScope } from "../hierarchy";
 import { workspaceTaxonomies, type WorkspaceTaxonomies } from "../taxonomy";
 import type {
+	CustomFieldDef,
 	LinkTarget,
 	Milestone,
 	Person,
@@ -38,6 +39,9 @@ export interface ViewContext {
 	 * rather than a full snapshot - those sorts then compare as unset.
 	 */
 	scope?: HierarchyScope;
+	/** The workspace's custom fields, for clauses and sorts that name one
+	 *  (views/custom-fields.ts). Absent without a full snapshot. */
+	customFields?: CustomFieldDef[];
 }
 
 /** The roster person the given `personId` names, if this workspace has that id. */
@@ -71,7 +75,7 @@ export function snapshotContext(
 	const milestones = new Map<LinkTarget, Milestone>();
 	for (const milestone of snapshot.milestones ?? []) milestones.set(milestone.path, milestone);
 
-	return { ...viewContext(snapshot.workspace, me), titles, milestones, scope: scopeOf(snapshot) };
+	return { ...viewContext(snapshot.workspace, me), titles, milestones, scope: scopeOf(snapshot), customFields: snapshot.customFields };
 }
 
 /**

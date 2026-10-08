@@ -16,7 +16,9 @@ import {
 	NONE,
 	SELF,
 	TASK_FIELDS,
+	isCustomFieldRef,
 	type CanvasRelationKind,
+	type CustomFieldRef,
 	type LinkTarget,
 	type SavedView,
 	type SortField,
@@ -27,6 +29,7 @@ import {
 	type ViewFilters,
 } from "../types";
 import type { ViewContext } from "./context";
+import { matchesCustomFilters } from "./custom-fields";
 
 /** Expand the `self` sentinel against the device's per-workspace "me" personId. */
 function resolvePeople(values: string[], context: ViewContext): string[] {
@@ -223,6 +226,8 @@ export function matchesFilters(
 	if (!matchesTaskLinks(task.relations.blockedBy, filters.blockedBy)) return false;
 	if (!matchesTaskLinks(task.relations.related, filters.related)) return false;
 
+	if (!matchesCustomFilters(task, filters.custom, context)) return false;
+
 	if (!matchesDateExact(task.dueDate, filters.dueDate)) return false;
 	if (!matchesDateRange(task.dueDate, filters.dueDateBefore, filters.dueDateAfter))
 		return false;
@@ -405,6 +410,7 @@ export type ArrayFilterKey = Exclude<
 	| "openOnly"
 	| "unscheduled"
 	| "recurring"
+	| "custom"
 	| "dueDateBefore"
 	| "dueDateAfter"
 	| "startDateBefore"
@@ -546,6 +552,18 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 		out[key] = deduped;
 	}
 
+	// Custom field clauses: kept in order, the same clause once.
+	if (filters.custom?.length) {
+		const seen = new Set<string>();
+		const custom = filters.custom.filter((clause) => {
+			const id = JSON.stringify([clause.field.toUpperCase(), Boolean(clause.exclude), clause.matches]);
+			if (seen.has(id) || clause.matches.length === 0) return false;
+			seen.add(id);
+			return true;
+		});
+		if (custom.length > 0) out.custom = custom.map((clause) => ({ field: clause.field, matches: clause.matches, ...(clause.exclude ? { exclude: true } : {}) }));
+	}
+
 	const text = filters.text?.trim();
 	if (text) out.text = text;
 	if (filters.archived) out.archived = filters.archived;
@@ -583,10 +601,12 @@ export function filtersEqual(a: ViewFilters, b: ViewFilters): boolean {
  * a view's note diff stable when the same set is toggled in a different sequence.
  */
 export function canonicalizeHiddenFields(
-	fields: readonly TaskField[] | undefined,
-): TaskField[] {
-	const set = new Set(fields ?? []);
-	return TASK_FIELDS.filter((field) => set.has(field));
+	fields: readonly (TaskField | CustomFieldRef)[] | undefined,
+): Array<TaskField | CustomFieldRef> {
+	const set = new Set<string>(fields ?? []);
+	// Custom fields (`field:<key>`) after the built-in ones, in the order met.
+	const custom = [...new Set((fields ?? []).filter(isCustomFieldRef))];
+	return [...TASK_FIELDS.filter((field) => set.has(field)), ...custom];
 }
 
 /**
@@ -629,7 +649,7 @@ export function canonicalizeHiddenRelationKinds(
  */
 export function renderedHiddenFields(
 	view: Pick<SavedView, "filters" | "hiddenFields">,
-): TaskField[] {
+): Array<TaskField | CustomFieldRef> {
 	const hidden = [...view.hiddenFields];
 	// Same for a view of one milestone (a milestone's own page).
 	for (const field of ["project", "milestone"] as const) {
@@ -729,6 +749,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeRelated?.length &&
 		!filters.mentions?.length &&
 		!filters.text?.trim() &&
+		!filters.custom?.length &&
 		!filters.recurring &&
 		filters.archived !== "only" &&
 		!filters.dueDate?.length &&

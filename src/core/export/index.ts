@@ -23,7 +23,7 @@ import {
 } from "./fields";
 import { buildIcs, type IcsRow } from "./ics";
 import { buildWorkspaceJson, type ExportMeta } from "./json";
-import { resolveDisplayRecord, type ResolveLookups } from "./resolve";
+import { customFieldText, resolveDisplayRecord, type ResolveLookups } from "./resolve";
 import {
 	resolveScopeTasks,
 	type ExportScope,
@@ -39,7 +39,7 @@ export {
 	type ExportMeta,
 	type ResolvedLookups,
 } from "./json";
-export { resolveDisplayRecord, type DisplayRecord } from "./resolve";
+export { customFieldText, resolveDisplayRecord, type DisplayRecord } from "./resolve";
 
 export interface ExportInput {
 	snapshot: WorkspaceSnapshot;
@@ -54,6 +54,9 @@ export interface ExportInput {
 	descriptions?: Record<string, string>;
 	/** Present only when Comments was requested. Task id → comments. */
 	comments?: Record<string, Comment[]>;
+	/** CSV: a column per custom field (`snapshot.customFields`) after the
+	 *  chosen fields. Default true. */
+	customFields?: boolean;
 }
 
 export interface ExportOutput {
@@ -119,6 +122,17 @@ export function buildExport(input: ExportInput): ExportOutput {
 			id,
 			label: FIELDS[id].label,
 		}));
+		// A custom field's column goes by its name -- "Status (custom)" where
+		// that's a built-in column's.
+		const custom = input.customFields === false ? [] : (input.snapshot.customFields ?? []);
+		const builtIn = new Set(columns.map((column) => column.label.toLowerCase()));
+		for (const field of custom) {
+			const id = `field:${field.key}` as const;
+			columns.push({ id, label: builtIn.has(field.name.toLowerCase()) ? `${field.name} (custom)` : field.name });
+			tasks.forEach((task, i) => {
+				(records[i] as Record<string, string>)[id] = customFieldText(field, task.fields?.[field.id], context);
+			});
+		}
 		return {
 			content: buildCsv(records, columns),
 			taskCount: tasks.length,

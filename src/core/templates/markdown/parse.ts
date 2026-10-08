@@ -46,7 +46,11 @@ import {
 	type StatusValue,
 	type TaskTypeValue,
 	type ViewType,
+	CUSTOM_FIELD_TYPES,
+	type CustomFieldDef,
+	type CustomFieldType,
 } from "../../types";
+import { formatKey } from "../../ids";
 import {
 	iconSetting,
 	plainSetting,
@@ -258,6 +262,57 @@ function asStringArray(raw: unknown, field: string): string[] | undefined {
 			fail(`"${field}[${i}]" must be a string like "Name (#hex)"`);
 		}
 		return entry;
+	});
+}
+
+/** How a template may name a field's type. */
+const FIELD_TYPE_WORDS: Record<string, CustomFieldType> = {
+	text: "text",
+	number: "number",
+	select: "select",
+	choice: "select",
+	multiselect: "multiSelect",
+	"multi-select": "multiSelect",
+	choices: "multiSelect",
+	date: "date",
+	checkbox: "checkbox",
+	person: "member",
+	people: "member",
+	member: "member",
+	url: "url",
+	link: "url",
+};
+
+/**
+ * `fields`: the workspace's custom fields, each `"Name (type)"` -- a choice
+ * field lists its choices after the type, `"Client (select, Acme, Globex)"`.
+ * A task sets one on its field line by name (`Points: 5`), or by
+ * `custom.<slug>` where the name is also a built-in field's.
+ */
+function parseCustomFields(raw: unknown): CustomFieldDef[] | undefined {
+	const entries = asStringArray(raw, "fields");
+	if (!entries) return undefined;
+	const seen = new Set<string>();
+	return entries.map((entry, index) => {
+		const { name, parts } = splitShorthand(entry);
+		const [typeWord = "text", ...choices] = parts;
+		const type = FIELD_TYPE_WORDS[typeWord.toLowerCase()];
+		if (!name) fail(`"fields[${index}]" needs a name, like "Points (number)"`);
+		if (!type) fail(`"fields[${index}]": unknown type "${typeWord}" - one of ${CUSTOM_FIELD_TYPES.join(", ")}`);
+		const slug = slugifyPlain(name);
+		if (seen.has(slug)) fail(`Two fields named "${name}"`);
+		seen.add(slug);
+		const hasChoices = type === "select" || type === "multiSelect";
+		return {
+			id: `field-${slug}`,
+			key: formatKey("field", index + 1),
+			slug,
+			name,
+			type,
+			...(hasChoices
+				? { options: choices.map((choice, n) => ({ id: `${slug}-${slugifyPlain(choice)}`, name: choice, color: COLOR_PALETTE[n % COLOR_PALETTE.length] })) }
+				: {}),
+		};
 	});
 }
 
@@ -779,6 +834,7 @@ const TASK_FIELDS = new Set([
 function readFieldLine(
 	line: string,
 	known: Set<string>,
+	custom: Map<string, CustomFieldDef> = new Map(),
 ): Map<string, string> | null {
 	const segments = line.split("|");
 	const fields = new Map<string, string>();
@@ -787,8 +843,15 @@ function readFieldLine(
 		const colon = segment.indexOf(":");
 		if (colon === -1) return null;
 		const key = segment.slice(0, colon).trim().toLowerCase();
-		if (!/^[a-z]+$/.test(key) || !known.has(key)) return null;
-		fields.set(key, segment.slice(colon + 1).trim());
+		// A built-in field first; then a custom field by name or custom.<slug>
+		// (`custom` keys are `field:<id>`, apart from the built-in ones).
+		if (/^[a-z]+$/.test(key) && known.has(key)) {
+			fields.set(key, segment.slice(colon + 1).trim());
+			continue;
+		}
+		const field = custom.get(key);
+		if (!field) return null;
+		fields.set(`field:${field.id}`, segment.slice(colon + 1).trim());
 	}
 
 	return fields.size > 0 ? fields : null;
@@ -829,7 +892,13 @@ interface BodyResult {
 	warnings: string[];
 }
 
-function scanBody(body: string, firstLine: number): BodyResult {
+function scanBody(body: string, firstLine: number, customFields: readonly CustomFieldDef[] = []): BodyResult {
+	// A task's field line names custom fields by name or `custom.<slug>`.
+	const custom = new Map<string, CustomFieldDef>();
+	for (const field of customFields) {
+		custom.set(`custom.${field.slug}`, field);
+		custom.set(field.name.toLowerCase(), field);
+	}
 	const lines = body.split(/\r?\n/);
 	const projects: ParsedProject[] = [];
 	const tasks: ParsedTask[] = [];
@@ -1099,6 +1168,7 @@ function scanBody(body: string, firstLine: number): BodyResult {
 			const fields = readFieldLine(
 				trimmed,
 				currentIsTask ? TASK_FIELDS : PROJECT_FIELDS,
+				currentIsTask ? custom : undefined,
 			);
 			fieldLineOpen = false;
 			if (fields) {
@@ -1139,6 +1209,10 @@ function applyFields(
 	const task = node as ParsedTask;
 
 	for (const [key, value] of fields) {
+		if (key.startsWith("field:")) {
+			task.fields = { ...task.fields, [key.slice(6)]: value };
+			continue;
+		}
 		switch (key) {
 			case "status":
 				node.status = value;
@@ -1393,6 +1467,7 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 	);
 	const labels = parseFlatTaxonomy<LabelValue>(data.labels, "labels", "label", false);
 	const peopleResult = parsePeople(data.people);
+	const customFields = parseCustomFields(data.fields);
 	const people = peopleResult?.people;
 	const mePersonId = peopleResult?.mePersonId;
 
@@ -1417,7 +1492,7 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 	// --- body ----------------------------------------------------------------
 	const frontmatterLines = match[0].split(/\r?\n/).length - 1;
 	const body = normalized.slice(match[0].length);
-	const { projects: bodyProjects, tasks, warnings } = scanBody(body, frontmatterLines + 1);
+	const { projects: bodyProjects, tasks, warnings } = scanBody(body, frontmatterLines + 1, customFields);
 	const projects = [...frontmatterProjects, ...bodyProjects];
 
 	// Projects and Tasks share one anchor namespace: a `project:` reference and
@@ -1467,6 +1542,7 @@ export function parseTemplateMarkdown(source: string): ParsedTemplate {
 		dashboards,
 		projects,
 		tasks,
+		...(customFields?.length ? { customFields } : {}),
 		warnings,
 		mePersonId,
 	};

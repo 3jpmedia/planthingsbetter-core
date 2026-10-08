@@ -30,6 +30,8 @@ export const ACTIVITY_KINDS = [
 	"space",
 	"template",
 	"milestone",
+	// A workspace's own task field -- "Points", "Client" (custom fields).
+	"taskField",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -156,6 +158,11 @@ export const ACTIVITY_FIELDS = [
 	// progress, completed, canceled).
 	"targetDate",
 	"milestoneState",
+	// Custom fields: a task's value for one (the change names the field in
+	// `customField`), and a field's own type and choices.
+	"customField",
+	"fieldType",
+	"options",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 
@@ -192,6 +199,10 @@ export interface ActivityChange {
 	row?: ActivityRef;
 	/** A table's `cell`: its column's name then. */
 	column?: string;
+	/** A task's `customField`: which field, as it was named then. Its values
+	 *  are a choice as a ref, people or several choices as refs, and a
+	 *  number, day, link or yes/no as is; text is recorded without them. */
+	customField?: ActivityRef;
 }
 
 /** What the Activity page's query narrows entries with, beyond the task
