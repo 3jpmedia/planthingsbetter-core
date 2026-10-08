@@ -328,6 +328,49 @@ export interface RecurrenceConfig {
 	copyFields: TaskFieldKey[] | null;
 }
 
+/**
+ * Custom fields: a workspace's own task fields -- "Points" (a number),
+ * "Client" (a choice), "Due to client" (a date). The types are the same as a
+ * database doc's columns, so a field behaves the same in both.
+ *
+ * A host keeps the definitions; core sees each one as a `CustomFieldDef` and
+ * a task's values keyed by the field's `key`. In query text a field is
+ * always `custom.<slug>` (never a bare name, so it can't collide with a
+ * built-in field, today's or a later one); in stored settings -- filters,
+ * sort, hidden fields -- it's `field:<key>`, so renaming one breaks nothing.
+ */
+export const CUSTOM_FIELD_TYPES = ["text", "number", "select", "multiSelect", "date", "checkbox", "member", "url"] as const;
+export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number];
+
+export interface CustomFieldOption {
+	id: string;
+	name: string;
+	color: string;
+}
+
+export interface CustomFieldDef {
+	/** Its permanent key ("CF-0003"); what stored settings and task values use. */
+	key: string;
+	/** Its name in query text, after `custom.` ("due-to-client"). */
+	slug: string;
+	/** Its name as typed ("Due to client"). */
+	name: string;
+	type: CustomFieldType;
+	/** A select's (or multi-select's) choices, in order. */
+	options?: CustomFieldOption[];
+}
+
+/** A custom field's value on a task: text, url, date (YYYY-MM-DD) and a
+ *  select's option id are strings; a multi-select's option ids and a
+ *  member field's person ids are lists. Unset fields are absent. */
+export type CustomFieldValue = string | number | boolean | string[];
+
+/** How stored settings name a custom field: `field:CF-0003`. */
+export type CustomFieldRef = `field:${string}`;
+export const customFieldRef = (key: string): CustomFieldRef => `field:${key}`;
+/** The key in a `field:<key>` reference, or null when it isn't one. */
+export const customFieldKeyOf = (value: string): string | null => (value.startsWith("field:") ? value.slice(6) || null : null);
+
 export interface Task {
 	type: "vertex-flow-task";
 	id: string;
@@ -395,6 +438,11 @@ export interface Task {
 	 * history diffing. The latest completion always wins; reopening clears it.
 	 */
 	completedAt: IsoDate | null;
+	/**
+	 * Custom field values, by field key ("CF-0003"). Optional: hosts without
+	 * custom fields (the Obsidian plugin) leave it out.
+	 */
+	fields?: Record<string, CustomFieldValue>;
 
 	// --- Derived at index time; never written to frontmatter. -----------------
 
