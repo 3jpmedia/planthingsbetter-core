@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sampleSnapshot } from "../../src/core/templates/instantiate";
 import { parseQuery, printQuery, queryContext } from "../../src/core/query";
-import { applyFilters, canonicalizeDefinition, snapshotContext, sortTasks } from "../../src/core/views";
+import { applyFilters, canonicalizeDefinition, shownCustomFields, snapshotContext, sortTasks } from "../../src/core/views";
 import { DEFAULT_DEFINITION } from "../../src/core/views/defaults";
 import type { CustomFieldDef, ViewDefinition, WorkspaceSnapshot } from "../../src/core/types";
 import { task } from "./fixtures";
@@ -145,5 +145,29 @@ describe("sorting and hiding custom fields", () => {
 			"labels",
 			"field:CF-0001",
 		]);
+	});
+});
+
+describe("which custom fields a view shows", () => {
+	const shown = (source: string, tasks = snapshot.tasks) => {
+		const definition = parseQuery(source, qctx).definition;
+		return shownCustomFields(definition, tasks, vctx).map((field) => field.slug);
+	};
+
+	it("shows the fields in use, in their order, and none nobody has filled in", () => {
+		expect(shown("")).toEqual(["points", "client", "due-to-client", "signed-off", "notes", "status", "owner"]);
+		const three = snapshot.tasks.filter((t) => t.id === "T-3" || t.id === "T-4");
+		expect(shown("", three)).toEqual(["points"]);
+	});
+
+	it("shows a field the view filters or sorts by, even with no values", () => {
+		const empty = snapshot.tasks.filter((t) => t.id === "T-3");
+		expect(shown("", empty)).toEqual([]);
+		expect(shown("sort:custom.client", empty)).toEqual(["client"]);
+		expect(shown("custom.notes:unset", empty)).toEqual(["notes"]);
+	});
+
+	it("leaves out what the view hides", () => {
+		expect(shown("hide:custom.points,custom.notes")).toEqual(["client", "due-to-client", "signed-off", "status", "owner"]);
 	});
 });

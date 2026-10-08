@@ -985,7 +985,8 @@ export interface ViewCalendarState {
  * The list stores what's *hidden*, so a view written before a field existed
  * keeps working - but it also means a newly added field switches itself on
  * everywhere. Where that would be pure noise, suppress it contextually rather
- * than migrating every saved view (see `renderedHiddenFields`).
+ * than migrating every saved view (see `renderedHiddenFields`; custom fields
+ * show only where they're in use, see `shownCustomFields`).
  */
 export const TASK_FIELDS = [
 	"type",

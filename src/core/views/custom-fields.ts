@@ -9,10 +9,12 @@
 import {
 	SELF,
 	customFieldKeyOf,
+	customFieldRef,
 	type CustomFieldDef,
 	type CustomFieldFilter,
 	type CustomFieldMatch,
 	type CustomFieldValue,
+	type SavedView,
 	type Task,
 } from "../types";
 import type { ViewContext } from "./context";
@@ -86,6 +88,29 @@ export function matchesCustomFilters(task: Task, filters: readonly CustomFieldFi
 		if (clause.exclude ? any : !any) return false;
 	}
 	return true;
+}
+
+/**
+ * The custom fields a view's rows and cards show, in the host's order: those
+ * the view doesn't hide (`hiddenFields` holds `field:<key>`), and only where
+ * they're in use -- some task in the view has a value, or the view filters or
+ * sorts by the field. `hiddenFields` stores what's hidden, so without that a
+ * field just added would switch itself on as an empty column in every saved
+ * view (see `renderedHiddenFields`); this way it shows up where it's used.
+ */
+export function shownCustomFields(
+	view: Pick<SavedView, "hiddenFields" | "filters" | "sortBy">,
+	tasks: readonly Task[],
+	context: Pick<ViewContext, "customFields">,
+): CustomFieldDef[] {
+	const hidden = new Set<string>(view.hiddenFields.map((field) => field.toUpperCase()));
+	const filtered = new Set((view.filters.custom ?? []).map((clause) => clause.field.toUpperCase()));
+	const sorted = customFieldKeyOf(view.sortBy)?.toUpperCase();
+	return (context.customFields ?? []).filter((field) => {
+		const key = field.key.toUpperCase();
+		if (hidden.has(customFieldRef(key).toUpperCase())) return false;
+		return filtered.has(key) || sorted === key || tasks.some((task) => customValueOf(task, field) !== undefined);
+	});
 }
 
 /** Signed comparison of two tasks by a custom field (`field:<key>`), unset
