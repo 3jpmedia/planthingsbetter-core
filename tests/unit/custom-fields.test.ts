@@ -62,9 +62,11 @@ describe("custom fields in the query language", () => {
 		expect(run("custom.notes:LEGAL").ids).toEqual(["T-1"]);
 	});
 
-	it("reads unset, has: and exclusions", () => {
+	it("reads unset, any value (-…:unset) and exclusions", () => {
 		expect(run("custom.points:unset").ids).toEqual(["T-3"]);
-		expect(run("has:custom.points").ids).toEqual(["T-1", "T-2", "T-4"]);
+		expect(run("-custom.points:unset").ids).toEqual(["T-1", "T-2", "T-4"]);
+		// One spelling for every field: field:value, no has:.
+		expect(parseQuery("has:custom.points", qctx).ok).toBe(false);
 		expect(run("-custom.client:globex").ids).toEqual(["T-1", "T-3", "T-4"]);
 		expect(run("custom.points:>1 custom.client:globex").ids).toEqual(["T-2"]);
 	});
@@ -82,7 +84,6 @@ describe("custom fields in the query language", () => {
 		expect(typo.ok).toBe(false);
 		expect(typo.issues[0]).toMatchObject({ code: "unknown-field", suggestion: "custom.points" });
 		expect(parseQuery("custom.client:>2", qctx).ok).toBe(false);
-		expect(parseQuery("has:status", qctx).ok).toBe(false);
 	});
 
 	it("matches people, and me", () => {
@@ -94,15 +95,14 @@ describe("custom fields in the query language", () => {
 	});
 
 	it("prints what it parses, by name, and stores the field's key", () => {
-		const source = 'custom.client:"Acme Corp",globex -custom.points:unset custom.due-to-client:>=2026-10-01 has:custom.notes custom.signed-off:yes custom.status:blocked';
+		const source = 'custom.client:"Acme Corp",globex -custom.points:unset custom.due-to-client:>=2026-10-01 -custom.notes:unset custom.signed-off:yes custom.status:blocked';
 		const parsed = parseQuery(source, qctx);
 		expect(parsed.ok).toBe(true);
 		expect(parsed.definition.filters.custom?.[0]).toEqual({ field: "CF-0002", matches: [{ op: "eq", value: "o-acme" }, { op: "eq", value: "o-glob" }] });
 		const printed = printQuery(parsed.definition, qctx);
 		expect(printed).toContain('custom.client:"Acme Corp",Globex');
-		// "Not unset" reads better as has:.
-		expect(printed).toContain("has:custom.points");
-		expect(printed).toContain("has:custom.notes");
+		expect(printed).toContain("-custom.points:unset");
+		expect(printed).toContain("-custom.notes:unset");
 		expect(parseQuery(printed, qctx).definition).toEqual(parsed.definition);
 	});
 

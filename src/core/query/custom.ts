@@ -12,7 +12,8 @@
  * - a number or a day, exactly or compared: `>3`, `<=2026-11-01`;
  * - a checkbox: `yes` / `no`;
  * - text and links: what the value contains (any case);
- * - `unset` for no value (`has:custom.points` for any value).
+ * - `unset` for no value (`-custom.points:unset` for any value, as for
+ *   every field).
  */
 
 import { isValidIsoDay } from "../date";

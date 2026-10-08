@@ -233,24 +233,6 @@ export function parseQueryTokens(
 			continue;
 		}
 
-		// `has:custom.points` -- a task with any value for the field.
-		if (field === "has" && !token.excluded) {
-			if (token.values.length === 0) {
-				fail("empty-value", `"has" needs a custom field`, token.span);
-				continue;
-			}
-			for (const value of token.values) {
-				const raw = value.text.trim().toLowerCase();
-				if (!raw.startsWith(CUSTOM_PREFIX)) {
-					fail("unknown-value", `"has:" takes a custom field, like has:custom.points`, value.span);
-					continue;
-				}
-				const ref = customRef(raw, value.span);
-				if (ref) (filters.custom ??= []).push({ field: ref.slice(6), matches: [{ op: "unset" }], exclude: true });
-			}
-			continue;
-		}
-
 		// Exclusion only makes sense on a real filter field, never on layout
 		// clauses, flags, range bounds, or free text.
 		if (

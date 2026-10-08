@@ -260,14 +260,10 @@ export function printFilters(
 		parts.push(`-${spec.token}:${rendered.join(",")}`);
 	}
 
-	// Custom fields (query/custom.ts): `has:` for "any value", else each
-	// clause with its tests.
+	// Custom fields (query/custom.ts): each clause with its tests, as
+	// `field:value` like every other field (any value is `-custom.x:unset`).
 	for (const clause of canonical.custom ?? []) {
 		const token = customFieldToken(clause.field, context);
-		if (clause.exclude && clause.matches.length === 1 && clause.matches[0].op === "unset") {
-			parts.push(`has:${token}`);
-			continue;
-		}
 		const field = context.customFields?.find((candidate) => candidate.key.toUpperCase() === clause.field.toUpperCase());
 		const rendered = field
 			? clause.matches.map((match) => printCustomMatch(field, match, context))
