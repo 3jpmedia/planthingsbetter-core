@@ -48,7 +48,8 @@ export function queryContext(
 		// `p.id`, when present (PTB's projects have one; this plugin's own
 		// file-backed projects don't), is the stable key -- same reasoning as
 		// tasks using `t.id` below instead of their own renameable title.
-		projects: snapshot.projects.map((p) => ({ path: p.path, title: p.id ?? p.title })),
+		// Its title still answers on input, as a milestone's does.
+		projects: snapshot.projects.map((p) => ({ path: p.path, title: p.id ?? p.title, alias: p.id ? p.title : undefined })),
 		milestones: (snapshot.milestones ?? []).map((m) => ({ path: m.path, title: m.id ?? m.title, alias: m.title })),
 		tasks: snapshot.tasks.map((t) => ({ path: t.path, title: t.id })),
 		customFields: snapshot.customFields,

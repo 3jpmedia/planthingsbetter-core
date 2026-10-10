@@ -826,6 +826,38 @@ describe("resolution", () => {
 		);
 	});
 
+	it("finds a project by its name when it's named by key, and says which word it means", () => {
+		// PTB's projects: the key is what prints, and the name still works on
+		// input, as a milestone's does (T-0514).
+		const keyed = {
+			...ctx,
+			projects: [
+				{ path: "p1", title: "SP-P0001", alias: "Website" },
+				{ path: "p2", title: "SP-P0002", alias: "Launch" },
+				{ path: "p3", title: "SP-P0003", alias: "Launch" },
+			],
+		};
+		const byName = parseQuery("project:website", keyed);
+		expect(byName.definition.filters.project).toEqual(["p1"]);
+		expect(byName.issues).toEqual([]);
+		expect(printQuery(byName.definition, keyed)).toBe("projectKey:SP-P0001 group:none sort:rank");
+		expect(parseQuery("project:SP-P0003", keyed).definition.filters.project).toEqual(["p3"]);
+		const twice = parseQuery("project:Launch", keyed);
+		expect(twice.definition.filters.project).toEqual(["Launch"]);
+		expect(twice.issues.map((i) => i.message)).toEqual(['More than one project is called "Launch" - use its key']);
+		expect(parseQuery("project:Nope", keyed).issues.map((i) => i.message)).toEqual(['No project named "Nope" - keeping it as written']);
+		expect(parseQuery("parent:Nope", keyed).issues[0].message).toBe('No task named "Nope" - keeping it as written');
+	});
+
+	it("gives a PTB project its name as an alias, and a file-backed one none", () => {
+		const withKeys = queryContext({
+			...snapshot,
+			projects: [{ ...snapshot.projects[0], id: "SP-P0001" }, { ...snapshot.projects[1], id: undefined }],
+		});
+		expect(withKeys.projects[0]).toMatchObject({ title: "SP-P0001", alias: snapshot.projects[0].title });
+		expect(withKeys.projects[1]).toMatchObject({ title: snapshot.projects[1].title, alias: undefined });
+	});
+
 	it("refuses to guess an ambiguous basename", () => {
 		const ambiguous = {
 			...ctx,

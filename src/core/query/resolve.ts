@@ -125,7 +125,7 @@ function resolveGroupWildcard(
 			: {
 					severity: "warning",
 					code: "unknown-value",
-					message: `No ${fieldLabel} start with "${prefix}" - keeping it as written`,
+					message: `No ${fieldLabel}s start with "${prefix}" - keeping it as written`,
 				},
 	};
 }
@@ -304,15 +304,18 @@ export function resolveValue(
 
 	const entities = entitiesFor(spec.resolveAs, context);
 	if (entities) {
+		// What a person would call it ("project"), not the clause's printed
+		// token ("projectKey", "taskParentKey").
+		const label = spec.resolveAs;
 		if (spec.resolveAs === "project" || spec.resolveAs === "milestone") {
 			const group = resolveGroupWildcard(
 				raw,
 				entities.map((e) => e.title),
-				spec.token,
+				label,
 			);
 			if (group) return group;
 		}
-		return resolveEntity(raw, entities, spec.token);
+		return resolveEntity(raw, entities, label);
 	}
 
 	// Unreachable: every `ResolveAs` is handled above. Kept as a total fallback
