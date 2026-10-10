@@ -34,6 +34,7 @@ import {
 } from "../../src/core/mcp/responses";
 import type { McpLinks } from "../../src/core/mcp/links";
 import type { IsoDate, RecurrenceConfig } from "../../src/core/types";
+import { isOpen, workspaceTaxonomies } from "../../src/core/taxonomy";
 
 const snapshot = sampleSnapshot();
 
@@ -315,6 +316,20 @@ describe("person payloads", () => {
 		expect(rows.length).toBe(snapshot.workspace.people.length);
 		const alice = rows.find((r) => r.name === "Alice");
 		expect(alice?.aliases).toContain("al");
+	});
+
+	it("counts as open only what is neither done, canceled nor archived", () => {
+		const statuses = workspaceTaxonomies(snapshot.workspace).status;
+		for (const row of personRows(snapshot)) {
+			const assigned = snapshot.tasks.filter((t) => t.assignee === row.id);
+			expect(row.totalTaskCount).toBe(assigned.length);
+			expect(row.openTaskCount).toBe(assigned.filter((t) => !t.archived && isOpen(statuses, t.status)).length);
+		}
+		// The sample has someone with a finished task, which isn't open.
+		const finished = snapshot.tasks.find((t) => t.assignee && !isOpen(statuses, t.status));
+		expect(finished).toBeDefined();
+		const row = personRows(snapshot).find((r) => r.id === finished?.assignee);
+		expect(row && row.openTaskCount < row.totalTaskCount).toBe(true);
 	});
 });
 

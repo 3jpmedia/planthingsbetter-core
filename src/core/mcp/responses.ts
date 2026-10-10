@@ -665,13 +665,16 @@ export interface McpPersonRow {
 }
 
 export function personRows(snapshot: WorkspaceSnapshot): McpPersonRow[] {
+	const statuses = workspaceTaxonomies(snapshot.workspace).status;
 	return snapshot.workspace.people.map((p) => {
 		const assigned = snapshot.tasks.filter((t) => t.assignee === p.id);
 		return {
 			id: p.id,
 			name: p.name,
 			aliases: p.aliases ?? [],
-			openTaskCount: assigned.filter((t) => !t.archived).length,
+			// Open as everywhere else (count_tasks, get_stats): not done or
+			// canceled -- and not archived.
+			openTaskCount: assigned.filter((t) => !t.archived && isOpen(statuses, t.status)).length,
 			totalTaskCount: assigned.length,
 		};
 	});
