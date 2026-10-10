@@ -335,7 +335,7 @@ export function printQuery(
 	if (canonical.viewType !== DEFAULT_DEFINITION.viewType) {
 		parts.push(`layout:${LAYOUT_VALUES[canonical.viewType].token}`);
 	}
-	parts.push(`group:${GROUP_VALUES[canonical.groupBy].token}`);
+	parts.push(`group:${isCustomFieldRef(canonical.groupBy) ? customFieldToken(canonical.groupBy.slice(6), context) : GROUP_VALUES[canonical.groupBy].token}`);
 	parts.push(
 		`sort:${canonical.sortDirection === "desc" ? "-" : ""}${sortToken(canonical.sortBy, context)}`,
 	);

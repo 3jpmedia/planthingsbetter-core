@@ -16,7 +16,7 @@ import type {
 	CanvasDirection,
 	CanvasRelationKind,
 	EmptyColumnBehavior,
-	GroupByField,
+	BuiltInGroupByField,
 	SortField,
 	SubtaskDisplay,
 	TaskField,
@@ -195,7 +195,7 @@ export interface EnumValueSpec {
 	aliases: readonly string[];
 }
 
-export const GROUP_VALUES: Record<GroupByField, EnumValueSpec> = {
+export const GROUP_VALUES: Record<BuiltInGroupByField, EnumValueSpec> = {
 	none: { token: "none", aliases: [] },
 	status: { token: "status", aliases: [] },
 	priority: { token: "priority", aliases: [] },
@@ -445,8 +445,8 @@ export const FILTER_FIELD_BY_TOKEN: Map<string, ArrayFilterKey | "text"> =
 	})();
 
 export const GROUP_BY_TOKEN = indexBy(
-	Object.entries(GROUP_VALUES) as [GroupByField, EnumValueSpec][],
-) as Map<string, GroupByField>;
+	Object.entries(GROUP_VALUES) as [BuiltInGroupByField, EnumValueSpec][],
+) as Map<string, BuiltInGroupByField>;
 
 export const SORT_BY_TOKEN = indexBy(
 	Object.entries(SORT_VALUES) as [SortField, EnumValueSpec][],

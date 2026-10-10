@@ -9,13 +9,24 @@
  *    trailing "no value" group when relevant.
  * 2. Grouping by `label` is many-to-many: a task with two labels appears in two
  *    columns. Dragging between label columns therefore means *add/remove*, not
- *    *move* - the UI has to treat that case specially.
+ *    *move* - the UI has to treat that case specially. The same goes for a
+ *    multi-select or member custom field.
+ *
+ * A view can also group by a select, multi-select or member custom field
+ * (`field:CF-0003`): a select's choices are its groups, in the field's order
+ * and all of them, like a taxonomy's; a member field's are the workspace's
+ * people, like assignee's. A reference to a field the host doesn't have (or
+ * one of a type that can't group) groups nothing, like `none`.
  */
 
 import { basename } from "../links";
 import { displayColor, listValues } from "../taxonomy/engine";
 import {
 	NONE,
+	customFieldKeyOf,
+	type BuiltInGroupByField,
+	type CustomFieldDef,
+	type CustomFieldType,
 	type EmptyColumnBehavior,
 	type GroupByField,
 	type SavedView,
@@ -24,8 +35,46 @@ import {
 	type ViewColumnState,
 } from "../types";
 import { milestoneOrderKey, type ViewContext } from "./context";
+import { customFieldByKey, customValueOf } from "./custom-fields";
 
-const NO_VALUE_LABELS: Record<GroupByField, string> = {
+/** The custom field types a view can group by: the ones whose values are
+ *  choices or people. */
+export const GROUPABLE_CUSTOM_FIELD_TYPES: readonly CustomFieldType[] = ["select", "multiSelect", "member"];
+
+/** Whether a view can group by this custom field. */
+export function isGroupableCustomField(field: Pick<CustomFieldDef, "type">): boolean {
+	return GROUPABLE_CUSTOM_FIELD_TYPES.includes(field.type);
+}
+
+/** Whether tasks can sit in several of this grouping's groups at once
+ *  (labels, a multi-select, a member field): moving one between groups
+ *  swaps the one value the groups stand for, not the whole value. */
+export function isManyValuedGrouping(groupBy: GroupByField, context: Pick<ViewContext, "customFields">): boolean {
+	if (groupBy === "label") return true;
+	const field = groupingField(groupBy, context);
+	return field?.type === "multiSelect" || field?.type === "member";
+}
+
+/** The custom field a grouping names, when it's one the view can group by. */
+export function groupingField(groupBy: GroupByField, context: Pick<ViewContext, "customFields">): CustomFieldDef | undefined {
+	const key = customFieldKeyOf(groupBy);
+	if (!key) return undefined;
+	const field = customFieldByKey(context, key);
+	return field && isGroupableCustomField(field) ? field : undefined;
+}
+
+/** The ids a task's value for a groupable field holds: a select's choice, a
+ *  multi-select's choices, a member field's people. A choice the field no
+ *  longer has counts as none. */
+function customKeys(task: Task, field: CustomFieldDef): string[] {
+	const value = customValueOf(task, field);
+	if (value === undefined) return [NONE];
+	const ids = (Array.isArray(value) ? value : [String(value)]).filter((id, index, all) => all.indexOf(id) === index);
+	const known = field.type === "member" ? ids : ids.filter((id) => (field.options ?? []).some((option) => option.id === id));
+	return known.length > 0 ? known : [NONE];
+}
+
+const NO_VALUE_LABELS: Record<BuiltInGroupByField, string> = {
 	none: "All",
 	status: "No Status",
 	priority: "No Priority",
@@ -36,9 +85,14 @@ const NO_VALUE_LABELS: Record<GroupByField, string> = {
 	label: "No Labels",
 };
 
-/** The group key(s) a task belongs to. Only `label` ever returns more than one. */
-function keysFor(task: Task, groupBy: GroupByField): string[] {
-	switch (groupBy) {
+/** The group key(s) a task belongs to. Only `label`, a multi-select and a
+ *  member field ever return more than one. */
+function keysFor(task: Task, groupBy: GroupByField, context: ViewContext): string[] {
+	if (customFieldKeyOf(groupBy)) {
+		const field = groupingField(groupBy, context);
+		return field ? customKeys(task, field) : ["all"];
+	}
+	switch (groupBy as BuiltInGroupByField) {
 		case "none":
 			return ["all"];
 		case "status":
@@ -63,8 +117,14 @@ function labelFor(
 	groupBy: GroupByField,
 	context: ViewContext,
 ): string {
-	if (key === NONE) return NO_VALUE_LABELS[groupBy];
-	if (key === "all") return "All";
+	const field = groupingField(groupBy, context);
+	if (field) {
+		if (key === NONE) return `No ${field.name}`;
+		if (field.type === "member") return context.people.find((p) => p.id === key)?.name ?? key;
+		return field.options?.find((option) => option.id === key)?.name ?? key;
+	}
+	if (key === "all" || customFieldKeyOf(groupBy)) return "All";
+	if (key === NONE) return NO_VALUE_LABELS[groupBy as BuiltInGroupByField];
 
 	switch (groupBy) {
 		case "status":
@@ -92,6 +152,8 @@ function colorFor(
 	context: ViewContext,
 ): string | null {
 	if (key === NONE || key === "all") return null;
+	const field = groupingField(groupBy, context);
+	if (field) return field.type === "member" ? null : (field.options?.find((option) => option.id === key)?.color ?? null);
 	switch (groupBy) {
 		case "status":
 		case "priority":
@@ -113,10 +175,24 @@ function orderedKeys(
 	context: ViewContext,
 ): string[] {
 	if (groupBy === "none") return ["all"];
+	const field = groupingField(groupBy, context);
+	if (customFieldKeyOf(groupBy) && !field) return ["all"];
 
 	const present = new Set<string>();
 	for (const task of tasks) {
-		for (const key of keysFor(task, groupBy)) present.add(key);
+		for (const key of keysFor(task, groupBy, context)) present.add(key);
+	}
+
+	// A select's (or multi-select's) choices: every one, in the field's
+	// order, like a taxonomy's. A member field's: the workspace's people,
+	// like assignee's.
+	if (field) {
+		const keys = field.type === "member" ? context.people.map((person) => person.id) : (field.options ?? []).map((option) => option.id);
+		for (const key of present) {
+			if (key !== NONE && !keys.includes(key)) keys.push(key);
+		}
+		if (present.has(NONE)) keys.push(NONE);
+		return keys;
 	}
 
 	// Taxonomy groupings render every configured value in taxonomy order, so
@@ -186,7 +262,7 @@ export function groupTasks(
 	const buckets = new Map<string, Task[]>();
 	for (const key of orderedKeys(tasks, groupBy, context)) buckets.set(key, []);
 	for (const task of tasks) {
-		for (const key of keysFor(task, groupBy)) {
+		for (const key of keysFor(task, groupBy, context)) {
 			const bucket = buckets.get(key);
 			if (bucket) bucket.push(task);
 			else buckets.set(key, [task]);

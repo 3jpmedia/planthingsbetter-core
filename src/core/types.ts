@@ -747,7 +747,8 @@ export type CanvasArrangement = "flow" | "tree";
 export type TimelineZoom = "day" | "week" | "month" | "quarter" | "year" | "all";
 export type CanvasDirection = "right" | "down";
 
-export type GroupByField =
+/** A grouping built into PTB (everything but a custom field). */
+export type BuiltInGroupByField =
 	| "none"
 	| "status"
 	| "priority"
@@ -756,6 +757,12 @@ export type GroupByField =
 	| "project"
 	| "milestone"
 	| "label";
+
+/**
+ * What a view groups by: a built-in grouping, or a select, multi-select or
+ * member custom field (`field:CF-0003`; `group:custom.<slug>` in query text).
+ */
+export type GroupByField = BuiltInGroupByField | CustomFieldRef;
 
 export type SortField =
 	/** A custom field (`field:CF-0003`). */

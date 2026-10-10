@@ -31,6 +31,7 @@ import type {
 } from "../types";
 import { isValidIsoDay } from "../date";
 import { canonicalizeDefinition, EXCLUDE_FIELD_KEY } from "../views/filter";
+import { isGroupableCustomField } from "../views/group";
 import { DEFAULT_DEFINITION } from "../views/defaults";
 import type { QueryContext } from "./context";
 import {
@@ -343,9 +344,19 @@ export function parseQueryTokens(
 			// Closed unions, unlike taxonomy ids - a stale one would just be
 			// coerced away on save, so there's nothing to preserve verbatim.
 			if (field === "group") {
-				const match = GROUP_BY_TOKEN.get(raw);
-				if (!match) fail("unknown-value", `"${raw}" isn't a grouping`, value.span);
-				else groupBy = match;
+				if (raw.startsWith(CUSTOM_PREFIX)) {
+					// A custom field groups when its values are choices or
+					// people (views/group.ts).
+					const ref = customRef(raw, value.span);
+					const def = ref ? customFieldForToken(raw.slice(CUSTOM_PREFIX.length), context) : undefined;
+					if (ref && def && !isGroupableCustomField(def)) {
+						fail("not-expressible", `${raw} can't group - only select, multi-select and person fields can`, value.span);
+					} else if (ref) groupBy = ref;
+				} else {
+					const match = GROUP_BY_TOKEN.get(raw);
+					if (!match) fail("unknown-value", `"${raw}" isn't a grouping`, value.span);
+					else groupBy = match;
+				}
 			} else if (field === "sort") {
 				const match = raw.startsWith(CUSTOM_PREFIX) ? customRef(raw, value.span) : SORT_BY_TOKEN.get(raw);
 				if (!match) {
