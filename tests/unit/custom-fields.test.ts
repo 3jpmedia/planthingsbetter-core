@@ -189,7 +189,7 @@ describe("custom fields in exports", () => {
 		buildExport({ snapshot, context: vctx, scope: { kind: "workspace" }, format, fields: ["id", "title", "status"], today: "2026-10-08", includeArchived: false, pluginVersion: "test" }).content;
 
 	it("adds a CSV column per field, by name, '(custom)' where a built-in column has it", () => {
-		const [header, first] = exported("csv").replace(/^﻿/, "").split("\r\n");
+		const [header, first] = exported("csv").replace(/^\uFEFF/, "").split("\r\n");
 		expect(header).toBe("ID,Title,Status,Points,Client,Due to client,Signed off,Notes,Status (custom),Owner");
 		const person = snapshot.workspace.people[0]?.name ?? "";
 		expect(first).toContain(`8,Acme Corp,2026-11-01,Yes,Waiting on legal,,${person}`);

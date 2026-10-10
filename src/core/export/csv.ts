@@ -11,7 +11,7 @@
 import type { DisplayRecord } from "./resolve";
 import type { FieldId } from "./fields";
 
-export const UTF8_BOM = "﻿";
+export const UTF8_BOM = "\uFEFF";
 
 export interface CsvColumn {
 	/** A built-in field, or a custom field's column (`field:<key>`). */
