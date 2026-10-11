@@ -183,10 +183,12 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "date",
 		unsetIsVacuous: true,
 	},
-	// When work began (`Task.startedAt`): `started:unset` is never started.
+	// When work began (`Task.startedAt`): `taskStarted:unset` is never
+	// started. Named for the task, since milestones have dates of their own
+	// (a start, a target); `started:` still reads as it.
 	startedAt: {
-		token: "started",
-		aliases: ["startedat", "started-at"],
+		token: "taskStarted",
+		aliases: ["started", "startedat", "started-at"],
 		resolveAs: "date",
 		unsetIsVacuous: false,
 	},
@@ -233,7 +235,7 @@ export const SORT_VALUES: Record<SortField, EnumValueSpec> = {
 	estimate: { token: "estimate", aliases: [] },
 	createdAt: { token: "created", aliases: ["createdat"] },
 	updatedAt: { token: "updated", aliases: ["updatedat"] },
-	startedAt: { token: "started", aliases: ["startedat"] },
+	startedAt: { token: "taskStarted", aliases: ["started", "startedat"] },
 	taskType: { token: "type", aliases: ["tasktype", "kind"] },
 	project: { token: "project", aliases: [] },
 	milestone: { token: "milestone", aliases: ["ms"] },
@@ -302,8 +304,8 @@ export const DATE_BOUND_FIELDS: Record<
 	createdAtAfter: { token: "created-after", aliases: [] },
 	updatedAtBefore: { token: "updated-before", aliases: [] },
 	updatedAtAfter: { token: "updated-after", aliases: [] },
-	startedAtBefore: { token: "started-before", aliases: [] },
-	startedAtAfter: { token: "started-after", aliases: [] },
+	startedAtBefore: { token: "taskStartedBefore", aliases: ["started-before"] },
+	startedAtAfter: { token: "taskStartedAfter", aliases: ["started-after"] },
 	completedAtBefore: { token: "completed-before", aliases: [] },
 	completedAtAfter: { token: "completed-after", aliases: [] },
 };

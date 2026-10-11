@@ -1155,7 +1155,9 @@ describe("date field filtering", () => {
 		const started = parseQuery("started-after:2026-01-01 started-at:2026-02-01", ctx);
 		expect(started.definition.filters.startedAtAfter).toBe("2026-01-01");
 		expect(started.definition.filters.startedAt).toEqual(["2026-02-01"]);
-		expect(printQuery(started.definition, ctx)).toContain("started:2026-02-01");
+		expect(printQuery(started.definition, ctx)).toContain("taskStarted:2026-02-01");
+		expect(printQuery(started.definition, ctx)).toContain("taskStartedAfter:2026-01-01");
+		expect(parseQuery("taskStartedBefore:2026-03-01", ctx).definition.filters.startedAtBefore).toBe("2026-03-01");
 
 		const start = parseQuery("start-date:2026-01-01", ctx);
 		expect(start.definition.filters.startDate).toEqual(["2026-01-01"]);
@@ -1296,7 +1298,7 @@ describe("any: the positive form of unset", () => {
 	});
 
 	it("matches the tasks with a value, on every field that takes unset", () => {
-		for (const field of ["priority", "type", "label", "assignee", "project", "milestone", "space", "parent", "blocksTaskKey", "due", "start", "started", "completed"]) {
+		for (const field of ["priority", "type", "label", "assignee", "project", "milestone", "space", "parent", "blocksTaskKey", "due", "start", "taskStarted", "started", "completed"]) {
 			const all = ids("show:archived");
 			const unset = ids(`${field}:unset show:archived`);
 			const any = ids(`${field}:any show:archived`);

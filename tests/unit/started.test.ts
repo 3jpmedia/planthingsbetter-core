@@ -17,7 +17,7 @@ function withStarts(): WorkspaceSnapshot {
 	return { ...base, tasks };
 }
 
-describe("started: in views", () => {
+describe("taskStarted: in views", () => {
 	const snapshot = withStarts();
 	const ctx = queryContext(snapshot);
 	const context = snapshotContext(snapshot);
@@ -27,18 +27,21 @@ describe("started: in views", () => {
 			.sort();
 
 	it("matches the day work began, by range, never started, and excluded", () => {
-		expect(paths("started:2026-10-11")).toEqual(["t1", "t4"]);
-		expect(paths("started-before:2026-10-11")).toEqual(["t2"]);
-		expect(paths("started-after:2026-10-09")).toEqual(["t1", "t4"]);
-		expect(paths("started:unset")).toEqual(["t3"]);
-		expect(paths("started:any")).toEqual(["t1", "t2", "t4"]);
-		expect(paths("-started:2026-10-11")).toEqual(["t2", "t3"]);
+		expect(paths("taskStarted:2026-10-11")).toEqual(["t1", "t4"]);
+		expect(paths("taskStartedBefore:2026-10-11")).toEqual(["t2"]);
+		expect(paths("taskStartedAfter:2026-10-09")).toEqual(["t1", "t4"]);
+		expect(paths("taskStarted:unset")).toEqual(["t3"]);
+		expect(paths("taskStarted:any")).toEqual(["t1", "t2", "t4"]);
+		expect(paths("-taskStarted:2026-10-11")).toEqual(["t2", "t3"]);
 	});
 
 	it("sorts by it, never-started last either way", () => {
 		const sorted = (direction: "asc" | "desc") => sortTasks(snapshot.tasks, "startedAt", direction, context).map((t) => t.path);
 		expect(sorted("asc")).toEqual(["t2", "t4", "t1", "t3"]);
 		expect(sorted("desc")).toEqual(["t1", "t4", "t2", "t3"]);
+		expect(parseQuery("sort:taskStarted", ctx).definition.sortBy).toBe("startedAt");
+		// The short spelling still reads, and prints as the long one.
+		expect(paths("started:2026-10-11")).toEqual(["t1", "t4"]);
 		expect(parseQuery("sort:started", ctx).definition.sortBy).toBe("startedAt");
 	});
 });
