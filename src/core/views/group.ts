@@ -66,7 +66,7 @@ export function groupingField(groupBy: GroupByField, context: Pick<ViewContext, 
 /** The ids a task's value for a groupable field holds: a select's choice, a
  *  multi-select's choices, a member field's people. A choice the field no
  *  longer has counts as none. */
-function customKeys(task: Task, field: CustomFieldDef): string[] {
+export function customKeys(task: Task, field: CustomFieldDef): string[] {
 	const value = customValueOf(task, field);
 	if (value === undefined) return [NONE];
 	const ids = (Array.isArray(value) ? value : [String(value)]).filter((id, index, all) => all.indexOf(id) === index);

@@ -6,9 +6,12 @@
  * checks that flag, not this module.
  */
 
-import { NONE } from "../types";
+import { NONE, customFieldKeyOf } from "../types";
 import type {
+  CustomFieldDef,
+  CustomFieldRef,
   DashboardFieldMapping,
+  DashboardGroupBy,
   DashboardGroupingField,
   DashboardMetric,
   DashboardScope,
@@ -17,6 +20,8 @@ import type {
 import type { ViewContext } from "../views/context";
 import { displayName } from "../taxonomy/engine";
 import { basename } from "../links";
+import { customFieldByKey } from "../views/custom-fields";
+import { groupingField } from "../views/group";
 
 const GROUPING_LABEL: Record<DashboardGroupingField, string> = {
   status: "Status",
@@ -43,26 +48,50 @@ const METRIC_LABEL: Record<DashboardMetric, string> = {
   estimateAvg: "Average estimate",
   cycleTimeAvg: "Average cycle time",
   cycleTimeMedian: "Median cycle time",
+  fieldSum: "Sum",
+  fieldAvg: "Average",
 };
 
-export function groupingFieldLabel(field: DashboardGroupingField): string {
-  return GROUPING_LABEL[field];
+/** A grouping's name: a built-in's, or a custom field's own (its current
+ *  name, so a rename shows; "a removed field" once it's gone). */
+export function groupingFieldLabel(
+  field: DashboardGroupBy,
+  context?: Pick<ViewContext, "customFields">,
+): string {
+  const key = customFieldKeyOf(field);
+  if (key) return (context && customFieldByKey(context, key)?.name) ?? "a removed field";
+  return GROUPING_LABEL[field as DashboardGroupingField];
 }
 
 export function temporalFieldLabel(field: DashboardTemporalField): string {
   return TEMPORAL_LABEL[field];
 }
 
-export function metricLabel(metric: DashboardMetric): string {
+/** A metric's name. `field`: the number custom field `fieldSum` and
+ *  `fieldAvg` read ("Points sum", "Average points"). */
+export function metricLabel(
+  metric: DashboardMetric,
+  field?: Pick<CustomFieldDef, "name">,
+): string {
+  if (metric === "fieldSum") return field ? `${field.name} sum` : "Sum of a field";
+  if (metric === "fieldAvg") return field ? `Average ${field.name.toLowerCase()}` : "Average of a field";
   return METRIC_LABEL[metric];
 }
 
 /** Human name for one discrete value of a grouping field. */
 export function valueLabel(
-  field: DashboardGroupingField,
+  field: DashboardGroupBy,
   value: string,
   context: ViewContext,
 ): string {
+  if (customFieldKeyOf(field)) {
+    const def = groupingField(field as CustomFieldRef, context);
+    if (!def) return value;
+    if (value === NONE) return `No ${def.name.toLowerCase()}`;
+    if (def.type === "member") return context.people.find((p) => p.id === value)?.name ?? value;
+    return def.options?.find((o) => o.id === value)?.name ?? value;
+  }
+  field = field as DashboardGroupingField;
   if (value === NONE) {
     return field === "assignee"
       ? "Unassigned"
@@ -91,8 +120,21 @@ function describeScope(scope: DashboardScope, context: ViewContext): string {
 }
 
 /** What a bar or line measures, as a title's head: "Tasks" for a count. */
-function measured(metric: DashboardMetric | undefined): string {
-  return !metric || metric === "count" ? "Tasks" : METRIC_LABEL[metric];
+function measured(
+  metric: DashboardMetric | undefined,
+  metricField: CustomFieldRef | undefined,
+  context: ViewContext,
+): string {
+  if (!metric || metric === "count") return "Tasks";
+  return metricLabel(metric, fieldOf(metricField, context));
+}
+
+function fieldOf(
+  ref: CustomFieldRef | undefined,
+  context: Pick<ViewContext, "customFields">,
+): CustomFieldDef | undefined {
+  const key = ref ? customFieldKeyOf(ref) : null;
+  return key ? customFieldByKey(context, key) : undefined;
 }
 
 export function autoTitle(
@@ -102,20 +144,20 @@ export function autoTitle(
   switch (mapping.chartType) {
     case "bar":
     case "pie":
-      return `${measured(mapping.chartType === "bar" ? mapping.metric : undefined)} by ${GROUPING_LABEL[mapping.groupBy]}`;
+      return `${measured(mapping.chartType === "bar" ? mapping.metric : undefined, mapping.chartType === "bar" ? mapping.metricField : undefined, context)} by ${groupingFieldLabel(mapping.groupBy, context)}`;
     case "line":
     case "timeline": {
       const head =
         mapping.chartType === "timeline"
           ? `Cumulative tasks by ${TEMPORAL_LABEL[mapping.xField]}`
-          : `${measured(mapping.metric)} by ${TEMPORAL_LABEL[mapping.xField]}`;
+          : `${measured(mapping.metric, mapping.metricField, context)} by ${TEMPORAL_LABEL[mapping.xField]}`;
       return mapping.groupBy
-        ? `${head}, split by ${GROUPING_LABEL[mapping.groupBy]}`
+        ? `${head}, split by ${groupingFieldLabel(mapping.groupBy, context)}`
         : head;
     }
     case "kpi":
       return mapping.scope
-        ? `${METRIC_LABEL[mapping.metric]} where ${describeScope(mapping.scope, context)}`
-        : METRIC_LABEL[mapping.metric];
+        ? `${metricLabel(mapping.metric, fieldOf(mapping.metricField, context))} where ${describeScope(mapping.scope, context)}`
+        : metricLabel(mapping.metric, fieldOf(mapping.metricField, context));
   }
 }

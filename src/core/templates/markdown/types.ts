@@ -164,11 +164,16 @@ export interface ParsedWidget {
 	title: string;
 	/** bar/pie: required. line/timeline: optional secondary split. */
 	groupBy?: DashboardGroupingField;
+	/** The same, by a custom field's query name (`custom.client` -> "client"),
+	 *  resolved against the template's `fields` at resolve time. */
+	groupByField?: string;
 	/** line/timeline. */
 	xField?: DashboardTemporalField;
 	bucket?: DashboardTimeBucket;
-	/** kpi. */
+	/** kpi, and an optional measure of a bar or line. */
 	metric?: DashboardMetric;
+	/** `fieldSum` / `fieldAvg`: the number field measured, by query name. */
+	metricField?: string;
 	/** kpi - `value` is a name, resolved like every other reference. */
 	scope?: { field: DashboardGroupingField; value: string };
 	/** Row-layout share. Ignored by the flat `widgets` form. */

@@ -542,3 +542,131 @@ describe("layout helpers", () => {
 		expect(w.layout.w).toBe(CHART_META.bar.defaultW);
 	});
 });
+
+describe("custom fields in charts (T-0274)", () => {
+	const points = { id: "f-points", key: "CF-0001", slug: "points", name: "Points", type: "number" as const };
+	const client = {
+		id: "f-client",
+		key: "CF-0002",
+		slug: "client",
+		name: "Client",
+		type: "select" as const,
+		options: [
+			{ id: "acme", name: "Acme", color: "#ff0000" },
+			{ id: "globex", name: "Globex", color: "#00ff00" },
+		],
+	};
+	const owners = { id: "f-owners", key: "CF-0003", slug: "owners", name: "Owners", type: "member" as const };
+	const withFields = (customFields: (typeof points | typeof client | typeof owners)[]) => ({ ...context, customFields });
+	const base = snapshot.tasks[0];
+	const task = (id: string, fields?: Task["fields"]): Task => ({ ...base, id, path: id, fields });
+	const tasks = [
+		task("a", { "f-points": 3, "f-client": "acme" }),
+		task("b", { "f-points": 5, "f-client": "acme" }),
+		task("c", { "f-points": 2.5, "f-client": "globex" }),
+		task("d"),
+	];
+	const kpi = (metric: "fieldSum" | "fieldAvg", metricField: `field:${string}` = "field:CF-0001") =>
+		widget({ id: "w", chartType: "kpi", fieldMapping: { chartType: "kpi", metric, metricField, scope: null } });
+
+	it("sums and averages a number field over the tasks that have a value", () => {
+		const ctx = withFields([points, client]);
+		const sum = computeWidgetData(kpi("fieldSum"), tasks, ctx);
+		expect(sum).toMatchObject({ kind: "kpi", value: 10.5, decimals: 2, empty: false });
+		const avg = computeWidgetData(kpi("fieldAvg"), tasks, ctx);
+		expect(avg).toMatchObject({ kind: "kpi", decimals: 1, empty: false });
+		if (avg.kind === "kpi") expect(avg.value).toBeCloseTo(3.5);
+		// Whole numbers show none.
+		expect(computeWidgetData(kpi("fieldSum"), tasks.slice(0, 2), ctx)).toMatchObject({ value: 8, decimals: 0 });
+	});
+
+	it("has nothing to average when no task has a value, but a sum is 0", () => {
+		const ctx = withFields([points]);
+		expect(computeWidgetData(kpi("fieldAvg"), [task("x")], ctx).empty).toBe(true);
+		expect(computeWidgetData(kpi("fieldSum"), [task("x")], ctx)).toMatchObject({ value: 0, empty: false });
+	});
+
+	it("groups a bar by a select field, in its choices' order and colors, and sums points per group", () => {
+		const ctx = withFields([points, client]);
+		const data = computeWidgetData(
+			widget({ id: "w", chartType: "bar", fieldMapping: { chartType: "bar", groupBy: "field:CF-0002", metric: "fieldSum", metricField: "field:CF-0001" } }),
+			tasks,
+			ctx,
+		);
+		if (data.kind !== "categorical") throw new Error("expected categorical");
+		expect(data.data.map((d) => [d.label, d.value, d.color])).toEqual([
+			["Acme", 8, "#ff0000"],
+			["Globex", 2.5, "#00ff00"],
+			["No client", 0, expect.any(String)],
+		]);
+	});
+
+	it("groups by a member field and counts a multi-select's task in each of its choices", () => {
+		const multi = { ...client, id: "f-multi", key: "CF-0004", slug: "multi", name: "Multi", type: "multiSelect" as const };
+		const ctx = withFields([multi, owners]);
+		const data = computeWidgetData(
+			widget({ id: "w", chartType: "pie", fieldMapping: { chartType: "pie", groupBy: "field:CF-0004" } }),
+			[task("a", { "f-multi": ["acme", "globex"] }), task("b", { "f-multi": ["acme"] })],
+			ctx,
+		);
+		if (data.kind !== "categorical") throw new Error("expected categorical");
+		expect(data.data.map((d) => [d.label, d.value])).toEqual([["Acme", 2], ["Globex", 1]]);
+		const people = computeWidgetData(
+			widget({ id: "w", chartType: "pie", fieldMapping: { chartType: "pie", groupBy: "field:CF-0003" } }),
+			[task("a", { "f-owners": [snapshot.workspace.people[0].id] })],
+			{ ...ctx, people: snapshot.workspace.people },
+		);
+		if (people.kind !== "categorical") throw new Error("expected categorical");
+		expect(people.data[0]).toMatchObject({ label: snapshot.workspace.people[0].name, value: 1 });
+	});
+
+	it("keeps working through a rename, and titles itself with the field's current name", () => {
+		const mapping = { chartType: "bar", groupBy: "field:CF-0002", metric: "fieldSum", metricField: "field:CF-0001" } as const;
+		const before = withFields([points, client]);
+		const after = withFields([{ ...points, name: "Story points" }, { ...client, name: "Customer", slug: "customer" }]);
+		expect(autoTitle(mapping, before)).toBe("Points sum by Client");
+		expect(autoTitle(mapping, after)).toBe("Story points sum by Customer");
+		const data = computeWidgetData(widget({ id: "w", chartType: "bar", fieldMapping: mapping }), tasks, after);
+		if (data.kind !== "categorical") throw new Error("expected categorical");
+		expect(data.data[0]).toMatchObject({ label: "Acme", value: 8 });
+		expect(autoTitle({ chartType: "kpi", metric: "fieldAvg", metricField: "field:CF-0001", scope: null }, after)).toBe("Average story points");
+	});
+
+	it("says so when a field it uses was removed or changed type, instead of drawing", () => {
+		const gone = withFields([]);
+		for (const mapping of [
+			{ chartType: "bar", groupBy: "field:CF-0002" },
+			{ chartType: "kpi", metric: "fieldSum", metricField: "field:CF-0001", scope: null },
+			{ chartType: "line", xField: "createdAt", bucket: "week", groupBy: null, metric: "fieldAvg", metricField: "field:CF-0001" },
+		] as const) {
+			const data = computeWidgetData(widget({ id: "w", chartType: mapping.chartType, fieldMapping: mapping }), tasks, gone);
+			expect(data.empty).toBe(true);
+			expect(data.unavailable).toMatch(/removed/);
+		}
+		const retyped = withFields([{ ...points, type: "text" as never }]);
+		expect(computeWidgetData(kpi("fieldSum"), tasks, retyped).unavailable).toMatch(/no longer a number field/);
+		expect(autoTitle({ chartType: "bar", groupBy: "field:CF-0002" }, gone)).toBe("Tasks by a removed field");
+	});
+
+	it("keeps a field's chart valid through the compatibility rules and dashboard notes", () => {
+		expect(isFieldMappingValid({ chartType: "bar", groupBy: "field:CF-0002", metric: "fieldSum", metricField: "field:CF-0001" })).toBe(true);
+		// A field measure needs its field; no other measure takes one.
+		expect(isFieldMappingValid({ chartType: "kpi", metric: "fieldSum", scope: null })).toBe(false);
+		expect(isFieldMappingValid({ chartType: "kpi", metric: "estimateSum", metricField: "field:CF-0001", scope: null })).toBe(false);
+		// Retargeting keeps both.
+		expect(retargetFieldMapping({ chartType: "bar", groupBy: "field:CF-0002", metric: "fieldAvg", metricField: "field:CF-0001" }, "line")).toMatchObject({
+			chartType: "line",
+			groupBy: null,
+			metric: "fieldAvg",
+			metricField: "field:CF-0001",
+		});
+		expect(retargetFieldMapping({ chartType: "bar", groupBy: "field:CF-0002", metric: "fieldAvg", metricField: "field:CF-0001" }, "pie")).toEqual({ chartType: "pie", groupBy: "field:CF-0002" });
+		expect(retargetFieldMapping({ chartType: "bar", groupBy: "status", metric: "fieldAvg", metricField: "field:CF-0001" }, "kpi")).toEqual({ chartType: "kpi", metric: "fieldAvg", metricField: "field:CF-0001", scope: null });
+		const dashboard: DashboardConfig = {
+			...newDashboard("W", "d", "D"),
+			widgets: [widget({ id: "w", chartType: "bar", fieldMapping: { chartType: "bar", groupBy: "field:CF-0002", metric: "fieldSum", metricField: "field:CF-0001" } })],
+		};
+		const back = parseDashboard(serializeDashboard(dashboard), { path: "W/Dashboards/d" }).value;
+		expect(back.widgets[0].fieldMapping).toEqual(dashboard.widgets[0].fieldMapping);
+	});
+});

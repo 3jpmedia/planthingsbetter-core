@@ -630,6 +630,34 @@ describe("serializeTemplateMarkdown round-trip", () => {
 			expect(values[byName("Reviewer").id]).toHaveLength(1);
 		});
 
+		it("round-trips charts that group by or add up a custom field (T-0274)", () => {
+			const dashboards = [
+				makeDashboard("d", "Fields", [
+					makeWidget("w1", "bar", "Points by client", { chartType: "bar", groupBy: "field:CF-0002", metric: "fieldSum", metricField: "field:CF-0001" }, { x: 0, y: 0, w: 6, h: 4 }),
+					makeWidget("w2", "kpi", "Points left", { chartType: "kpi", metric: "fieldAvg", metricField: "field:CF-0001", scope: null }, { x: 6, y: 0, w: 6, h: 2 }),
+					// A field the template doesn't carry can't be read back: left out.
+					makeWidget("w3", "pie", "By gone", { chartType: "pie", groupBy: "field:CF-0099" }, { x: 0, y: 4, w: 6, h: 4 }),
+				]),
+			];
+			const source = serializeTemplateMarkdown({
+				meta: { id: "charts", name: "Charts" },
+				workspace: snapshot.workspace,
+				views: [],
+				dashboards,
+				projects: [],
+				customFields: fields,
+				queryContext: queryContext(snapshot),
+			});
+			expect(source).toContain("custom.client");
+			const content = resolveTemplateContent(parseTemplateMarkdown(source), ctx());
+			const mappings = content.dashboards![0].widgets.map((w) => w.fieldMapping);
+			const keyOf = (slug: string) => `field:${content.customFields!.find((f) => f.slug === slug)!.key}`;
+			expect(mappings).toEqual([
+				{ chartType: "bar", groupBy: keyOf("client"), metric: "fieldSum", metricField: keyOf("points") },
+				{ chartType: "kpi", metric: "fieldAvg", metricField: keyOf("points"), scope: null },
+			]);
+		});
+
 		it("writes no fields when there are none", () => {
 			expect(serializeTemplateMarkdown({
 				meta: { id: "x", name: "X" }, workspace: snapshot.workspace, views: [], dashboards: [], projects: [], queryContext: queryContext(snapshot),

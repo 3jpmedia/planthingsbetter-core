@@ -13,13 +13,19 @@ import {
 	DASHBOARD_METRICS,
 	DASHBOARD_TEMPORAL_FIELDS,
 	DASHBOARD_TIME_BUCKETS,
+	isCustomFieldRef,
 	type ChartType,
+	type CustomFieldDef,
+	type CustomFieldRef,
 	type DashboardFieldMapping,
+	type DashboardGroupBy,
 	type DashboardGroupingField,
 	type DashboardMetric,
 	type DashboardTemporalField,
 	type DashboardTimeBucket,
 } from "../types";
+import type { ViewContext } from "../views/context";
+import { isGroupableCustomField } from "../views/group";
 
 /** Bar / Pie group by a discrete field; Line / Timeline plot a temporal one. */
 export function isDiscreteChart(chartType: ChartType): boolean {
@@ -35,6 +41,26 @@ export function groupingFieldsFor(): readonly DashboardGroupingField[] {
 	return DASHBOARD_GROUPING_FIELDS;
 }
 
+/** The custom fields a chart can group by (a select, multi-select or
+ *  member field), from the workspace's, in their order. */
+export function groupableCustomFields(
+	context: Pick<ViewContext, "customFields">,
+): CustomFieldDef[] {
+	return (context.customFields ?? []).filter(isGroupableCustomField);
+}
+
+/** The custom fields `fieldSum` and `fieldAvg` can measure (number fields). */
+export function measurableCustomFields(
+	context: Pick<ViewContext, "customFields">,
+): CustomFieldDef[] {
+	return (context.customFields ?? []).filter((field) => field.type === "number");
+}
+
+/** Whether a metric adds or averages a number custom field. */
+export function isFieldMetric(metric: DashboardMetric | undefined): boolean {
+	return metric === "fieldSum" || metric === "fieldAvg";
+}
+
 export function temporalFieldsFor(): readonly DashboardTemporalField[] {
 	return DASHBOARD_TEMPORAL_FIELDS;
 }
@@ -47,8 +73,14 @@ export function metricsFor(): readonly DashboardMetric[] {
 	return DASHBOARD_METRICS;
 }
 
-function isGroupingField(value: unknown): value is DashboardGroupingField {
+function isBuiltInGrouping(value: unknown): value is DashboardGroupingField {
 	return DASHBOARD_GROUPING_FIELDS.includes(value as DashboardGroupingField);
+}
+
+/** A built-in grouping, or a custom field's reference (whether the field
+ *  exists, and fits, is checked where the workspace's fields are known). */
+function isGroupingField(value: unknown): value is DashboardGroupBy {
+	return isBuiltInGrouping(value) || isCustomFieldRef(value);
 }
 
 function isTemporalField(value: unknown): value is DashboardTemporalField {
@@ -63,6 +95,13 @@ function isMetric(value: unknown): value is DashboardMetric {
 	return DASHBOARD_METRICS.includes(value as DashboardMetric);
 }
 
+/** A metric with the field it needs: the number custom field's reference for
+ *  `fieldSum` / `fieldAvg`, and none for any other. */
+function isMeasure(metric: unknown, metricField: unknown): boolean {
+	if (!isMetric(metric)) return false;
+	return isFieldMetric(metric) ? isCustomFieldRef(metricField) : metricField === undefined;
+}
+
 /**
  * True when `mapping` is a legal combination for its own `chartType`. Used both
  * by the parser (drop/repair invalid) and by tests.
@@ -72,7 +111,7 @@ export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 		case "bar":
 			return (
 				isGroupingField(mapping.groupBy) &&
-				(mapping.metric === undefined || isMetric(mapping.metric))
+				(mapping.metric === undefined || isMeasure(mapping.metric, mapping.metricField))
 			);
 		case "pie":
 			return isGroupingField(mapping.groupBy);
@@ -84,13 +123,13 @@ export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 				(mapping.groupBy === null || isGroupingField(mapping.groupBy)) &&
 				(mapping.chartType === "timeline" ||
 					mapping.metric === undefined ||
-					isMetric(mapping.metric))
+					isMeasure(mapping.metric, mapping.metricField))
 			);
 		case "kpi":
 			return (
-				isMetric(mapping.metric) &&
+				isMeasure(mapping.metric, mapping.metricField) &&
 				(mapping.scope === null ||
-					(isGroupingField(mapping.scope.field) &&
+					(isBuiltInGrouping(mapping.scope.field) &&
 						typeof mapping.scope.value === "string" &&
 						mapping.scope.value.length > 0))
 			);
@@ -133,11 +172,19 @@ export function measuresMetric(chartType: ChartType): boolean {
 	return chartType === "bar" || chartType === "line";
 }
 
-/** The metric a mapping measures (a count unless it says otherwise). */
-function metricOf(from: DashboardFieldMapping): DashboardMetric | undefined {
-	return "metric" in from && from.metric && from.metric !== "count" && isMetric(from.metric)
-		? from.metric
-		: undefined;
+/** The metric a mapping measures (a count unless it says otherwise), with
+ *  the number custom field it reads, if any. */
+function metricOf(
+	from: DashboardFieldMapping,
+): { metric: DashboardMetric; metricField?: CustomFieldRef } | undefined {
+	if (!("metric" in from) || !from.metric || from.metric === "count" || !isMetric(from.metric)) {
+		return undefined;
+	}
+	const metricField = "metricField" in from ? from.metricField : undefined;
+	if (isFieldMetric(from.metric)) {
+		return metricField ? { metric: from.metric, metricField } : undefined;
+	}
+	return { metric: from.metric };
 }
 
 /**
@@ -153,10 +200,10 @@ export function retargetFieldMapping(
 	const base = defaultFieldMapping(chartType);
 	const metric = metricOf(from);
 	const withMetric = <T extends DashboardFieldMapping>(mapping: T): T =>
-		metric && measuresMetric(chartType) ? { ...mapping, metric } : mapping;
+		metric && measuresMetric(chartType) ? { ...mapping, ...metric } : mapping;
 
 	if (chartType === "kpi") {
-		return metric ? { chartType, metric, scope: null } : base;
+		return metric ? { chartType, ...metric, scope: null } : base;
 	}
 
 	if ((chartType === "bar" || chartType === "pie") && "groupBy" in from) {

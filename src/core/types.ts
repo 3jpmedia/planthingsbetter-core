@@ -1330,6 +1330,13 @@ export const DASHBOARD_GROUPING_FIELDS: readonly DashboardGroupingField[] = [
 	"milestone",
 ] as const;
 
+/**
+ * What a chart groups by: one of the built-in fields, or a select,
+ * multi-select or member custom field (`field:CF-0003`, by the field's key,
+ * so a rename changes nothing). A KPI's `scope` stays on the built-in ones.
+ */
+export type DashboardGroupBy = DashboardGroupingField | CustomFieldRef;
+
 /** X-axis fields a line/timeline chart can plot against. */
 export type DashboardTemporalField =
 	| "dueDate"
@@ -1363,13 +1370,17 @@ export const DASHBOARD_TIME_BUCKETS: readonly DashboardTimeBucket[] = [
  * number - the plugin does no other math on it. The two `cycleTime` ones
  * are the days from `startedAt` to `completedAt`, over the tasks that have
  * both (a task done without ever being started has no cycle time).
+ * `fieldSum` and `fieldAvg` sum or average a number custom field (named by
+ * the mapping's `metricField`) over the tasks that have a value for it.
  */
 export type DashboardMetric =
 	| "count"
 	| "estimateSum"
 	| "estimateAvg"
 	| "cycleTimeAvg"
-	| "cycleTimeMedian";
+	| "cycleTimeMedian"
+	| "fieldSum"
+	| "fieldAvg";
 
 export const DASHBOARD_METRICS: readonly DashboardMetric[] = [
 	"count",
@@ -1377,6 +1388,8 @@ export const DASHBOARD_METRICS: readonly DashboardMetric[] = [
 	"estimateAvg",
 	"cycleTimeAvg",
 	"cycleTimeMedian",
+	"fieldSum",
+	"fieldAvg",
 ] as const;
 
 /**
@@ -1391,14 +1404,16 @@ export interface DashboardScope {
 
 export interface BarFieldMapping {
 	chartType: "bar";
-	groupBy: DashboardGroupingField;
+	groupBy: DashboardGroupBy;
 	/** What each bar's height measures. Absent: the task count. */
 	metric?: DashboardMetric;
+	/** The number custom field `fieldSum` / `fieldAvg` measure (`field:CF-0003`). */
+	metricField?: CustomFieldRef;
 }
 
 export interface PieFieldMapping {
 	chartType: "pie";
-	groupBy: DashboardGroupingField;
+	groupBy: DashboardGroupBy;
 }
 
 export interface LineFieldMapping {
@@ -1406,21 +1421,25 @@ export interface LineFieldMapping {
 	xField: DashboardTemporalField;
 	bucket: DashboardTimeBucket;
 	/** Optional secondary split into one series per discrete value. */
-	groupBy: DashboardGroupingField | null;
+	groupBy: DashboardGroupBy | null;
 	/** What each point measures. Absent: the task count. */
 	metric?: DashboardMetric;
+	/** The number custom field `fieldSum` / `fieldAvg` measure. */
+	metricField?: CustomFieldRef;
 }
 
 export interface TimelineFieldMapping {
 	chartType: "timeline";
 	xField: DashboardTemporalField;
 	bucket: DashboardTimeBucket;
-	groupBy: DashboardGroupingField | null;
+	groupBy: DashboardGroupBy | null;
 }
 
 export interface KpiFieldMapping {
 	chartType: "kpi";
 	metric: DashboardMetric;
+	/** The number custom field `fieldSum` / `fieldAvg` measure. */
+	metricField?: CustomFieldRef;
 	/** Optional single discrete predicate narrowing which tasks are counted. */
 	scope: DashboardScope | null;
 }

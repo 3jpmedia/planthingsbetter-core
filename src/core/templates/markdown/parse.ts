@@ -594,7 +594,14 @@ function parseViews(raw: unknown): ParsedView[] {
 
 const CHART_TYPES = ["bar", "pie", "line", "timeline", "kpi"] as const;
 const TIME_BUCKETS: readonly DashboardTimeBucket[] = ["day", "week", "month"];
-const METRICS: readonly DashboardMetric[] = ["count", "estimateSum", "estimateAvg"];
+const METRICS: readonly DashboardMetric[] = ["count", "estimateSum", "estimateAvg", "fieldSum", "fieldAvg"];
+
+/** `custom.client` -> "client": a custom field named by its query name. */
+function customSlug(raw: unknown): string | undefined {
+	if (typeof raw !== "string") return undefined;
+	const match = /^custom\.(.+)$/i.exec(raw.trim());
+	return match ? match[1].trim().toLowerCase() : undefined;
+}
 
 function parseWidget(raw: unknown, where: string): ParsedWidget {
 	if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
@@ -607,17 +614,28 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 	if (!chartType) fail(`${where} is missing "type"`);
 	const title = requireString(data, "title");
 
-	const groupBy = enumOr(
-		data.groupBy,
-		DASHBOARD_GROUPING_FIELDS,
-		"groupBy",
-		line,
-	);
+	const groupByField = customSlug(data.groupBy);
+	const groupBy = groupByField
+		? undefined
+		: enumOr(data.groupBy, DASHBOARD_GROUPING_FIELDS, "groupBy", line);
 	const widget: ParsedWidget = { chartType, title, line };
+	// A bar's or line's height can measure more than a count.
+	const measure = () => {
+		const metric = enumOr(data.metric, METRICS, "metric", line);
+		if (!metric || metric === "count") return;
+		widget.metric = metric;
+		if (metric === "fieldSum" || metric === "fieldAvg") {
+			const slug = customSlug(data.metricField);
+			if (!slug) fail(`${where} ("${title}") - "${metric}" needs "metricField: custom.<name>"`);
+			widget.metricField = slug;
+		}
+	};
 
 	if (chartType === "bar" || chartType === "pie") {
-		if (!groupBy) fail(`${where} ("${title}") - a ${chartType} chart needs "groupBy"`);
+		if (!groupBy && !groupByField) fail(`${where} ("${title}") - a ${chartType} chart needs "groupBy"`);
 		widget.groupBy = groupBy;
+		widget.groupByField = groupByField;
+		if (chartType === "bar") measure();
 	} else if (chartType === "line" || chartType === "timeline") {
 		const xField = enumOr(
 			data.xField,
@@ -633,6 +651,8 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 		widget.xField = xField;
 		widget.bucket = enumOr(data.bucket, TIME_BUCKETS, "bucket", line) ?? "week";
 		widget.groupBy = groupBy;
+		widget.groupByField = groupByField;
+		if (chartType === "line") measure();
 	} else {
 		const metric = enumOr(data.metric, METRICS, "metric", line);
 		if (!metric) {
@@ -641,6 +661,11 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 			);
 		}
 		widget.metric = metric;
+		if (metric === "fieldSum" || metric === "fieldAvg") {
+			const slug = customSlug(data.metricField);
+			if (!slug) fail(`${where} ("${title}") - "${metric}" needs "metricField: custom.<name>"`);
+			widget.metricField = slug;
+		}
 		if (data.scope != null) {
 			const scope = data.scope;
 			if (typeof scope !== "object" || Array.isArray(scope)) {

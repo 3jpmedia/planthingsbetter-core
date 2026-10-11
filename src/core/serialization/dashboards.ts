@@ -14,7 +14,9 @@ import {
 	CHART_TYPES,
 	type ChartType,
 	type DashboardConfig,
+	type CustomFieldRef,
 	type DashboardFieldMapping,
+	type DashboardGroupBy,
 	type DashboardGroupingField,
 	type DashboardMetric,
 	type DashboardScope,
@@ -24,6 +26,7 @@ import {
 	DASHBOARD_METRICS,
 	DASHBOARD_TEMPORAL_FIELDS,
 	DASHBOARD_TIME_BUCKETS,
+	isCustomFieldRef,
 } from "../types";
 import { defaultFieldMapping, isFieldMappingValid } from "../dashboards/compat";
 import { DEFAULT_WIDGET_SIZE } from "../dashboards/layout";
@@ -62,6 +65,17 @@ function pickEnum<T extends string>(
 
 function isGrouping(raw: unknown): raw is DashboardGroupingField {
 	return DASHBOARD_GROUPING_FIELDS.includes(raw as DashboardGroupingField);
+}
+
+/** A built-in grouping, or a custom field's reference (`field:CF-0003`). */
+function isGroupBy(raw: unknown): raw is DashboardGroupBy {
+	return isGrouping(raw) || isCustomFieldRef(raw);
+}
+
+/** The number custom field a `fieldSum` / `fieldAvg` measure reads. */
+function parseMetricField(raw: unknown): CustomFieldRef | undefined {
+	const value = asString(raw);
+	return isCustomFieldRef(value) ? value : undefined;
 }
 
 function coerceLayout(raw: unknown): DashboardWidgetLayout {
@@ -104,11 +118,14 @@ function parseFieldMapping(
 	switch (chartType) {
 		case "bar":
 		case "pie": {
-			const groupBy = isGrouping(asString(record.groupBy))
-				? (asString(record.groupBy) as DashboardGroupingField)
+			const groupBy = isGroupBy(asString(record.groupBy))
+				? (asString(record.groupBy) as DashboardGroupBy)
 				: "status";
 			const metric = chartType === "bar" ? optionalMetric(record.metric, log) : undefined;
-			mapping = metric ? { chartType: "bar", groupBy, metric } : { chartType, groupBy };
+			const metricField = metric ? parseMetricField(record.metricField) : undefined;
+			mapping = metric
+				? { chartType: "bar", groupBy, metric, ...(metricField ? { metricField } : {}) }
+				: { chartType, groupBy };
 			break;
 		}
 		case "line":
@@ -130,27 +147,35 @@ function parseFieldMapping(
 					log,
 					"time bucket",
 				),
-				groupBy: isGrouping(groupByRaw)
+				groupBy: isGroupBy(groupByRaw)
 					? groupByRaw
 					: null,
 			};
 			const metric = chartType === "line" ? optionalMetric(record.metric, log) : undefined;
-			if (metric && mapping.chartType === "line") mapping.metric = metric;
+			if (metric && mapping.chartType === "line") {
+				mapping.metric = metric;
+				const metricField = parseMetricField(record.metricField);
+				if (metricField) mapping.metricField = metricField;
+			}
 			break;
 		}
-		case "kpi":
+		case "kpi": {
+			const metric = pickEnum(
+				record.metric,
+				DASHBOARD_METRICS,
+				"count",
+				log,
+				"metric",
+			);
+			const metricField = parseMetricField(record.metricField);
 			mapping = {
 				chartType,
-				metric: pickEnum(
-					record.metric,
-					DASHBOARD_METRICS,
-					"count",
-					log,
-					"metric",
-				),
+				metric,
+				...(metricField ? { metricField } : {}),
 				scope: parseScope(record.scope),
 			};
 			break;
+		}
 	}
 
 	if (!isFieldMappingValid(mapping)) {
@@ -331,7 +356,7 @@ function serializeFieldMapping(
 ): Record<string, unknown> {
 	switch (mapping.chartType) {
 		case "bar":
-			return compact({ groupBy: mapping.groupBy, metric: mapping.metric });
+			return compact({ groupBy: mapping.groupBy, metric: mapping.metric, metricField: mapping.metricField });
 		case "pie":
 			return { groupBy: mapping.groupBy };
 		case "line":
@@ -340,6 +365,7 @@ function serializeFieldMapping(
 				bucket: mapping.bucket,
 				groupBy: mapping.groupBy ?? undefined,
 				metric: mapping.metric,
+				metricField: mapping.metricField,
 			});
 		case "timeline":
 			return compact({
@@ -350,6 +376,7 @@ function serializeFieldMapping(
 		case "kpi":
 			return compact({
 				metric: mapping.metric,
+				metricField: mapping.metricField,
 				scope: mapping.scope
 					? { field: mapping.scope.field, value: mapping.scope.value }
 					: undefined,

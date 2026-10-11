@@ -6,8 +6,12 @@
  * here. Chart components receive the output as props and stay presentational.
  */
 
-import { NONE } from "../types";
+import { NONE, customFieldKeyOf } from "../types";
 import type {
+	CustomFieldDef,
+	CustomFieldRef,
+	DashboardFieldMapping,
+	DashboardGroupBy,
 	DashboardGroupingField,
 	DashboardMetric,
 	DashboardScope,
@@ -17,6 +21,8 @@ import type {
 	Task,
 } from "../types";
 import type { ViewContext } from "../views/context";
+import { customFieldByKey, customValueOf } from "../views/custom-fields";
+import { customKeys, groupingField } from "../views/group";
 import { displayColor } from "../taxonomy/engine";
 import { COLOR_PALETTE } from "../color";
 import { linksMatch } from "../links";
@@ -44,6 +50,10 @@ export interface SeriesMeta {
 export interface Measure {
 	decimals: number;
 	unit?: "days";
+	/** Why the chart can't be drawn: a custom field it uses was removed, or
+	 *  is no longer the kind of field it needs. The chart is `empty`, and
+	 *  says so. */
+	unavailable?: string;
 }
 
 export type WidgetData =
@@ -69,9 +79,19 @@ export type WidgetData =
 // Discrete grouping
 // ---------------------------------------------------------------------------
 
-/** The discrete key(s) a task falls under for `field`. Only `label` returns >1. */
-export function groupKeys(task: Task, field: DashboardGroupingField): string[] {
-	switch (field) {
+/** The discrete key(s) a task falls under for `field`. Only `label`, a
+ *  multi-select and a member field return >1. A custom field needs the
+ *  `context` that holds the workspace's fields. */
+export function groupKeys(
+	task: Task,
+	field: DashboardGroupBy,
+	context?: Pick<ViewContext, "customFields">,
+): string[] {
+	if (customFieldKeyOf(field)) {
+		const def = context ? groupingField(field as CustomFieldRef, context) : undefined;
+		return def ? customKeys(task, def) : [NONE];
+	}
+	switch (field as DashboardGroupingField) {
 		case "status":
 			return [task.status ?? NONE];
 		case "priority":
@@ -90,12 +110,19 @@ export function groupKeys(task: Task, field: DashboardGroupingField): string[] {
 }
 
 function colorFor(
-	field: DashboardGroupingField,
+	field: DashboardGroupBy,
 	key: string,
 	index: number,
 	context: ViewContext,
 ): string {
 	if (key === NONE) return NONE_COLOR;
+	const custom = groupingField(field as CustomFieldRef, context);
+	if (custom) {
+		return (
+			(custom.type === "member" ? undefined : custom.options?.find((o) => o.id === key)?.color) ??
+			COLOR_PALETTE[index % COLOR_PALETTE.length]
+		);
+	}
 	if (
 		field === "status" ||
 		field === "priority" ||
@@ -113,11 +140,21 @@ function colorFor(
 
 /** Taxonomy display order for ordered taxonomies, else "biggest bar first". */
 function orderedKeys(
-	field: DashboardGroupingField,
+	field: DashboardGroupBy,
 	counts: Map<string, number>,
 	context: ViewContext,
 ): string[] {
 	const present = [...counts.keys()];
+	// A select's (or multi-select's) choices come in the field's own order.
+	const custom = groupingField(field as CustomFieldRef, context);
+	if (custom?.options) {
+		const order = custom.options.map((o) => o.id);
+		const rank = (k: string) => {
+			const i = order.indexOf(k);
+			return i === -1 ? order.length + (k === NONE ? 1 : 0) : i;
+		};
+		return present.sort((a, b) => rank(a) - rank(b));
+	}
 	if (field === "status" || field === "priority") {
 		const order = context.taxonomies[field].values
 			.slice()
@@ -219,9 +256,30 @@ function isCycleTime(metric: DashboardMetric): boolean {
 	return metric === "cycleTimeAvg" || metric === "cycleTimeMedian";
 }
 
-/** How a metric's numbers read. */
-export function measureOf(metric: DashboardMetric): Measure {
+function isFieldMetric(metric: DashboardMetric): boolean {
+	return metric === "fieldSum" || metric === "fieldAvg";
+}
+
+/** The numbers a number custom field holds on some tasks (unset ones skipped). */
+function fieldNumbers(tasks: Task[], field: CustomFieldDef): number[] {
+	return tasks
+		.map((task) => customValueOf(task, field))
+		.filter((n): n is number => typeof n === "number" && Number.isFinite(n));
+}
+
+/** How a metric's numbers read. A sum of a number field shows decimals only
+ *  when some value has them (`tasks` and `field`: what it adds up). */
+export function measureOf(
+	metric: DashboardMetric,
+	tasks?: Task[],
+	field?: CustomFieldDef,
+): Measure {
 	if (isCycleTime(metric)) return { decimals: 1, unit: "days" };
+	if (metric === "fieldAvg") return { decimals: 1 };
+	if (metric === "fieldSum") {
+		const fractional = field && tasks ? fieldNumbers(tasks, field).some((n) => !Number.isInteger(n)) : false;
+		return { decimals: fractional ? 2 : 0 };
+	}
 	return { decimals: metric === "estimateAvg" ? 1 : 0 };
 }
 
@@ -233,11 +291,24 @@ function median(values: number[]): number {
 
 /**
  * A metric over some tasks. `null` when there's nothing to measure: no task
- * among them has a cycle time. (An estimate average over tasks without
- * estimates stays 0, as it always has.)
+ * among them has a cycle time, or no task has a value for the number field
+ * `fieldAvg` averages. (An estimate average over tasks without estimates
+ * stays 0, as it always has; a sum of a field none has a value for is 0.)
+ * `field` is the number custom field `fieldSum` and `fieldAvg` read.
  */
-export function aggregateMetric(tasks: Task[], metric: DashboardMetric): number | null {
+export function aggregateMetric(
+	tasks: Task[],
+	metric: DashboardMetric,
+	field?: CustomFieldDef,
+): number | null {
 	if (metric === "count") return tasks.length;
+	if (isFieldMetric(metric)) {
+		if (!field) return null;
+		const numbers = fieldNumbers(tasks, field);
+		const sum = numbers.reduce((acc, n) => acc + n, 0);
+		if (metric === "fieldSum") return sum;
+		return numbers.length === 0 ? null : sum / numbers.length;
+	}
 	if (isCycleTime(metric)) {
 		const days = tasks.map(cycleTimeDays).filter((n): n is number => n != null);
 		if (days.length === 0) return null;
@@ -253,23 +324,59 @@ export function aggregateMetric(tasks: Task[], metric: DashboardMetric): number 
 	return values.length === 0 ? 0 : sum / values.length;
 }
 
+/** The custom fields a mapping uses, found in the workspace's: what it
+ *  groups by, and the number it measures. `problem` says why it can't be
+ *  drawn (a field removed, or no longer the right kind). */
+export function mappingFields(
+	mapping: DashboardFieldMapping,
+	context: Pick<ViewContext, "customFields">,
+): { group?: CustomFieldDef; measure?: CustomFieldDef; problem: string | null } {
+	let group: CustomFieldDef | undefined;
+	let measure: CustomFieldDef | undefined;
+	const grouping = mapping.chartType === "kpi" ? null : mapping.groupBy;
+	const groupKey = grouping ? customFieldKeyOf(grouping) : null;
+	if (groupKey) {
+		const def = customFieldByKey(context, groupKey);
+		if (!def) return { problem: "The field this chart groups by was removed. Edit the chart to pick another." };
+		group = groupingField(grouping as CustomFieldRef, context);
+		if (!group) return { problem: `${def.name} is no longer a choice or person field. Edit the chart to pick another.` };
+	}
+	const metric = "metric" in mapping ? mapping.metric : undefined;
+	if (metric && isFieldMetric(metric)) {
+		const ref = "metricField" in mapping ? mapping.metricField : undefined;
+		const key = ref ? customFieldKeyOf(ref) : null;
+		if (!key) return { group, problem: "Pick a number field for this chart to measure." };
+		measure = customFieldByKey(context, key);
+		if (!measure) return { group, problem: "The field this chart measures was removed. Edit the chart to pick another." };
+		if (measure.type !== "number") return { group, problem: `${measure.name} is no longer a number field. Edit the chart to pick another.` };
+	}
+	return { group, measure, problem: null };
+}
+
 export function computeWidgetData(
 	widget: DashboardWidget,
 	tasks: Task[],
 	context: ViewContext,
 ): WidgetData {
 	const mapping = widget.fieldMapping;
+	const used = mappingFields(mapping, context);
+	if (used.problem) {
+		const base = { decimals: 0, unavailable: used.problem, empty: true as const };
+		if (mapping.chartType === "kpi") return { kind: "kpi", value: 0, ...base };
+		if (mapping.chartType === "bar" || mapping.chartType === "pie") return { kind: "categorical", data: [], ...base };
+		return { kind: "series", data: [], series: [], ...base };
+	}
 
 	if (mapping.chartType === "kpi") {
 		const scoped = mapping.scope
 			? tasks.filter((t) => matchesScope(t, mapping.scope as DashboardScope))
 			: tasks;
-		const value = aggregateMetric(scoped, mapping.metric);
+		const value = aggregateMetric(scoped, mapping.metric, used.measure);
 		return {
 			kind: "kpi",
 			value: value ?? 0,
 			...(mapping.scope && mapping.metric === "count" ? { of: tasks.length } : {}),
-			...measureOf(mapping.metric),
+			...measureOf(mapping.metric, scoped, used.measure),
 			empty: scoped.length === 0 || value == null,
 		};
 	}
@@ -280,7 +387,7 @@ export function computeWidgetData(
 			mapping.chartType === "bar" ? (mapping.metric ?? "count") : "count";
 		const members = new Map<string, Task[]>();
 		for (const task of tasks) {
-			for (const key of groupKeys(task, mapping.groupBy)) {
+			for (const key of groupKeys(task, mapping.groupBy, context)) {
 				let list = members.get(key);
 				if (!list) members.set(key, (list = []));
 				list.push(task);
@@ -290,7 +397,7 @@ export function computeWidgetData(
 		// gets no bar.
 		const values = new Map<string, number>();
 		for (const [key, list] of members) {
-			const value = aggregateMetric(list, metric);
+			const value = aggregateMetric(list, metric, used.measure);
 			if (value != null) values.set(key, value);
 		}
 		const keys = orderedKeys(mapping.groupBy, values, context);
@@ -303,7 +410,7 @@ export function computeWidgetData(
 		return {
 			kind: "categorical",
 			data,
-			...measureOf(metric),
+			...measureOf(metric, tasks, used.measure),
 			empty: data.length === 0,
 		};
 	}
@@ -312,7 +419,7 @@ export function computeWidgetData(
 	// running total only adds up, so a timeline only ever counts.
 	const cumulative = mapping.chartType === "timeline";
 	const metric: DashboardMetric = cumulative ? "count" : (mapping.metric ?? "count");
-	const measure = measureOf(metric);
+	const measure = measureOf(metric, tasks, used.measure);
 	const dated = tasks
 		.map((task) => ({ task, date: temporalValue(task, mapping.xField) }))
 		.filter((row): row is { task: Task; date: Date } => row.date != null);
@@ -330,7 +437,7 @@ export function computeWidgetData(
 	// One series per discrete value, or a single "Tasks" series.
 	const seriesCounts = new Map<string, number>();
 	const rowKeys = (task: Task): string[] =>
-		mapping.groupBy ? groupKeys(task, mapping.groupBy) : ["__all__"];
+		mapping.groupBy ? groupKeys(task, mapping.groupBy, context) : ["__all__"];
 	for (const { task } of dated) {
 		for (const key of rowKeys(task)) {
 			seriesCounts.set(key, (seriesCounts.get(key) ?? 0) + 1);
@@ -345,12 +452,12 @@ export function computeWidgetData(
 			key === "__all__"
 				? metric === "count"
 					? "Tasks"
-					: metricLabel(metric)
-				: valueLabel(mapping.groupBy as DashboardGroupingField, key, context),
+					: metricLabel(metric, used.measure)
+				: valueLabel(mapping.groupBy as DashboardGroupBy, key, context),
 		color:
 			key === "__all__"
 				? COLOR_PALETTE[10]
-				: colorFor(mapping.groupBy as DashboardGroupingField, key, index, context),
+				: colorFor(mapping.groupBy as DashboardGroupBy, key, index, context),
 	}));
 
 	// Per-bucket, per-series tasks.
@@ -385,7 +492,7 @@ export function computeWidgetData(
 				running.set(meta.key, (running.get(meta.key) ?? 0) + members.length);
 				row[meta.key] = running.get(meta.key) ?? 0;
 			} else {
-				const value = aggregateMetric(members, metric);
+				const value = aggregateMetric(members, metric, used.measure);
 				if (value != null) row[meta.key] = value;
 			}
 		}

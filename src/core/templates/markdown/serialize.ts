@@ -185,8 +185,26 @@ function fieldValueText(
 function widgetMap(
 	widget: DashboardWidget,
 	includeWeight: boolean,
-): Record<string, unknown> {
+	customFields: readonly CustomFieldDef[],
+): Record<string, unknown> | null {
 	const fm = widget.fieldMapping;
+	// A custom field is written by its query name (`custom.client`); a chart
+	// of one the template doesn't carry is left out, as it couldn't be read.
+	const named = (ref: string): string | null => {
+		const field = customFields.find((candidate) => `field:${candidate.key}` === ref);
+		return field ? `custom.${field.slug}` : null;
+	};
+	const groupName = (groupBy: string): string | null => (groupBy.startsWith("field:") ? named(groupBy) : groupBy);
+	const measure = (map: Record<string, unknown>): boolean => {
+		if (!("metric" in fm) || !fm.metric || fm.metric === "count") return true;
+		map.metric = fm.metric;
+		if (fm.metric === "fieldSum" || fm.metric === "fieldAvg") {
+			const field = "metricField" in fm && fm.metricField ? named(fm.metricField) : null;
+			if (!field) return false;
+			map.metricField = field;
+		}
+		return true;
+	};
 	const map: Record<string, unknown> = {
 		type: fm.chartType,
 		title: widget.title.trim() || fm.chartType,
@@ -194,16 +212,27 @@ function widgetMap(
 
 	switch (fm.chartType) {
 		case "bar":
-		case "pie":
-			map.groupBy = fm.groupBy;
+		case "pie": {
+			const groupBy = groupName(fm.groupBy);
+			if (!groupBy) return null;
+			map.groupBy = groupBy;
+			if (fm.chartType === "bar" && !measure(map)) return null;
 			break;
+		}
 		case "line":
-		case "timeline":
+		case "timeline": {
 			map.xField = fm.xField;
 			map.bucket = fm.bucket;
-			if (fm.groupBy) map.groupBy = fm.groupBy;
+			if (fm.groupBy) {
+				const groupBy = groupName(fm.groupBy);
+				if (!groupBy) return null;
+				map.groupBy = groupBy;
+			}
+			if (fm.chartType === "line" && !measure(map)) return null;
 			break;
+		}
 		case "kpi":
+			if (!measure(map)) return null;
 			map.metric = fm.metric;
 			if (fm.scope) {
 				map.scope = { field: fm.scope.field, value: fm.scope.value };
@@ -223,7 +252,10 @@ function widgetMap(
  * expected and acceptable - dashboards are Phase 1 and row-share is already a
  * simplification.
  */
-function widgetRows(dashboard: DashboardConfig): Record<string, unknown>[][] {
+function widgetRows(
+	dashboard: DashboardConfig,
+	customFields: readonly CustomFieldDef[],
+): Record<string, unknown>[][] {
 	const byY = new Map<number, DashboardWidget[]>();
 	for (const widget of dashboard.widgets) {
 		const row = byY.get(widget.layout.y) ?? [];
@@ -235,13 +267,16 @@ function widgetRows(dashboard: DashboardConfig): Record<string, unknown>[][] {
 		.sort((a, b) => a - b)
 		.map((y) => {
 			const row = byY.get(y)!.sort((a, b) => a.layout.x - b.layout.x);
-			return row.map((widget) => widgetMap(widget, row.length > 1));
+			return row
+				.map((widget) => widgetMap(widget, row.length > 1, customFields))
+				.filter((map): map is Record<string, unknown> => map !== null);
 		});
 }
 
 function dashboardMap(
 	dashboard: DashboardConfig,
 	context: QueryContext,
+	customFields: readonly CustomFieldDef[],
 ): Record<string, unknown> {
 	const map: Record<string, unknown> = { name: dashboard.name };
 	if (dashboard.icon) map.icon = dashboard.icon;
@@ -250,7 +285,7 @@ function dashboardMap(
 	const filter = printFilters(dashboard.filters, context);
 	if (filter) map.filter = filter;
 
-	map.rows = widgetRows(dashboard);
+	map.rows = widgetRows(dashboard, customFields).filter((row) => row.length > 0);
 	return map;
 }
 
@@ -514,7 +549,7 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 	}
 	if (dashboards.length > 0) {
 		frontmatter.dashboards = dashboards.map((dashboard) =>
-			dashboardMap(dashboard, queryContext),
+			dashboardMap(dashboard, queryContext, customFields),
 		);
 	}
 	if (activeProjects.length > 0) {

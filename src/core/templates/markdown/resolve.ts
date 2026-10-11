@@ -20,6 +20,7 @@
  */
 
 import { slugify } from "../../ids";
+import { customFieldRef } from "../../types";
 import { chartMeta } from "../../dashboards/layout";
 import { joinPath } from "../../links";
 import { queryContext, type QueryContext } from "../../query/context";
@@ -35,9 +36,11 @@ import {
 import type {
 	Comment,
 	CustomFieldDef,
+	CustomFieldRef,
 	CustomFieldValue,
 	DashboardConfig,
 	DashboardFieldMapping,
+	DashboardGroupBy,
 	DashboardWidget,
 	IsoDate,
 	LinkTarget,
@@ -375,29 +378,56 @@ function rowWidths(widgets: ParsedWidget[]): number[] {
 function fieldMappingFor(
 	widget: ParsedWidget,
 	resolveScope: (field: string, value: string, line: number) => string,
+	customFields: readonly CustomFieldDef[] = [],
 ): DashboardFieldMapping {
+	// A custom field named by its query name -> `field:<key>`.
+	const refOf = (slug: string, line: number, kind: "choice" | "number"): CustomFieldRef => {
+		const field = customFields.find((candidate) => candidate.slug === slug);
+		if (!field) fail(`custom.${slug} is not one of the template's fields`, line);
+		const fits = kind === "number" ? field.type === "number" : field.type === "select" || field.type === "multiSelect" || field.type === "member";
+		if (!fits) {
+			fail(
+				kind === "number"
+					? `${field.name} is not a number field, so a chart can't add it up`
+					: `${field.name} is not a choice or person field, so a chart can't group by it`,
+				line,
+			);
+		}
+		return customFieldRef(field.key);
+	};
+	const groupBy = (): DashboardGroupBy | undefined =>
+		widget.groupByField ? refOf(widget.groupByField, widget.line, "choice") : widget.groupBy;
+	const measure = () =>
+		widget.metric
+			? {
+					metric: widget.metric,
+					...(widget.metricField ? { metricField: refOf(widget.metricField, widget.line, "number") } : {}),
+				}
+			: {};
 	switch (widget.chartType) {
 		case "bar":
-			return { chartType: "bar", groupBy: widget.groupBy! };
+			return { chartType: "bar", groupBy: groupBy()!, ...measure() };
 		case "pie":
-			return { chartType: "pie", groupBy: widget.groupBy! };
+			return { chartType: "pie", groupBy: groupBy()! };
 		case "line":
 			return {
 				chartType: "line",
 				xField: widget.xField!,
 				bucket: widget.bucket!,
-				groupBy: widget.groupBy ?? null,
+				groupBy: groupBy() ?? null,
+				...measure(),
 			};
 		case "timeline":
 			return {
 				chartType: "timeline",
 				xField: widget.xField!,
 				bucket: widget.bucket!,
-				groupBy: widget.groupBy ?? null,
+				groupBy: groupBy() ?? null,
 			};
 		case "kpi":
 			return {
 				chartType: "kpi",
+				...measure(),
 				metric: widget.metric!,
 				scope: widget.scope
 					? {
@@ -664,7 +694,7 @@ export function resolveTemplateContent(
 		resolveLabel,
 		resolvePerson,
 		resolveProjectRef,
-	});
+	}, parsed.customFields ?? []);
 
 	return {
 		workspace: overrides,
@@ -820,6 +850,7 @@ function resolveDashboards(
 	parsed: ParsedDashboard[],
 	context: QueryContext,
 	resolvers: ScopeResolvers,
+	customFields: readonly CustomFieldDef[] = [],
 ): DashboardConfig[] {
 	const ids: string[] = [];
 
@@ -844,8 +875,10 @@ function resolveDashboards(
 						widgetId,
 						widget.chartType,
 						widget.title,
-						fieldMappingFor(widget, (field, value, line) =>
-							resolveScopeValue(field, value, line, resolvers),
+						fieldMappingFor(
+							widget,
+							(field, value, line) => resolveScopeValue(field, value, line, resolvers),
+							customFields,
 						),
 						{ x, y, w: widths[i], h: height },
 					),
