@@ -54,6 +54,9 @@ export interface Measure {
 	 *  is no longer the kind of field it needs. The chart is `empty`, and
 	 *  says so. */
 	unavailable?: string;
+	/** What a bar's height measures when it isn't a task count ("Points
+	 *  sum"), for its tooltip. */
+	label?: string;
 }
 
 export type WidgetData =
@@ -411,6 +414,7 @@ export function computeWidgetData(
 			kind: "categorical",
 			data,
 			...measureOf(metric, tasks, used.measure),
+			...(metric !== "count" ? { label: metricLabel(metric, used.measure) } : {}),
 			empty: data.length === 0,
 		};
 	}
