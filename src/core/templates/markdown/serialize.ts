@@ -24,6 +24,7 @@
 
 import { stringify as stringifyYaml } from "yaml";
 
+import { NONE } from "../../types";
 import { printFilters, printQuery, type QueryContext } from "../../query";
 import { sortByRank } from "../../ranking";
 import type {
@@ -32,6 +33,7 @@ import type {
 	CustomFieldType,
 	CustomFieldValue,
 	DashboardConfig,
+	DashboardScope,
 	DashboardWidget,
 	PriorityValue,
 	Project,
@@ -69,11 +71,11 @@ export interface TemplateSerializeInput {
 	 *  cross-links keep resolving); default drops them. */
 	includeArchived?: boolean;
 	/** The workspace's custom fields. Written to frontmatter `fields:` in the
-	 *  taxonomy shorthand, and each Task's values (`Task.fields`) ride on its
-	 *  field line. The host passes the fields a template should carry: core's
-	 *  definition has no Space or guest scope, so a Space-only or guest-hidden
-	 *  field comes through as a plain workspace field (as import reads it), and
-	 *  a host that wants one left out drops it here. */
+	 *  taxonomy shorthand (a Space's own field as `space: Design`, a guest-
+	 *  hidden one as `guests: hidden`), and each Task's values (`Task.fields`)
+	 *  ride on its field line. The host passes the fields a template should
+	 *  carry, with `space` set to the Space's name where it has one; a host
+	 *  that wants a field left out drops it here. */
 	customFields?: CustomFieldDef[];
 	/** For `printQuery` / `printFilters` - build it with `queryContext(snapshot)`. */
 	queryContext: QueryContext;
@@ -123,14 +125,21 @@ const BUILT_IN_FIELD_KEYS = new Set([
  *  colons or line breaks where they would be read as syntax. */
 function fieldIsWritable(field: CustomFieldDef): boolean {
 	if (!field.name.trim() || /[()|:\n,]/.test(field.name)) return false;
-	return (field.options ?? []).every((o) => o.name.trim() && !/[(),|\n]/.test(o.name));
+	// A Space's name sits in the brackets as `space: Name`.
+	if (field.space !== undefined && (!field.space.trim() || /[(),|\n]/.test(field.space))) return false;
+	// A choice that reads as a scope setting would be taken for one.
+	return (field.options ?? []).every((o) => o.name.trim() && !/[(),|\n]/.test(o.name) && !/^\s*(space|guests)\s*:/i.test(o.name));
 }
 
 function fieldShorthand(field: CustomFieldDef): string {
 	const choices = field.type === "select" || field.type === "multiSelect"
 		? (field.options ?? []).map((o) => o.name.trim())
 		: [];
-	return `${field.name.trim()} (${[FIELD_TYPE_WORD[field.type], ...choices].join(", ")})`;
+	const scope = [
+		...(field.space?.trim() ? [`space: ${field.space.trim()}`] : []),
+		...(field.internal ? ["guests: hidden"] : []),
+	];
+	return `${field.name.trim()} (${[FIELD_TYPE_WORD[field.type], ...choices, ...scope].join(", ")})`;
 }
 
 /** The key a task's field line uses for a field. */
@@ -186,6 +195,7 @@ function widgetMap(
 	widget: DashboardWidget,
 	includeWeight: boolean,
 	customFields: readonly CustomFieldDef[],
+	people: readonly { id: string; name: string }[],
 ): Record<string, unknown> | null {
 	const fm = widget.fieldMapping;
 	// A custom field is written by its query name (`custom.client`); a chart
@@ -193,6 +203,20 @@ function widgetMap(
 	const named = (ref: string): string | null => {
 		const field = customFields.find((candidate) => `field:${candidate.key}` === ref);
 		return field ? `custom.${field.slug}` : null;
+	};
+	// A scope on a custom field names the field by its query name, and the
+	// value by the choice's name (or the person's); a field the template
+	// doesn't carry, or a value that can't be written, leaves the chart out.
+	const scopeMap = (scope: DashboardScope): { field: string; value: string } | null => {
+		if (!scope.field.startsWith("field:")) return { field: scope.field, value: scope.value };
+		const field = customFields.find((candidate) => `field:${candidate.key}` === scope.field);
+		if (!field) return null;
+		if (scope.value === NONE) return { field: `custom.${field.slug}`, value: "none" };
+		const name =
+			field.type === "member"
+				? people.find((person) => person.id === scope.value)?.name
+				: field.options?.find((option) => option.id === scope.value)?.name;
+		return name ? { field: `custom.${field.slug}`, value: name } : null;
 	};
 	const groupName = (groupBy: string): string | null => (groupBy.startsWith("field:") ? named(groupBy) : groupBy);
 	const measure = (map: Record<string, unknown>): boolean => {
@@ -235,7 +259,9 @@ function widgetMap(
 			if (!measure(map)) return null;
 			map.metric = fm.metric;
 			if (fm.scope) {
-				map.scope = { field: fm.scope.field, value: fm.scope.value };
+				const scope = scopeMap(fm.scope);
+				if (!scope) return null;
+				map.scope = scope;
 			}
 			break;
 	}
@@ -255,6 +281,7 @@ function widgetMap(
 function widgetRows(
 	dashboard: DashboardConfig,
 	customFields: readonly CustomFieldDef[],
+	people: readonly { id: string; name: string }[],
 ): Record<string, unknown>[][] {
 	const byY = new Map<number, DashboardWidget[]>();
 	for (const widget of dashboard.widgets) {
@@ -268,7 +295,7 @@ function widgetRows(
 		.map((y) => {
 			const row = byY.get(y)!.sort((a, b) => a.layout.x - b.layout.x);
 			return row
-				.map((widget) => widgetMap(widget, row.length > 1, customFields))
+				.map((widget) => widgetMap(widget, row.length > 1, customFields, people))
 				.filter((map): map is Record<string, unknown> => map !== null);
 		});
 }
@@ -277,6 +304,7 @@ function dashboardMap(
 	dashboard: DashboardConfig,
 	context: QueryContext,
 	customFields: readonly CustomFieldDef[],
+	people: readonly { id: string; name: string }[],
 ): Record<string, unknown> {
 	const map: Record<string, unknown> = { name: dashboard.name };
 	if (dashboard.icon) map.icon = dashboard.icon;
@@ -285,7 +313,7 @@ function dashboardMap(
 	const filter = printFilters(dashboard.filters, context);
 	if (filter) map.filter = filter;
 
-	map.rows = widgetRows(dashboard, customFields).filter((row) => row.length > 0);
+	map.rows = widgetRows(dashboard, customFields, people).filter((row) => row.length > 0);
 	return map;
 }
 
@@ -549,7 +577,7 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 	}
 	if (dashboards.length > 0) {
 		frontmatter.dashboards = dashboards.map((dashboard) =>
-			dashboardMap(dashboard, queryContext, customFields),
+			dashboardMap(dashboard, queryContext, customFields, workspace.people),
 		);
 	}
 	if (activeProjects.length > 0) {

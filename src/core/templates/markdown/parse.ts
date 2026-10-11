@@ -295,7 +295,27 @@ function parseCustomFields(raw: unknown): CustomFieldDef[] | undefined {
 	const seen = new Set<string>();
 	return entries.map((entry, index) => {
 		const { name, parts } = splitShorthand(entry);
-		const [typeWord = "text", ...choices] = parts;
+		const [typeWord = "text", ...rest] = parts;
+		// `space: Design` and `guests: hidden` are scope settings, not choices.
+		let space: string | undefined;
+		let internal = false;
+		const choices: string[] = [];
+		for (const part of rest) {
+			const scoped = /^(space|guests)\s*:\s*(.*)$/i.exec(part);
+			if (!scoped) {
+				choices.push(part);
+				continue;
+			}
+			const value = scoped[2].trim();
+			if (scoped[1].toLowerCase() === "space") {
+				if (!value) fail(`"fields[${index}]": "space:" needs the Space's name, like "space: Design"`);
+				space = value;
+			} else if (value.toLowerCase() === "hidden") {
+				internal = true;
+			} else if (value.toLowerCase() !== "visible") {
+				fail(`"fields[${index}]": "guests:" is "hidden" or "visible", not "${value}"`);
+			}
+		}
 		const type = FIELD_TYPE_WORDS[typeWord.toLowerCase()];
 		if (!name) fail(`"fields[${index}]" needs a name, like "Points (number)"`);
 		if (!type) fail(`"fields[${index}]": unknown type "${typeWord}" - one of ${CUSTOM_FIELD_TYPES.join(", ")}`);
@@ -309,6 +329,8 @@ function parseCustomFields(raw: unknown): CustomFieldDef[] | undefined {
 			slug,
 			name,
 			type,
+			...(space ? { space } : {}),
+			...(internal ? { internal: true } : {}),
 			...(hasChoices
 				? { options: choices.map((choice, n) => ({ id: `${slug}-${slugifyPlain(choice)}`, name: choice, color: COLOR_PALETTE[n % COLOR_PALETTE.length] })) }
 				: {}),
@@ -672,14 +694,13 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 				fail(`${where} ("${title}") - "scope" must be {field: ..., value: ...}`);
 			}
 			const scopeData = scope as Record<string, unknown>;
-			const field = enumOr(
-					scopeData.field,
-					DASHBOARD_GROUPING_FIELDS,
-					"scope.field",
-					line,
-				);
-			if (!field) fail(`${where} ("${title}") - "scope" needs a "field"`);
-			widget.scope = { field, value: renderValue(scopeData.value ?? "").trim() };
+			// A custom field is named by its query name (`custom.client`).
+			const customField = customSlug(scopeData.field);
+			const field = customField
+				? undefined
+				: enumOr(scopeData.field, DASHBOARD_GROUPING_FIELDS, "scope.field", line);
+			if (!field && !customField) fail(`${where} ("${title}") - "scope" needs a "field"`);
+			widget.scope = { field, customField, value: renderValue(scopeData.value ?? "").trim() };
 			if (!widget.scope.value) {
 				fail(`${where} ("${title}") - "scope" needs a "value"`);
 			}

@@ -7,7 +7,7 @@ import { parseTemplateMarkdown } from "../../src/core/templates/markdown/parse";
 import { resolveTemplateContent } from "../../src/core/templates/markdown/resolve";
 import { formatTaskId } from "../../src/core/ids";
 import { joinPath } from "../../src/core/links";
-import { emptyRelations } from "../../src/core/types";
+import { NONE, emptyRelations } from "../../src/core/types";
 import { makeDashboard, makeWidget } from "../../src/core/templates/helpers";
 import type {
 	CustomFieldDef,
@@ -656,6 +656,78 @@ describe("serializeTemplateMarkdown round-trip", () => {
 				{ chartType: "bar", groupBy: keyOf("client"), metric: "fieldSum", metricField: keyOf("points") },
 				{ chartType: "kpi", metric: "fieldAvg", metricField: keyOf("points"), scope: null },
 			]);
+		});
+
+		it("round-trips a field's Space and guest visibility (T-0659)", () => {
+			const scoped: CustomFieldDef[] = [
+				{ id: "s1", key: "CF-0001", slug: "points", name: "Points", type: "number", space: "Design", internal: true },
+				{ id: "s2", key: "CF-0002", slug: "client", name: "Client", type: "select", options: [opt("Acme", 1)], space: "Design" },
+				{ id: "s3", key: "CF-0003", slug: "notes", name: "Notes", type: "text", internal: true },
+				{ id: "s4", key: "CF-0004", slug: "plain", name: "Plain", type: "text" },
+				// A Space name the shorthand can't carry leaves the field out.
+				{ id: "s5", key: "CF-0005", slug: "odd", name: "Odd", type: "text", space: "A, B" },
+				{ id: "s6", key: "CF-0006", slug: "tricky", name: "Tricky", type: "select", options: [{ id: "x", name: "space: Fake", color: "#ff0000" }] },
+			];
+			const source = serializeTemplateMarkdown({
+				meta: { id: "scoped", name: "Scoped" },
+				workspace: snapshot.workspace,
+				views: [],
+				dashboards: [],
+				projects: [],
+				customFields: scoped,
+				queryContext: queryContext(snapshot),
+			});
+			expect(source).toContain("Points (number, space: Design, guests: hidden)");
+			expect(source).toContain("Client (select, Acme, space: Design)");
+			expect(source).toContain("Notes (text, guests: hidden)");
+			expect(source).not.toContain("Odd");
+			expect(source).not.toContain("Tricky");
+			const parsed = parseTemplateMarkdown(source);
+			const back = parsed.customFields!;
+			expect(back.map((f) => [f.name, f.space, f.internal])).toEqual([
+				["Points", "Design", true],
+				["Client", "Design", undefined],
+				["Notes", undefined, true],
+				["Plain", undefined, undefined],
+			]);
+			expect(back[1].options?.map((o) => o.name)).toEqual(["Acme"]);
+			const content = resolveTemplateContent(parsed, ctx());
+			expect(content.customFields![0]).toMatchObject({ space: "Design", internal: true });
+		});
+
+		it("rejects a bad scope setting", () => {
+			const source = (field: string) => `---\ntype: vertex-flow-workspace-template\ntemplateSchema: 1\nid: x\nname: X\ndescription: d\nfields:\n  - "${field}"\n---\n`;
+			expect(() => parseTemplateMarkdown(source("Points (number, guests: maybe)"))).toThrow(/hidden/);
+			expect(() => parseTemplateMarkdown(source("Points (number, space: )"))).toThrow(/Space/);
+		});
+
+		it("round-trips a KPI narrowed by a custom field (T-0659)", () => {
+			const dashboards = [
+				makeDashboard("d", "Fields", [
+					makeWidget("w1", "kpi", "Acme tasks", { chartType: "kpi", metric: "count", scope: { field: "field:CF-0002", value: "o1" } }, { x: 0, y: 0, w: 6, h: 2 }),
+					makeWidget("w2", "kpi", "Reviewer's", { chartType: "kpi", metric: "count", scope: { field: "field:CF-0004", value: person.id } }, { x: 6, y: 0, w: 6, h: 2 }),
+					makeWidget("w3", "kpi", "No client", { chartType: "kpi", metric: "count", scope: { field: "field:CF-0002", value: NONE } }, { x: 0, y: 2, w: 6, h: 2 }),
+					makeWidget("w4", "kpi", "Gone", { chartType: "kpi", metric: "count", scope: { field: "field:CF-0099", value: "o1" } }, { x: 6, y: 2, w: 6, h: 2 }),
+				]),
+			];
+			const source = serializeTemplateMarkdown({
+				meta: { id: "scoped-kpi", name: "Scoped KPI" },
+				workspace: snapshot.workspace,
+				views: [],
+				dashboards,
+				projects: [],
+				customFields: fields,
+				queryContext: queryContext(snapshot),
+			});
+			expect(source).toContain("field: custom.client");
+			expect(source).toContain("value: Acme");
+			const content = resolveTemplateContent(parseTemplateMarkdown(source), ctx());
+			const mappings = content.dashboards![0].widgets.map((w) => w.fieldMapping);
+			const def = (slug: string) => content.customFields!.find((f) => f.slug === slug)!;
+			expect(mappings).toHaveLength(3);
+			expect(mappings[0]).toEqual({ chartType: "kpi", metric: "count", scope: { field: `field:${def("client").key}`, value: def("client").options![0].id } });
+			expect(mappings[1]).toMatchObject({ scope: { field: `field:${def("reviewer").key}` } });
+			expect(mappings[2]).toMatchObject({ scope: { field: `field:${def("client").key}`, value: NONE } });
 		});
 
 		it("writes no fields when there are none", () => {

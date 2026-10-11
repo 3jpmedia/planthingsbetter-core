@@ -20,7 +20,7 @@
  */
 
 import { slugify } from "../../ids";
-import { customFieldRef } from "../../types";
+import { NONE, customFieldRef } from "../../types";
 import { chartMeta } from "../../dashboards/layout";
 import { joinPath } from "../../links";
 import { queryContext, type QueryContext } from "../../query/context";
@@ -41,6 +41,7 @@ import type {
 	DashboardConfig,
 	DashboardFieldMapping,
 	DashboardGroupBy,
+	DashboardScope,
 	DashboardWidget,
 	IsoDate,
 	LinkTarget,
@@ -404,6 +405,24 @@ function fieldMappingFor(
 					...(widget.metricField ? { metricField: refOf(widget.metricField, widget.line, "number") } : {}),
 				}
 			: {};
+	// A KPI's scope: a built-in field's value resolves by name; a custom
+	// field's is a choice's name (or id), or a person.
+	const scopeOf = (scope: NonNullable<ParsedWidget["scope"]>): DashboardScope => {
+		if (!scope.customField) {
+			const field = scope.field!;
+			return { field, value: resolveScope(field, scope.value, widget.line) };
+		}
+		const ref = refOf(scope.customField, widget.line, "choice");
+		const def = customFields.find((candidate) => candidate.slug === scope.customField)!;
+		if (scope.value.toLowerCase() === "none") return { field: ref, value: NONE };
+		if (def.type === "member") return { field: ref, value: resolveScope("assignee", scope.value, widget.line) };
+		const wanted = scope.value.toLowerCase();
+		const option = (def.options ?? []).find(
+			(candidate) => candidate.id === scope.value || candidate.name.toLowerCase() === wanted,
+		);
+		if (!option) fail(`"${scope.value}" is not a choice of ${def.name}`, widget.line);
+		return { field: ref, value: option.id };
+	};
 	switch (widget.chartType) {
 		case "bar":
 			return { chartType: "bar", groupBy: groupBy()!, ...measure() };
@@ -429,16 +448,7 @@ function fieldMappingFor(
 				chartType: "kpi",
 				...measure(),
 				metric: widget.metric!,
-				scope: widget.scope
-					? {
-							field: widget.scope.field,
-							value: resolveScope(
-								widget.scope.field,
-								widget.scope.value,
-								widget.line,
-							),
-						}
-					: null,
+				scope: widget.scope ? scopeOf(widget.scope) : null,
 			};
 	}
 }

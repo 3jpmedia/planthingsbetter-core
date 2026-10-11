@@ -96,7 +96,7 @@ function parseScope(raw: unknown): DashboardScope | null {
 	const record = asRecord(raw);
 	const field = asString(record.field);
 	const value = asString(record.value);
-	if (!field || !value || !isGrouping(field)) return null;
+	if (!field || !value || !isGroupBy(field)) return null;
 	return { field, value };
 }
 

@@ -175,7 +175,12 @@ export interface ParsedWidget {
 	/** `fieldSum` / `fieldAvg`: the number field measured, by query name. */
 	metricField?: string;
 	/** kpi - `value` is a name, resolved like every other reference. */
-	scope?: { field: DashboardGroupingField; value: string };
+	scope?: {
+		field?: DashboardGroupingField;
+		/** The same, by a custom field's query name (`custom.client` -> "client"). */
+		customField?: string;
+		value: string;
+	};
 	/** Row-layout share. Ignored by the flat `widgets` form. */
 	weight?: number;
 	line: number;

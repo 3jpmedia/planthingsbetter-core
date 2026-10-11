@@ -129,7 +129,7 @@ export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 			return (
 				isMeasure(mapping.metric, mapping.metricField) &&
 				(mapping.scope === null ||
-					(isBuiltInGrouping(mapping.scope.field) &&
+					(isGroupingField(mapping.scope.field) &&
 						typeof mapping.scope.value === "string" &&
 						mapping.scope.value.length > 0))
 			);

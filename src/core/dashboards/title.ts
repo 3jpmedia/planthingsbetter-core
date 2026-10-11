@@ -116,7 +116,7 @@ export function valueLabel(
 }
 
 function describeScope(scope: DashboardScope, context: ViewContext): string {
-  return `${GROUPING_LABEL[scope.field]} is ${valueLabel(scope.field, scope.value, context)}`;
+  return `${groupingFieldLabel(scope.field, context)} is ${valueLabel(scope.field, scope.value, context)}`;
 }
 
 /** What a bar or line measures, as a title's head: "Tasks" for a count. */

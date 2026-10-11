@@ -363,6 +363,14 @@ export interface CustomFieldDef {
 	type: CustomFieldType;
 	/** A select's (or multi-select's) choices, in order. */
 	options?: CustomFieldOption[];
+	/** The Space it belongs to, by the Space's name: set, the field is only on
+	 *  tasks in that Space. Absent: on every task in the workspace. Carried
+	 *  by a template's `fields` (`space: Design`); a host that holds Spaces
+	 *  by id keeps its own link and may leave this out. */
+	space?: string;
+	/** Hidden from guests, like an internal task. Absent or false: guests
+	 *  who can see the task see the field too. */
+	internal?: boolean;
 }
 
 /** A custom field's value on a task: text, url, date (YYYY-MM-DD) and a
@@ -1333,7 +1341,7 @@ export const DASHBOARD_GROUPING_FIELDS: readonly DashboardGroupingField[] = [
 /**
  * What a chart groups by: one of the built-in fields, or a select,
  * multi-select or member custom field (`field:CF-0003`, by the field's key,
- * so a rename changes nothing). A KPI's `scope` stays on the built-in ones.
+ * so a rename changes nothing). A KPI's `scope` takes the same.
  */
 export type DashboardGroupBy = DashboardGroupingField | CustomFieldRef;
 
@@ -1398,7 +1406,7 @@ export const DASHBOARD_METRICS: readonly DashboardMetric[] = [
  * sentinel; for `label` it matches tasks carrying that label.
  */
 export interface DashboardScope {
-	field: DashboardGroupingField;
+	field: DashboardGroupBy;
 	value: string;
 }
 

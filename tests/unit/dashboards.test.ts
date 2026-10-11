@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { NONE } from "../../src/core/types";
 import { sampleSnapshot } from "../../src/core/templates/instantiate";
 import { snapshotContext } from "../../src/core/views";
 import { applyFilters } from "../../src/core/views/filter";
@@ -647,6 +648,30 @@ describe("custom fields in charts (T-0274)", () => {
 		const retyped = withFields([{ ...points, type: "text" as never }]);
 		expect(computeWidgetData(kpi("fieldSum"), tasks, retyped).unavailable).toMatch(/no longer a number field/);
 		expect(autoTitle({ chartType: "bar", groupBy: "field:CF-0002" }, gone)).toBe("Tasks by a removed field");
+	});
+
+	it("narrows a KPI to tasks with one value of a custom field (T-0659)", () => {
+		const ctx = withFields([points, client, owners]);
+		const scoped = (field: `field:${string}`, value: string, metric: "count" | "fieldSum" = "count") =>
+			computeWidgetData(
+				widget({
+					id: "w",
+					chartType: "kpi",
+					fieldMapping: { chartType: "kpi", metric, ...(metric === "fieldSum" ? { metricField: "field:CF-0001" as const } : {}), scope: { field, value } },
+				}),
+				tasks,
+				ctx,
+			);
+		expect(scoped("field:CF-0002", "acme")).toMatchObject({ kind: "kpi", value: 2, of: 4 });
+		expect(scoped("field:CF-0002", NONE)).toMatchObject({ value: 1 });
+		expect(scoped("field:CF-0002", "globex", "fieldSum")).toMatchObject({ value: 2.5 });
+		const mapping = { chartType: "kpi", metric: "count", scope: { field: "field:CF-0002", value: "acme" } } as const;
+		expect(isFieldMappingValid(mapping)).toBe(true);
+		expect(autoTitle(mapping, ctx)).toBe("Task count where Client is Acme");
+		// A removed or retyped field says so instead of drawing.
+		expect(computeWidgetData(widget({ id: "w", chartType: "kpi", fieldMapping: mapping }), tasks, withFields([])).unavailable).toMatch(/removed/);
+		const retyped = withFields([{ ...client, type: "text" as never }]);
+		expect(computeWidgetData(widget({ id: "w", chartType: "kpi", fieldMapping: mapping }), tasks, retyped).unavailable).toMatch(/no longer a choice/);
 	});
 
 	it("keeps a field's chart valid through the compatibility rules and dashboard notes", () => {

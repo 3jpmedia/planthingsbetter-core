@@ -180,8 +180,12 @@ function orderedKeys(
 // Scope predicate (KPI)
 // ---------------------------------------------------------------------------
 
-export function matchesScope(task: Task, scope: DashboardScope): boolean {
-	const keys = groupKeys(task, scope.field);
+export function matchesScope(
+	task: Task,
+	scope: DashboardScope,
+	context?: Pick<ViewContext, "customFields">,
+): boolean {
+	const keys = groupKeys(task, scope.field, context);
 	if (scope.field === "milestone" && scope.value === NONE) return task.milestone == null;
 	if (scope.field === "project") {
 		if (scope.value === NONE) return task.project == null;
@@ -344,6 +348,15 @@ export function mappingFields(
 		group = groupingField(grouping as CustomFieldRef, context);
 		if (!group) return { problem: `${def.name} is no longer a choice or person field. Edit the chart to pick another.` };
 	}
+	const scope = mapping.chartType === "kpi" ? mapping.scope : null;
+	const scopeKey = scope ? customFieldKeyOf(scope.field) : null;
+	if (scope && scopeKey) {
+		const def = customFieldByKey(context, scopeKey);
+		if (!def) return { group, problem: "The field this chart is narrowed by was removed. Edit the chart to pick another." };
+		if (!groupingField(scope.field as CustomFieldRef, context)) {
+			return { group, problem: `${def.name} is no longer a choice or person field. Edit the chart to pick another.` };
+		}
+	}
 	const metric = "metric" in mapping ? mapping.metric : undefined;
 	if (metric && isFieldMetric(metric)) {
 		const ref = "metricField" in mapping ? mapping.metricField : undefined;
@@ -372,7 +385,7 @@ export function computeWidgetData(
 
 	if (mapping.chartType === "kpi") {
 		const scoped = mapping.scope
-			? tasks.filter((t) => matchesScope(t, mapping.scope as DashboardScope))
+			? tasks.filter((t) => matchesScope(t, mapping.scope as DashboardScope, context))
 			: tasks;
 		const value = aggregateMetric(scoped, mapping.metric, used.measure);
 		return {
