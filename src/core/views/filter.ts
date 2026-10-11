@@ -15,13 +15,19 @@ import { DEFAULT_DEFINITION } from "./defaults";
 import {
 	ANY,
 	CANVAS_RELATION_KINDS,
+	LINKED_DATE_FIELDS,
+	LINKED_DATE_FIELD_KEYS,
 	NONE,
 	SELF,
 	TASK_FIELDS,
 	isCustomFieldRef,
+	linkedDateExcludeKey,
 	type CanvasRelationKind,
 	type CustomFieldRef,
 	type LinkTarget,
+	type LinkedDateBoundKey,
+	type LinkedDateExcludeKey,
+	type LinkedDateField,
 	type SavedView,
 	type SortField,
 	type Task,
@@ -171,6 +177,18 @@ function matchesDateExact(
 	return allowed.some((value) => value === day);
 }
 
+/** One of a task's milestone's or project's dates (`LINKED_DATE_FIELDS`),
+ *  or null: no milestone (project), one this context can't see, or that
+ *  date unset on it. */
+function linkedDate(task: Task, field: LinkedDateField, context: ViewContext): string | null {
+	const spec = LINKED_DATE_FIELDS[field];
+	const link = task[spec.of];
+	if (!link) return null;
+	const item = spec.of === "milestone" ? context.milestones?.get(link) : context.projects?.get(link);
+	if (!item) return null;
+	return ((item as unknown as Record<string, string | null | undefined>)[spec.date] ?? null) || null;
+}
+
 /** Exclusive before/after bound on an (optionally full-timestamp) date field. */
 function matchesDateRange(
 	actual: string | null,
@@ -274,6 +292,16 @@ export function matchesFilters(
 	)
 		return false;
 
+	for (const field of LINKED_DATE_FIELD_KEYS) {
+		const exact = filters[field];
+		const before = filters[`${field}Before`];
+		const after = filters[`${field}After`];
+		if (!exact?.length && !before && !after) continue;
+		const value = linkedDate(task, field, context);
+		if (!matchesDateExact(value, exact)) return false;
+		if (!matchesDateRange(value, before, after)) return false;
+	}
+
 	/* -- exclusions: task fails if its value falls in any excluded list -- */
 
 	if (filters.excludeStatus?.length && matchesSingle(task.status, filters.excludeStatus))
@@ -345,6 +373,10 @@ export function matchesFilters(
 	)
 		return false;
 	if (filters.excludeStartedAt?.length && matchesDateExact(task.startedAt, filters.excludeStartedAt)) return false;
+	for (const field of LINKED_DATE_FIELD_KEYS) {
+		const excluded = filters[linkedDateExcludeKey(field)];
+		if (excluded?.length && matchesDateExact(linkedDate(task, field, context), excluded)) return false;
+	}
 	if (
 		filters.excludeCompletedAt?.length &&
 		matchesDateExact(task.completedAt, filters.excludeCompletedAt)
@@ -467,6 +499,8 @@ export type ArrayFilterKey = Exclude<
 	| "excludeUpdatedAt"
 	| "excludeStartedAt"
 	| "excludeCompletedAt"
+	| LinkedDateBoundKey
+	| LinkedDateExcludeKey
 >;
 
 export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
@@ -491,6 +525,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"updatedAt",
 	"startedAt",
 	"completedAt",
+	...LINKED_DATE_FIELD_KEYS,
 ];
 
 /** The 19 `ViewFilters` property names that hold excluded values. */
@@ -515,7 +550,8 @@ export type ExcludeFilterKey =
 	| "excludeCreatedAt"
 	| "excludeUpdatedAt"
 	| "excludeStartedAt"
-	| "excludeCompletedAt";
+	| "excludeCompletedAt"
+	| LinkedDateExcludeKey;
 
 /**
  * `ArrayFilterKey` → the `ViewFilters` property holding its excluded
@@ -545,6 +581,7 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	updatedAt: "excludeUpdatedAt",
 	startedAt: "excludeStartedAt",
 	completedAt: "excludeCompletedAt",
+	...(Object.fromEntries(LINKED_DATE_FIELD_KEYS.map((field) => [field, linkedDateExcludeKey(field)])) as Record<LinkedDateField, LinkedDateExcludeKey>),
 };
 
 export const EXCLUDE_ARRAY_FIELDS: readonly ExcludeFilterKey[] =
@@ -644,6 +681,11 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 	if (filters.createdAtAfter) out.createdAtAfter = filters.createdAtAfter;
 	if (filters.updatedAtBefore) out.updatedAtBefore = filters.updatedAtBefore;
 	if (filters.updatedAtAfter) out.updatedAtAfter = filters.updatedAtAfter;
+	for (const field of LINKED_DATE_FIELD_KEYS) {
+		for (const bound of [`${field}Before`, `${field}After`] as const) {
+			if (filters[bound]) out[bound] = filters[bound];
+		}
+	}
 	if (filters.startedAtBefore) out.startedAtBefore = filters.startedAtBefore;
 	if (filters.startedAtAfter) out.startedAtAfter = filters.startedAtAfter;
 	if (filters.completedAtBefore) out.completedAtBefore = filters.completedAtBefore;
@@ -856,6 +898,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeCreatedAt?.length &&
 		!filters.excludeUpdatedAt?.length &&
 		!filters.excludeStartedAt?.length &&
+		LINKED_DATE_FIELD_KEYS.every((field) => !filters[field]?.length && !filters[`${field}Before`] && !filters[`${field}After`] && !filters[linkedDateExcludeKey(field)]?.length) &&
 		!filters.excludeCompletedAt?.length
 	);
 }

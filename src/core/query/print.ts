@@ -15,7 +15,7 @@
 
 import { basename } from "../links";
 import { getValue, type Taxonomy } from "../taxonomy";
-import { NONE, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
+import { LINKED_DATE_FIELD_KEYS, NONE, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
 import { CHECKLIST_KEYWORDS, isChecklistKeyword } from "../checklists";
 import { customFieldToken, printCustomMatch } from "./custom";
 import {
@@ -327,6 +327,12 @@ export function printFilters(
 	if (canonical.createdAtAfter) parts.push(`${DATE_BOUND_FIELDS.createdAtAfter.token}:${canonical.createdAtAfter}`);
 	if (canonical.updatedAtBefore) parts.push(`${DATE_BOUND_FIELDS.updatedAtBefore.token}:${canonical.updatedAtBefore}`);
 	if (canonical.updatedAtAfter) parts.push(`${DATE_BOUND_FIELDS.updatedAtAfter.token}:${canonical.updatedAtAfter}`);
+	for (const field of LINKED_DATE_FIELD_KEYS) {
+		for (const bound of [`${field}Before`, `${field}After`] as const) {
+			const day = canonical[bound];
+			if (day) parts.push(`${DATE_BOUND_FIELDS[bound].token}:${day}`);
+		}
+	}
 	if (canonical.startedAtBefore) parts.push(`${DATE_BOUND_FIELDS.startedAtBefore.token}:${canonical.startedAtBefore}`);
 	if (canonical.startedAtAfter) parts.push(`${DATE_BOUND_FIELDS.startedAtAfter.token}:${canonical.startedAtAfter}`);
 	if (canonical.completedAtBefore) parts.push(`${DATE_BOUND_FIELDS.completedAtBefore.token}:${canonical.completedAtBefore}`);

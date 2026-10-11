@@ -895,7 +895,38 @@ export const NONE = "__none__";
  */
 export const ANY = "__any__";
 
-export interface ViewFilters {
+/**
+ * Dates a task's milestone or project has, as task filters: tasks whose
+ * milestone starts this month, whose project is due before November. Each is
+ * a `ViewFilters` field of its own (`milestoneTarget`), with `…Before` /
+ * `…After` bounds and an `exclude…` companion, like a task's own dates. A
+ * task in no milestone (or project) has none of them: it matches `unset`.
+ * Named for what they belong to, so the same names can mean the same thing
+ * in a Milestones or Projects list.
+ */
+export const LINKED_DATE_FIELDS = {
+	milestoneStart: { of: "milestone", date: "startDate" },
+	milestoneTarget: { of: "milestone", date: "targetDate" },
+	milestoneCompleted: { of: "milestone", date: "completedAt" },
+	milestoneCreated: { of: "milestone", date: "createdAt" },
+	milestoneUpdated: { of: "milestone", date: "updatedAt" },
+	projectStart: { of: "project", date: "startDate" },
+	projectDue: { of: "project", date: "dueDate" },
+	projectCreated: { of: "project", date: "createdAt" },
+	projectUpdated: { of: "project", date: "updatedAt" },
+} as const satisfies Record<string, { of: "milestone"; date: keyof Milestone } | { of: "project"; date: keyof Project }>;
+
+export type LinkedDateField = keyof typeof LINKED_DATE_FIELDS;
+export const LINKED_DATE_FIELD_KEYS = Object.keys(LINKED_DATE_FIELDS) as LinkedDateField[];
+export type LinkedDateBoundKey = `${LinkedDateField}Before` | `${LinkedDateField}After`;
+export type LinkedDateExcludeKey = `exclude${Capitalize<LinkedDateField>}`;
+export const linkedDateExcludeKey = (field: LinkedDateField) => `exclude${field[0].toUpperCase()}${field.slice(1)}` as LinkedDateExcludeKey;
+
+/** The `ViewFilters` fields `LINKED_DATE_FIELDS` makes: an exact-day list,
+ *  the two bounds, and the excluded days. */
+export type LinkedDateFilters = { [K in LinkedDateField]?: string[] } & { [K in LinkedDateBoundKey]?: IsoDate } & { [K in LinkedDateExcludeKey]?: string[] };
+
+export interface ViewFilters extends LinkedDateFilters {
 	status?: string[];
 	priority?: string[];
 	taskType?: string[];

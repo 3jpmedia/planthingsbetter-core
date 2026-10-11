@@ -23,6 +23,7 @@ import type {
 	ViewType,
 } from "../types";
 import type { ArrayFilterKey } from "../views/filter";
+import { LINKED_DATE_FIELD_KEYS, type LinkedDateBoundKey, type LinkedDateField } from "../types";
 
 /** What kind of thing a filter field's values name. */
 export type ResolveAs =
@@ -198,7 +199,21 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "date",
 		unsetIsVacuous: false,
 	},
+	// A task's milestone's and project's dates (LINKED_DATE_FIELDS in types.ts):
+	// `milestoneTarget:2026-10-20`, `projectDue:unset`. Spelled with dashes
+	// too (`milestone-target:`).
+	...(Object.fromEntries(
+		LINKED_DATE_FIELD_KEYS.map((field) => [
+			field,
+			{ token: field, aliases: [kebab(field)], resolveAs: "date", unsetIsVacuous: false } satisfies FilterFieldSpec,
+		]),
+	) as unknown as Record<LinkedDateField, FilterFieldSpec>),
 };
+
+/** `milestoneTarget` -> `milestone-target`. */
+function kebab(token: string): string {
+	return token.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+}
 
 /** The free-text field (a task's title). Not in `FILTER_FIELDS` - its value
  *  isn't a list. Printed as `taskTitle:` -- always labelled, never bare
@@ -293,7 +308,8 @@ export const DATE_BOUND_FIELDS: Record<
 	| "startedAtBefore"
 	| "startedAtAfter"
 	| "completedAtBefore"
-	| "completedAtAfter",
+	| "completedAtAfter"
+	| LinkedDateBoundKey,
 	EnumValueSpec
 > = {
 	dueDateBefore: { token: "due-before", aliases: [] },
@@ -308,6 +324,15 @@ export const DATE_BOUND_FIELDS: Record<
 	startedAtAfter: { token: "taskStartedAfter", aliases: ["started-after"] },
 	completedAtBefore: { token: "completed-before", aliases: [] },
 	completedAtAfter: { token: "completed-after", aliases: [] },
+	// `milestoneTargetBefore:` (and `milestone-target-before:`), like `taskStartedBefore:`.
+	...(Object.fromEntries(
+		LINKED_DATE_FIELD_KEYS.flatMap((field) =>
+			(["Before", "After"] as const).map((side) => [
+				`${field}${side}`,
+				{ token: `${field}${side}`, aliases: [`${kebab(field)}-${side.toLowerCase()}`] },
+			]),
+		),
+	) as unknown as Record<LinkedDateBoundKey, EnumValueSpec>),
 };
 
 /** Timeline-only: the zoom level (`zoom:` clause). */
