@@ -101,11 +101,14 @@ describe("round-trip (Invariant A)", () => {
 		["start date", withFilters({ startDate: ["2026-09-19"] })],
 		["created date", withFilters({ createdAt: ["2026-09-19"] })],
 		["updated date", withFilters({ updatedAt: ["2026-09-19"] })],
+		["started date", withFilters({ startedAt: ["2026-09-19"] })],
+		["NONE started date", withFilters({ startedAt: [NONE] })],
 		["completed date", withFilters({ completedAt: ["2026-09-19"] })],
 		["due-before/after", withFilters({ dueDateBefore: "2026-10-01", dueDateAfter: "2026-09-01" })],
 		["start-before/after", withFilters({ startDateBefore: "2026-10-01", startDateAfter: "2026-09-01" })],
 		["created-before/after", withFilters({ createdAtBefore: "2026-10-01", createdAtAfter: "2026-09-01" })],
 		["updated-before/after", withFilters({ updatedAtBefore: "2026-10-01", updatedAtAfter: "2026-09-01" })],
+		["started-before/after", withFilters({ startedAtBefore: "2026-10-01", startedAtAfter: "2026-09-01" })],
 		["completed-before/after", withFilters({ completedAtBefore: "2026-10-01", completedAtAfter: "2026-09-01" })],
 		["stale taxonomy id", withFilters({ status: ["long-gone"] })],
 		["stale person", withFilters({ assignee: ["ghost"] })],
@@ -121,6 +124,7 @@ describe("round-trip (Invariant A)", () => {
 		["grouping", def({ groupBy: "priority" })],
 		["sorting", def({ sortBy: "dueDate" })],
 		["descending", def({ sortBy: "dueDate", sortDirection: "desc" })],
+		["sorting by started", def({ sortBy: "startedAt" })],
 		["empty behaviour", def({ emptyColumnBehavior: "auto-collapse" })],
 		["hidden fields", def({ hiddenFields: ["priority", "labels"] })],
 		["all fields hidden", def({ hiddenFields: [...TASK_FIELDS] })],
@@ -1148,6 +1152,11 @@ describe("date field filtering", () => {
 		const completed = parseQuery("completed:2026-01-01", ctx);
 		expect(completed.definition.filters.completedAt).toEqual(["2026-01-01"]);
 
+		const started = parseQuery("started-after:2026-01-01 started-at:2026-02-01", ctx);
+		expect(started.definition.filters.startedAtAfter).toBe("2026-01-01");
+		expect(started.definition.filters.startedAt).toEqual(["2026-02-01"]);
+		expect(printQuery(started.definition, ctx)).toContain("started:2026-02-01");
+
 		const start = parseQuery("start-date:2026-01-01", ctx);
 		expect(start.definition.filters.startDate).toEqual(["2026-01-01"]);
 	});
@@ -1287,7 +1296,7 @@ describe("any: the positive form of unset", () => {
 	});
 
 	it("matches the tasks with a value, on every field that takes unset", () => {
-		for (const field of ["priority", "type", "label", "assignee", "project", "milestone", "space", "parent", "blocksTaskKey", "due", "start", "completed"]) {
+		for (const field of ["priority", "type", "label", "assignee", "project", "milestone", "space", "parent", "blocksTaskKey", "due", "start", "started", "completed"]) {
 			const all = ids("show:archived");
 			const unset = ids(`${field}:unset show:archived`);
 			const any = ids(`${field}:any show:archived`);

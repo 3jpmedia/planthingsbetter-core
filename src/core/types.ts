@@ -831,6 +831,8 @@ export type SortField =
 	| "estimate"
 	| "createdAt"
 	| "updatedAt"
+	/** When work began; never-started tasks last, either way. */
+	| "startedAt"
 	| "taskType"
 	| "project"
 	| "milestone"
@@ -964,19 +966,21 @@ export interface ViewFilters {
 	checklist?: string[];
 
 	/**
-	 * Exact-day filters (OR'd) for the five task date fields. Values are
+	 * Exact-day filters (OR'd) for the six task date fields. Values are
 	 * `YYYY-MM-DD`, or `NONE` for "field unset" (only meaningful on the
-	 * three nullable fields: dueDate, startDate, completedAt).
+	 * four nullable fields: dueDate, startDate, startedAt, completedAt).
 	 */
 	dueDate?: string[];
 	startDate?: string[];
 	createdAt?: string[];
 	updatedAt?: string[];
+	/** When work began (`Task.startedAt`); `NONE` is never started. */
+	startedAt?: string[];
 	completedAt?: string[];
 
 	/**
 	 * Range bounds, exclusive, at calendar-day granularity. `createdAt`/
-	 * `updatedAt`/`completedAt` store full timestamps on `Task`; these
+	 * `updatedAt`/`startedAt`/`completedAt` store full timestamps on `Task`; these
 	 * bounds compare only the first 10 characters (the day) against them.
 	 */
 	dueDateBefore?: IsoDate;
@@ -987,6 +991,8 @@ export interface ViewFilters {
 	createdAtAfter?: IsoDate;
 	updatedAtBefore?: IsoDate;
 	updatedAtAfter?: IsoDate;
+	startedAtBefore?: IsoDate;
+	startedAtAfter?: IsoDate;
 	completedAtBefore?: IsoDate;
 	completedAtAfter?: IsoDate;
 
@@ -1018,6 +1024,7 @@ export interface ViewFilters {
 	excludeStartDate?: string[];
 	excludeCreatedAt?: string[];
 	excludeUpdatedAt?: string[];
+	excludeStartedAt?: string[];
 	excludeCompletedAt?: string[];
 }
 

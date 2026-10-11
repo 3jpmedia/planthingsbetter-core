@@ -262,6 +262,8 @@ export function matchesFilters(
 		!matchesDateRange(task.updatedAt, filters.updatedAtBefore, filters.updatedAtAfter)
 	)
 		return false;
+	if (!matchesDateExact(task.startedAt, filters.startedAt)) return false;
+	if (!matchesDateRange(task.startedAt, filters.startedAtBefore, filters.startedAtAfter)) return false;
 	if (!matchesDateExact(task.completedAt, filters.completedAt)) return false;
 	if (
 		!matchesDateRange(
@@ -342,6 +344,7 @@ export function matchesFilters(
 		matchesDateExact(task.updatedAt, filters.excludeUpdatedAt)
 	)
 		return false;
+	if (filters.excludeStartedAt?.length && matchesDateExact(task.startedAt, filters.excludeStartedAt)) return false;
 	if (
 		filters.excludeCompletedAt?.length &&
 		matchesDateExact(task.completedAt, filters.excludeCompletedAt)
@@ -439,6 +442,8 @@ export type ArrayFilterKey = Exclude<
 	| "createdAtAfter"
 	| "updatedAtBefore"
 	| "updatedAtAfter"
+	| "startedAtBefore"
+	| "startedAtAfter"
 	| "completedAtBefore"
 	| "completedAtAfter"
 	| "excludeStatus"
@@ -460,6 +465,7 @@ export type ArrayFilterKey = Exclude<
 	| "excludeStartDate"
 	| "excludeCreatedAt"
 	| "excludeUpdatedAt"
+	| "excludeStartedAt"
 	| "excludeCompletedAt"
 >;
 
@@ -483,10 +489,11 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"startDate",
 	"createdAt",
 	"updatedAt",
+	"startedAt",
 	"completedAt",
 ];
 
-/** The 18 `ViewFilters` property names that hold excluded values. */
+/** The 19 `ViewFilters` property names that hold excluded values. */
 export type ExcludeFilterKey =
 	| "excludeStatus"
 	| "excludePriority"
@@ -507,6 +514,7 @@ export type ExcludeFilterKey =
 	| "excludeStartDate"
 	| "excludeCreatedAt"
 	| "excludeUpdatedAt"
+	| "excludeStartedAt"
 	| "excludeCompletedAt";
 
 /**
@@ -535,6 +543,7 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	startDate: "excludeStartDate",
 	createdAt: "excludeCreatedAt",
 	updatedAt: "excludeUpdatedAt",
+	startedAt: "excludeStartedAt",
 	completedAt: "excludeCompletedAt",
 };
 
@@ -635,6 +644,8 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 	if (filters.createdAtAfter) out.createdAtAfter = filters.createdAtAfter;
 	if (filters.updatedAtBefore) out.updatedAtBefore = filters.updatedAtBefore;
 	if (filters.updatedAtAfter) out.updatedAtAfter = filters.updatedAtAfter;
+	if (filters.startedAtBefore) out.startedAtBefore = filters.startedAtBefore;
+	if (filters.startedAtAfter) out.startedAtAfter = filters.startedAtAfter;
 	if (filters.completedAtBefore) out.completedAtBefore = filters.completedAtBefore;
 	if (filters.completedAtAfter) out.completedAtAfter = filters.completedAtAfter;
 
@@ -816,6 +827,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.startDate?.length &&
 		!filters.createdAt?.length &&
 		!filters.updatedAt?.length &&
+		!filters.startedAt?.length &&
 		!filters.completedAt?.length &&
 		!filters.dueDateBefore &&
 		!filters.dueDateAfter &&
@@ -825,6 +837,8 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.createdAtAfter &&
 		!filters.updatedAtBefore &&
 		!filters.updatedAtAfter &&
+		!filters.startedAtBefore &&
+		!filters.startedAtAfter &&
 		!filters.completedAtBefore &&
 		!filters.completedAtAfter &&
 		!filters.excludeStatus?.length &&
@@ -841,6 +855,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeStartDate?.length &&
 		!filters.excludeCreatedAt?.length &&
 		!filters.excludeUpdatedAt?.length &&
+		!filters.excludeStartedAt?.length &&
 		!filters.excludeCompletedAt?.length
 	);
 }

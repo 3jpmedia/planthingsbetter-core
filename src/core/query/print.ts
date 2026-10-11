@@ -327,6 +327,8 @@ export function printFilters(
 	if (canonical.createdAtAfter) parts.push(`${DATE_BOUND_FIELDS.createdAtAfter.token}:${canonical.createdAtAfter}`);
 	if (canonical.updatedAtBefore) parts.push(`${DATE_BOUND_FIELDS.updatedAtBefore.token}:${canonical.updatedAtBefore}`);
 	if (canonical.updatedAtAfter) parts.push(`${DATE_BOUND_FIELDS.updatedAtAfter.token}:${canonical.updatedAtAfter}`);
+	if (canonical.startedAtBefore) parts.push(`${DATE_BOUND_FIELDS.startedAtBefore.token}:${canonical.startedAtBefore}`);
+	if (canonical.startedAtAfter) parts.push(`${DATE_BOUND_FIELDS.startedAtAfter.token}:${canonical.startedAtAfter}`);
 	if (canonical.completedAtBefore) parts.push(`${DATE_BOUND_FIELDS.completedAtBefore.token}:${canonical.completedAtBefore}`);
 	if (canonical.completedAtAfter) parts.push(`${DATE_BOUND_FIELDS.completedAtAfter.token}:${canonical.completedAtAfter}`);
 

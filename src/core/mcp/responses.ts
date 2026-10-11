@@ -271,6 +271,8 @@ export interface McpTaskRow {
 	dueDate: string | null;
 	archived: boolean;
 	archivedAt: string | null;
+	/** When work on it began (its first started status); null if never. */
+	startedAt: string | null;
 	completedAt: string | null;
 	subTaskCount: number;
 	relationCount: number;
@@ -319,6 +321,7 @@ export function taskRow(
 		dueDate: task.dueDate,
 		archived: task.archived,
 		archivedAt: task.archivedAt,
+		startedAt: task.startedAt,
 		completedAt: task.completedAt,
 		subTaskCount: subtaskCounts.get(task.path) ?? 0,
 		relationCount: relationCount(task),

@@ -163,6 +163,7 @@ const SORT_FIELDS: SortField[] = [
 	"estimate",
 	"createdAt",
 	"updatedAt",
+	"startedAt",
 	"taskType",
 	"project",
 	"assignee",

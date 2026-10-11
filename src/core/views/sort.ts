@@ -74,7 +74,8 @@ export function compareField(
 		}
 
 		case "dueDate":
-		case "startDate": {
+		case "startDate":
+		case "startedAt": {
 			const nullSkewed = a[field] == null || b[field] == null;
 			return {
 				value: compareNullable(a[field], b[field], (x, y) => x.localeCompare(y)),
