@@ -28,6 +28,9 @@ import { printFilters, printQuery, type QueryContext } from "../../query";
 import { sortByRank } from "../../ranking";
 import type {
 	Comment,
+	CustomFieldDef,
+	CustomFieldType,
+	CustomFieldValue,
 	DashboardConfig,
 	DashboardWidget,
 	PriorityValue,
@@ -65,6 +68,13 @@ export interface TemplateSerializeInput {
 	/** Archived Projects *and* Tasks ride along only when true (so their
 	 *  cross-links keep resolving); default drops them. */
 	includeArchived?: boolean;
+	/** The workspace's custom fields. Written to frontmatter `fields:` in the
+	 *  taxonomy shorthand, and each Task's values (`Task.fields`) ride on its
+	 *  field line. The host passes the fields a template should carry: core's
+	 *  definition has no Space or guest scope, so a Space-only or guest-hidden
+	 *  field comes through as a plain workspace field (as import reads it), and
+	 *  a host that wants one left out drops it here. */
+	customFields?: CustomFieldDef[];
 	/** For `printQuery` / `printFilters` - build it with `queryContext(snapshot)`. */
 	queryContext: QueryContext;
 }
@@ -85,6 +95,89 @@ function statusShorthand(value: StatusValue): string {
 
 function flatShorthand(value: PriorityValue | TaskTypeValue): string {
 	return withDescription(`${value.name} (${value.color})`, value.description);
+}
+
+/* ------------------------------------------------------ custom fields ---- */
+
+/** The type words `parseCustomFields` reads (the inverse of its table). */
+const FIELD_TYPE_WORD: Record<CustomFieldType, string> = {
+	text: "text",
+	number: "number",
+	select: "select",
+	multiSelect: "multi-select",
+	date: "date",
+	checkbox: "checkbox",
+	member: "person",
+	url: "url",
+};
+
+/** Built-in task field-line keys: a custom field named like one is written
+ *  as `custom.<slug>` so it can't be read as the built-in. */
+const BUILT_IN_FIELD_KEYS = new Set([
+	"project", "parent", "type", "status", "priority", "assignee", "estimate",
+	"labels", "start", "due", "created", "updated", "completed", "archived",
+	"repeat", "blocks", "blockedby", "related", "duplicateof",
+]);
+
+/** Whether the shorthand can carry the field: no brackets, commas, pipes,
+ *  colons or line breaks where they would be read as syntax. */
+function fieldIsWritable(field: CustomFieldDef): boolean {
+	if (!field.name.trim() || /[()|:\n,]/.test(field.name)) return false;
+	return (field.options ?? []).every((o) => o.name.trim() && !/[(),|\n]/.test(o.name));
+}
+
+function fieldShorthand(field: CustomFieldDef): string {
+	const choices = field.type === "select" || field.type === "multiSelect"
+		? (field.options ?? []).map((o) => o.name.trim())
+		: [];
+	return `${field.name.trim()} (${[FIELD_TYPE_WORD[field.type], ...choices].join(", ")})`;
+}
+
+/** The key a task's field line uses for a field. */
+function fieldLineKey(field: CustomFieldDef): string {
+	const name = field.name.trim();
+	return /^[a-z]+$/i.test(name) && BUILT_IN_FIELD_KEYS.has(name.toLowerCase())
+		? `custom.${field.slug}`
+		: name;
+}
+
+/** A value as the field line reads it, or null when it is empty or can't be
+ *  written (an unknown choice, a person no longer on the roster). */
+function fieldValueText(
+	field: CustomFieldDef,
+	value: CustomFieldValue | undefined,
+	workspace: WorkspaceConfig,
+): string | null {
+	if (value === undefined || value === null) return null;
+	const list = (items: string[]) => (items.length > 0 ? `[${items.join(", ")}]` : null);
+	switch (field.type) {
+		case "number":
+			return typeof value === "number" && Number.isFinite(value) ? String(value) : null;
+		case "checkbox":
+			return value === true ? "yes" : null;
+		case "select": {
+			const option = field.options?.find((o) => o.id === value);
+			return option ? option.name.trim() : null;
+		}
+		case "multiSelect": {
+			const ids = Array.isArray(value) ? value : [];
+			return list(
+				ids
+					.map((id) => field.options?.find((o) => o.id === id)?.name.trim())
+					.filter((n): n is string => Boolean(n)),
+			);
+		}
+		case "member": {
+			const ids = Array.isArray(value) ? value : [];
+			return list(
+				ids
+					.map((id) => workspace.people.find((p) => p.id === id)?.name)
+					.filter((n): n is string => Boolean(n) && !/[,\][]/.test(n as string)),
+			);
+		}
+		default:
+			return typeof value === "string" && value.trim() ? value.trim() : null;
+	}
 }
 
 /* ---------------------------------------------------------- dashboards --- */
@@ -257,6 +350,7 @@ function taskSection(
 	workspace: WorkspaceConfig,
 	anchorByPath: Map<string, string>,
 	projectTitleByPath: Map<string, string>,
+	customFields: CustomFieldDef[],
 ): string {
 	const nameById = (list: { id: string; name: string }[], id: string | null) =>
 		list.find((v) => v.id === id)?.name;
@@ -317,6 +411,11 @@ function taskSection(
 		if (task.relations.duplicateOf && included.has(task.relations.duplicateOf))
 			segments.push(`duplicateof: ${anchorByPath.get(task.relations.duplicateOf)}`);
 
+		for (const field of customFields) {
+			const text = fieldValueText(field, task.fields?.[field.id], workspace);
+			if (text) segments.push(`${fieldLineKey(field)}: ${text}`);
+		}
+
 		const repeat = task.recurrence ? printRepeatToken(task.recurrence) : null;
 		if (repeat) segments.push(`repeat: ${repeat}`);
 
@@ -370,6 +469,7 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 		includeArchived = false,
 		queryContext,
 	} = input;
+	const customFields = (input.customFields ?? []).filter(fieldIsWritable);
 
 	const statuses = [...workspace.statuses].sort((a, b) => a.order - b.order);
 	const priorities = [...workspace.priorities].sort((a, b) => a.order - b.order);
@@ -404,6 +504,10 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 	// would auto-assign the exporting device's identity to whoever creates a
 	// workspace from this template.
 	frontmatter.people = workspace.people.map((person) => person.name);
+
+	if (customFields.length > 0) {
+		frontmatter.fields = customFields.map(fieldShorthand);
+	}
 
 	if (views.length > 0) {
 		frontmatter.views = views.map((view) => viewMap(view, queryContext));
@@ -445,6 +549,7 @@ export function serializeTemplateMarkdown(input: TemplateSerializeInput): string
 			workspace,
 			anchorByPath,
 			projectTitleByPath,
+			customFields,
 		)}\n`;
 	}
 	return `---\n${yaml}---\n\n${body}`;

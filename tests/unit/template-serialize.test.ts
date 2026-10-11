@@ -10,6 +10,7 @@ import { joinPath } from "../../src/core/links";
 import { emptyRelations } from "../../src/core/types";
 import { makeDashboard, makeWidget } from "../../src/core/templates/helpers";
 import type {
+	CustomFieldDef,
 	RecurrenceConfig,
 	RecurrenceFrequency,
 	RecurrenceTrigger,
@@ -566,5 +567,73 @@ describe("serializeTemplateMarkdown round-trip", () => {
 	it("leaves createdAt undefined when the template doesn't set one", () => {
 		const { parsed } = roundTrip();
 		expect(parsed.meta.createdAt).toBeUndefined();
+	});
+	describe("custom fields", () => {
+		const opt = (name: string, n: number) => ({ id: `o${n}`, name, color: "#ff0000" });
+		const person = snapshot.workspace.people[0];
+		const fields: CustomFieldDef[] = [
+			{ id: "f1", key: "CF-0001", slug: "points", name: "Points", type: "number" },
+			{ id: "f2", key: "CF-0002", slug: "client", name: "Client", type: "select", options: [opt("Acme", 1), opt("Globex", 2)] },
+			{ id: "f3", key: "CF-0003", slug: "tags", name: "Tags", type: "multiSelect", options: [opt("a", 3), opt("b", 4)] },
+			{ id: "f4", key: "CF-0004", slug: "reviewer", name: "Reviewer", type: "member" },
+			{ id: "f5", key: "CF-0005", slug: "signed-off", name: "Signed off", type: "checkbox" },
+			{ id: "f6", key: "CF-0006", slug: "due-to-client", name: "Due to client", type: "date" },
+			{ id: "f7", key: "CF-0007", slug: "status", name: "Status", type: "text" },
+			{ id: "f8", key: "CF-0008", slug: "bad", name: "Bad (name)", type: "text" },
+		];
+		const tasks = [
+			task({
+				id: "FIX-0201",
+				title: "With values",
+				path: joinPath("WS", "Tasks", "FIX-0201"),
+				fields: { f1: 5, f2: "o2", f3: ["o3", "o4"], f4: [person.id], f5: true, f6: "2026-11-01", f7: "Waiting", f8: "x" },
+			}),
+		];
+		const serialize = () =>
+			serializeTemplateMarkdown({
+				meta: { id: "fields-template", name: "Fields Template" },
+				workspace: snapshot.workspace,
+				views: [],
+				dashboards: [],
+				projects: [],
+				tasks,
+				customFields: fields,
+				queryContext: queryContext(snapshot),
+			});
+
+		it("writes definitions to frontmatter and values to the field line", () => {
+			const source = serialize();
+			expect(source).toContain("Points (number)");
+			expect(source).toContain("Client (select, Acme, Globex)");
+			expect(source).toContain("Reviewer (person)");
+			expect(source).not.toContain("Bad (name)");
+			expect(source).toContain("Points: 5");
+			expect(source).toContain("Client: Globex");
+			expect(source).toContain("custom.status: Waiting");
+		});
+
+		it("round-trips fields and values", () => {
+			const parsed = parseTemplateMarkdown(serialize());
+			expect(parsed.customFields?.map((f) => f.name)).toEqual(
+				["Points", "Client", "Tags", "Reviewer", "Signed off", "Due to client", "Status"],
+			);
+			const content = resolveTemplateContent(parsed, ctx());
+			const values = content.tasks[0].fields!;
+			const byName = (name: string) => content.customFields!.find((f) => f.name === name)!;
+			const client = byName("Client");
+			expect(values[client.id]).toBe(client.options!.find((o) => o.name === "Globex")!.id);
+			expect(values[byName("Points").id]).toBe(5);
+			expect(values[byName("Signed off").id]).toBe(true);
+			expect(values[byName("Due to client").id]).toBe("2026-11-01");
+			expect(values[byName("Status").id]).toBe("Waiting");
+			expect(values[byName("Tags").id]).toHaveLength(2);
+			expect(values[byName("Reviewer").id]).toHaveLength(1);
+		});
+
+		it("writes no fields when there are none", () => {
+			expect(serializeTemplateMarkdown({
+				meta: { id: "x", name: "X" }, workspace: snapshot.workspace, views: [], dashboards: [], projects: [], queryContext: queryContext(snapshot),
+			})).not.toContain("fields:");
+		});
 	});
 });
