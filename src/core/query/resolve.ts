@@ -15,9 +15,10 @@
 import { isValidIsoDay } from "../date";
 import { basename, parseLink } from "../links";
 import { findValueByName, getValue, type Taxonomy } from "../taxonomy";
-import { NONE, SELF } from "../types";
+import { ANY, NONE, SELF } from "../types";
 import type { QueryContext, QueryEntity } from "./context";
 import {
+	ANY_KEYWORDS,
 	SELF_KEYWORDS,
 	UNSET_KEYWORDS,
 	type FilterFieldSpec,
@@ -254,6 +255,21 @@ export function resolveValue(
 						severity: "warning",
 						code: "vacuous-value",
 						message: `${spec.token}:${lowered} can never match anything`,
+					}
+				: undefined,
+		};
+	}
+
+	// `any`: the field has a value. Never stored as such on an array filter
+	// -- the parser turns it into excluding `NONE` (parse.ts).
+	if (ANY_KEYWORDS.includes(lowered as (typeof ANY_KEYWORDS)[number])) {
+		return {
+			value: ANY,
+			issue: spec.unsetIsVacuous
+				? {
+						severity: "warning",
+						code: "vacuous-value",
+						message: `${spec.token}:${lowered} matches every task`,
 					}
 				: undefined,
 		};

@@ -500,8 +500,8 @@ export interface Task {
 	 * Filled where the app knows them (the web app reads them with the task;
 	 * the plugin from the note's `## Checklists` section, see
 	 * `serialization/checklists.ts`). Absent or empty: no checklists. What
-	 * `has:checklist`, `is:checklist-open` and `checklist:<name>` match on,
-	 * and what a card's "7/12" is made of (`checklistTotals`).
+	 * `checklist:any|unset|open|done|<name>` matches on, and what a card's
+	 * "7/12" is made of (`checklistTotals`).
 	 */
 	checklists?: ChecklistSummary[];
 
@@ -884,6 +884,15 @@ export const SELF = "self";
 /** Magic filter value matching tasks where the field is unset. */
 export const NONE = "__none__";
 
+/**
+ * Magic value for "the field has a value" -- what the query language's
+ * `any` keyword reads as (`project:any`). An array filter never stores it:
+ * the parser turns `x:any` into excluding `NONE` (`excludeProject: [NONE]`),
+ * the same as the older `-x:unset`. Only `ViewFilters.checklist` keeps it
+ * (`checklist:any`, a task with at least one checklist).
+ */
+export const ANY = "__any__";
+
 export interface ViewFilters {
 	status?: string[];
 	priority?: string[];
@@ -933,14 +942,24 @@ export interface ViewFilters {
 	unscheduled?: boolean;
 	/** Only tasks carrying a live recurrence definition. */
 	recurring?: boolean;
-	/** `has:checklist` -- only tasks with at least one checklist (`Task.checklists`). */
+	/**
+	 * Legacy (`has:checklist`, before `checklist:any`): only tasks with at
+	 * least one checklist. Still read, but `canonicalizeFilters` folds it
+	 * into `checklist` and nothing writes it any more.
+	 */
 	hasChecklist?: boolean;
-	/** `is:checklist-open` -- only tasks with an unticked checklist item. */
+	/**
+	 * Legacy (`is:checklist-open`, before `checklist:open`): only tasks with
+	 * an unticked checklist item. Folded into `checklist` like `hasChecklist`.
+	 */
 	checklistOpen?: boolean;
 	/**
-	 * `checklist:"After deploy"` -- only tasks with an unticked item in a
-	 * checklist of one of these names (case and surrounding spaces don't
-	 * matter). OR'd across names. No exclusion form.
+	 * `checklist:` -- tasks by their checklists (`Task.checklists`), OR'd
+	 * across values: `ANY` (at least one list), `NONE` (none),
+	 * `CHECKLIST_OPEN` (an unticked item in any list), `CHECKLIST_DONE`
+	 * (items, all ticked), or a list's name (`checklist:"After deploy"`: a
+	 * list of that name with an unticked item; case and surrounding spaces
+	 * don't matter). See `matchesChecklistValues` in checklists.ts.
 	 */
 	checklist?: string[];
 

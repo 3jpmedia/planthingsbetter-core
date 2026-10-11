@@ -4,6 +4,8 @@ import { parseQuery, printQuery, queryContext } from "../../src/core/query";
 import { canonicalizeDefinition, matchesFilters, snapshotContext } from "../../src/core/views";
 import { DEFAULT_DEFINITION } from "../../src/core/views/defaults";
 import {
+	CHECKLIST_DONE,
+	CHECKLIST_OPEN,
 	checklistNameKey,
 	checklistTotals,
 	hasOpenChecklistNamed,
@@ -20,7 +22,7 @@ import { COMMENTS_END, COMMENTS_START, parseComments, withComments } from "../..
 import { DESCRIPTION_END_TAG, DESCRIPTION_START_TAG, parseDescription } from "../../src/core/serialization/description";
 import { buildExport } from "../../src/core/export";
 import { taskRow } from "../../src/core/mcp/responses";
-import type { Checklist, ViewDefinition } from "../../src/core/types";
+import { ANY, NONE, type Checklist, type ViewDefinition } from "../../src/core/types";
 import { task } from "./fixtures";
 
 const LISTS: Checklist[] = [
@@ -151,33 +153,69 @@ describe("query clauses", () => {
 		return tasks.filter((t) => matchesFilters(t, parsed.definition.filters, viewCtx)).map((t) => t.id);
 	};
 
-	it("has:checklist, is:checklist-open and checklist:<name>", () => {
-		expect(ids("has:checklist")).toEqual(["TSK-2", "TSK-3", "TSK-4"]);
-		expect(ids("has:checklists")).toEqual(["TSK-2", "TSK-3", "TSK-4"]);
-		expect(ids("is:checklist-open")).toEqual(["TSK-4"]);
+	it("checklist:any, unset, open, done and a list's name", () => {
+		expect(ids("checklist:any")).toEqual(["TSK-2", "TSK-3", "TSK-4"]);
+		expect(ids("checklist:unset")).toEqual(["TSK-1"]);
+		expect(ids("checklist:open")).toEqual(["TSK-4"]);
+		// Items, every one ticked -- an empty list has nothing done.
+		expect(ids("checklist:done")).toEqual(["TSK-3"]);
 		expect(ids('checklist:"after deploy"')).toEqual(["TSK-4"]);
 		expect(ids('checklist:"Done when"')).toEqual(["TSK-4"]);
 		expect(ids('checklist:Later,"After deploy"')).toEqual(["TSK-4"]);
 		expect(ids("checklist:Later")).toEqual([]);
+		// OR'd, like every field's values.
+		expect(ids("checklist:unset,done")).toEqual(["TSK-1", "TSK-3"]);
+		// -checklist:any is checklist:unset, and the other way round.
+		expect(ids("-checklist:any")).toEqual(["TSK-1"]);
+		expect(ids("-checklist:unset")).toEqual(["TSK-2", "TSK-3", "TSK-4"]);
+	});
+
+	it("still reads has:checklist and is:checklist-open, as checklist:any and checklist:open", () => {
+		expect(ids("has:checklist")).toEqual(["TSK-2", "TSK-3", "TSK-4"]);
+		expect(ids("has:checklists")).toEqual(["TSK-2", "TSK-3", "TSK-4"]);
+		expect(ids("is:checklist-open")).toEqual(["TSK-4"]);
+		expect(ids("has:checklist is:checklist-open")).toEqual(["TSK-4"]);
+		const print = (source: string) => printQuery(parseQuery(source, ctx).definition, ctx);
+		expect(print("has:checklist")).toBe("checklist:any group:none sort:rank");
+		expect(print("is:checklist-open")).toBe("checklist:open group:none sort:rank");
+		expect(print("has:checklist is:checklist-open")).toBe("checklist:open group:none sort:rank");
+		expect(print('is:checklist-open checklist:"After deploy"')).toBe('checklist:"After deploy" group:none sort:rank');
+		// A saved filter with the old flags reads the same.
+		expect(canonicalizeDefinition(def({ filters: { hasChecklist: true } })).filters).toEqual({ checklist: [ANY] });
+		expect(canonicalizeDefinition(def({ filters: { checklistOpen: true, hasChecklist: true } })).filters).toEqual({ checklist: [CHECKLIST_OPEN] });
 	});
 
 	it("round-trips through the printer", () => {
-		for (const filters of [{ hasChecklist: true }, { checklistOpen: true }, { checklist: ["After deploy", "Done when"] }, { checklist: ['Say "hi"', "=odd"] }]) {
+		for (const filters of [
+			{ hasChecklist: true },
+			{ checklistOpen: true },
+			{ checklist: [ANY] },
+			{ checklist: [NONE, CHECKLIST_DONE] },
+			{ checklist: [CHECKLIST_OPEN, "After deploy"] },
+			{ checklist: ["After deploy", "Done when"] },
+			{ checklist: ['Say "hi"', "=odd"] },
+			{ checklist: ["open", "Any", "unset", "done"] },
+		]) {
 			const definition = def({ filters });
 			const source = printQuery(definition, ctx);
 			const parsed = parseQuery(source, ctx);
 			expect(parsed.ok).toBe(true);
 			expect(parsed.definition).toEqual(canonicalizeDefinition(definition));
 		}
-		expect(printQuery(def({ filters: { hasChecklist: true, checklistOpen: true, checklist: ["After deploy"] } }), ctx)).toContain(
-			'has:checklist is:checklist-open checklist:"After deploy"',
+		expect(printQuery(def({ filters: { checklist: [ANY, CHECKLIST_OPEN, CHECKLIST_DONE, NONE, "After deploy"] } }), ctx)).toContain(
+			'checklist:any,open,done,unset,"After deploy"',
 		);
+		// A list named like a keyword is `=open`.
+		expect(printQuery(def({ filters: { checklist: ["open"] } }), ctx)).toContain("checklist:=open");
+		expect(parseQuery("checklist:=open", ctx).definition.filters.checklist).toEqual(["open"]);
+		expect(parseQuery("checklist:open", ctx).definition.filters.checklist).toEqual([CHECKLIST_OPEN]);
 	});
 
 	it("dedupes names and rejects what it can't express", () => {
 		expect(parseQuery('checklist:"Done when","done  WHEN"', ctx).definition.filters.checklist).toEqual(["Done when"]);
 		expect(parseQuery("has:labels", ctx).ok).toBe(false);
 		expect(parseQuery("-checklist:Done", ctx).ok).toBe(false);
+		expect(parseQuery("-checklist:open", ctx).ok).toBe(false);
 		expect(parseQuery("checklist:", ctx).ok).toBe(false);
 	});
 

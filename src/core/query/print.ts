@@ -16,6 +16,7 @@
 import { basename } from "../links";
 import { getValue, type Taxonomy } from "../taxonomy";
 import { NONE, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
+import { CHECKLIST_KEYWORDS, isChecklistKeyword } from "../checklists";
 import { customFieldToken, printCustomMatch } from "./custom";
 import {
 	canonicalizeDefinition,
@@ -42,6 +43,7 @@ import {
 	RELATION_KIND_VALUES,
 	SORT_VALUES,
 	SUBTASK_VALUES,
+	ANY_KEYWORDS,
 	TEXT_FIELD,
 	VERBATIM_PREFIX,
 	type FilterFieldSpec,
@@ -53,6 +55,9 @@ interface Candidate {
 	text: string;
 	verbatim: boolean;
 }
+
+/** How `ANY` is written: `x:any`. */
+const ANY_WORD = ANY_KEYWORDS[0];
 
 function quote(text: string): string {
 	return `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -247,15 +252,18 @@ export function printFilters(
 
 	for (const key of FILTER_ARRAY_FIELDS) {
 		const values = canonical[key];
-		if (!values || values.length === 0) continue;
 		const spec = FILTER_FIELDS[key];
-		const rendered = values.map((value) => printValue(spec, value, context));
-		parts.push(`${spec.token}:${rendered.join(",")}`);
+		if (values && values.length > 0) {
+			const rendered = values.map((value) => printValue(spec, value, context));
+			parts.push(`${spec.token}:${rendered.join(",")}`);
+		}
+		// Excluding "no value" is having one: `x:any`, not `-x:unset`.
+		if (canonical[EXCLUDE_FIELD_KEY[key]]?.includes(NONE)) parts.push(`${spec.token}:${ANY_WORD}`);
 	}
 
 	for (const key of FILTER_ARRAY_FIELDS) {
 		const excludeKey = EXCLUDE_FIELD_KEY[key];
-		const values = canonical[excludeKey];
+		const values = canonical[excludeKey]?.filter((value) => value !== NONE);
 		if (!values || values.length === 0) continue;
 		const spec = FILTER_FIELDS[key];
 		const rendered = values.map((value) => printValue(spec, value, context));
@@ -263,9 +271,14 @@ export function printFilters(
 	}
 
 	// Custom fields (query/custom.ts): each clause with its tests, as
-	// `field:value` like every other field (any value is `-custom.x:unset`).
+	// `field:value` like every other field -- an excluded "no value" as
+	// `custom.x:any` (canonicalizeFilters gives it a clause of its own).
 	for (const clause of canonical.custom ?? []) {
 		const token = customFieldToken(clause.field, context);
+		if (clause.exclude && clause.matches.length > 0 && clause.matches.every((match) => match.op === "unset")) {
+			parts.push(`${token}:${ANY_WORD}`);
+			continue;
+		}
 		const field = context.customFields?.find((candidate) => candidate.key.toUpperCase() === clause.field.toUpperCase());
 		const rendered = field
 			? clause.matches.map((match) => printCustomMatch(field, match, context))
@@ -295,15 +308,15 @@ export function printFilters(
 	if (canonical.recurring) {
 		parts.push(`${FLAG_TOKENS.recurring.field}:${FLAG_TOKENS.recurring.value}`);
 	}
-	if (canonical.hasChecklist) {
-		parts.push(`${FLAG_TOKENS.hasChecklist.field}:${FLAG_TOKENS.hasChecklist.value}`);
-	}
-	if (canonical.checklistOpen) {
-		parts.push(`${FLAG_TOKENS.checklistOpen.field}:${FLAG_TOKENS.checklistOpen.value}`);
-	}
 	if (canonical.checklist?.length) {
-		// Names as typed, quoted only where the bare form wouldn't lex back.
-		parts.push(`${CHECKLIST_FIELD.token}:${canonical.checklist.map((name) => valueSource({ text: name, verbatim: false })).join(",")}`);
+		// Keywords as such; names as typed, quoted only where the bare form
+		// wouldn't lex back, and `=` before one that is also a keyword.
+		const rendered = canonical.checklist.map((value) => {
+			if (isChecklistKeyword(value)) return CHECKLIST_KEYWORDS[value];
+			const verbatim = Object.values(CHECKLIST_KEYWORDS).includes(value.toLowerCase());
+			return valueSource({ text: value, verbatim });
+		});
+		parts.push(`${CHECKLIST_FIELD.token}:${rendered.join(",")}`);
 	}
 
 	if (canonical.dueDateBefore) parts.push(`${DATE_BOUND_FIELDS.dueDateBefore.token}:${canonical.dueDateBefore}`);

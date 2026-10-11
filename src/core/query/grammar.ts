@@ -369,6 +369,15 @@ export const SELF_KEYWORDS = ["me", "self"] as const;
  */
 export const UNSET_KEYWORDS = ["unset"] as const;
 
+/**
+ * Resolves to `ANY`: the field has a value (`project:any`) -- the positive
+ * form of `unset`, taken by every field that takes `unset`. An array filter
+ * stores it as excluding `NONE`, so `x:any` and the older `-x:unset` are the
+ * same filter (printed as `x:any`), and `-x:any` is `x:unset`. `=any` is a
+ * value literally named "any".
+ */
+export const ANY_KEYWORDS = ["any"] as const;
+
 /** Prefix marking a value as verbatim - skip keyword and name resolution. */
 export const VERBATIM_PREFIX = "=";
 
@@ -381,17 +390,37 @@ export const FLAG_TOKENS = {
 	unscheduled: { field: "is", value: "unscheduled", aliases: [] },
 	recurring: { field: "is", value: "recurring", aliases: [] },
 	recurringPreview: { field: "show", value: "recurring", aliases: [] },
-	// Checklists (`Task.checklists`): any unticked item, and having any list.
+} as const;
+
+/**
+ * Spellings from before `checklist:any` / `checklist:open`, still parsed so
+ * saved views and links keep working; the printer writes the new ones.
+ * Anything a task has or holds is `field:value` (with `unset` / `any`),
+ * never `has:`, and `is:` is only for states of the whole task.
+ */
+export const LEGACY_CHECKLIST_FLAGS = {
 	checklistOpen: { field: "is", value: "checklist-open", aliases: [] },
 	hasChecklist: { field: "has", value: "checklist", aliases: ["checklists"] },
 } as const;
 
 /**
- * `checklist:"After deploy"` -- a task with an unticked item in a checklist
- * of that name (`ViewFilters.checklist`). Its values are names as typed, not
- * resolved against anything: a list is the task's own, not a taxonomy.
+ * `checklist:` -- tasks by their checklists (`ViewFilters.checklist`):
+ * `any` (has one), `unset` (has none), `open` (an unticked item in any
+ * list), `done` (items, all ticked), or a list's name
+ * (`checklist:"After deploy"`: a list of that name with an unticked item).
+ * Names are taken as typed, not resolved against anything: a list is the
+ * task's own, not a taxonomy. `=open` is a list literally named "open".
+ * `-checklist:any` is `checklist:unset` and the other way round.
  */
 export const CHECKLIST_FIELD = { token: "checklist", aliases: ["checklists"] } as const;
+
+/** `checklist:`'s keywords, in the order suggestions show them. */
+export const CHECKLIST_VALUES = {
+	any: { token: "any", label: "Has a checklist" },
+	unset: { token: "unset", label: "No checklist" },
+	open: { token: "open", label: "Something left to tick" },
+	done: { token: "done", label: "Every item ticked" },
+} as const;
 
 /**
  * Legacy spellings of the removed `is:top-level` flag. Still parsed - they set
@@ -557,7 +586,6 @@ export const ALL_FIELD_TOKENS: readonly string[] = [
 	"canvas-direction",
 	"relations",
 	"is",
-	"has",
 	"show",
 	"include",
 	CHECKLIST_FIELD.token,

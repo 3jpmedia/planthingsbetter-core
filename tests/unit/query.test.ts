@@ -205,7 +205,7 @@ describe("round-trip (generative)", () => {
 		items[Math.floor(next() * items.length)];
 
 	const adversarial = [
-		"a,b", "a:b", 'a"b', "a\\b", "me", "self", "unset", "none", "=x",
+		"a,b", "a:b", 'a"b', "a\\b", "me", "self", "unset", "any", "none", "=x",
 		"  ", "", "Projects/A", "A", "café", "在庫", "-x", "a b",
 	];
 	const pool = [
@@ -216,6 +216,8 @@ describe("round-trip (generative)", () => {
 	const arrayKeys = [
 		"status", "priority", "taskType", "labels", "assignee",
 		"mentions", "project", "parent", "id",
+		// Excluding NONE prints as `x:any` (T-0625).
+		"excludeLabels", "excludeProject", "excludeAssignee",
 	] as const;
 
 	it("survives 400 random definitions", () => {
@@ -1255,5 +1257,73 @@ describe("exclusion filters", () => {
 		expect(parsed.definition.filters.excludeBlocks).toEqual([project]);
 		expect(parsed.definition.filters.blockedBy).toEqual([taskPath]);
 		expect(parsed.definition.filters.related).toEqual([taskPath]);
+	});
+});
+
+/* ------------------------------------------------------- any (T-0625) --- */
+
+describe("any: the positive form of unset", () => {
+	const ids = (source: string) => {
+		const parsed = parseQuery(source, ctx);
+		expect(parsed.ok).toBe(true);
+		return applyFilters(snapshot.tasks, parsed.definition.filters, viewCtx).map((t) => t.id);
+	};
+
+	it("x:any is excluding unset, and prints as x:any", () => {
+		const parsed = parseQuery("projectKey:any", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.definition.filters.excludeProject).toEqual([NONE]);
+		expect(parsed.definition.filters.project).toBeUndefined();
+		expect(printQuery(parsed.definition, ctx)).toBe("projectKey:any group:none sort:rank");
+		// The older spelling is the same filter, printed the new way.
+		const old = parseQuery("-project:unset", ctx);
+		expect(old.definition).toEqual(parsed.definition);
+		expect(printQuery(old.definition, ctx)).toBe("projectKey:any group:none sort:rank");
+	});
+
+	it("-x:any is x:unset", () => {
+		expect(parseQuery("-assignee:any", ctx).definition).toEqual(parseQuery("assignee:unset", ctx).definition);
+		expect(printQuery(parseQuery("-due:any", ctx).definition, ctx)).toBe("due:unset group:none sort:rank");
+	});
+
+	it("matches the tasks with a value, on every field that takes unset", () => {
+		for (const field of ["priority", "type", "label", "assignee", "project", "milestone", "space", "parent", "blocksTaskKey", "due", "start", "completed"]) {
+			const all = ids("show:archived");
+			const unset = ids(`${field}:unset show:archived`);
+			const any = ids(`${field}:any show:archived`);
+			expect([...unset, ...any].sort()).toEqual([...all].sort());
+			expect(any.filter((id) => unset.includes(id))).toEqual([]);
+		}
+	});
+
+	it("=any is a value literally named any, and prints back that way", () => {
+		const parsed = parseQuery("label:=any", ctx);
+		expect(parsed.definition.filters.labels).toEqual(["any"]);
+		expect(parsed.definition.filters.excludeLabels).toBeUndefined();
+		expect(printQuery(parsed.definition, ctx)).toBe("label:=any group:none sort:rank");
+		expectRoundTrip(withFilters({ labels: ["any"], excludeLabels: ["any"] }));
+	});
+
+	it("sits beside other values of the field without a duplicate warning", () => {
+		const parsed = parseQuery("label:any -label:design", ctx);
+		expect(parsed.issues).toEqual([]);
+		expect(parsed.definition.filters.excludeLabels).toEqual([NONE, "design"]);
+		expect(printQuery(parsed.definition, ctx)).toBe("label:any -label:Design group:none sort:rank");
+		// Typed the other way round, it prints the same.
+		expect(printQuery(parseQuery("-label:design label:any", ctx).definition, ctx)).toBe("label:any -label:Design group:none sort:rank");
+		expectRoundTrip(withFilters({ priority: ["high"], excludePriority: ["low", NONE] }));
+	});
+
+	it("warns where it can never narrow anything, like unset", () => {
+		for (const source of ["status:any", "mentions:any", "created:any"]) {
+			expect(parseQuery(source, ctx).issues.map((issue) => issue.code)).toContain("vacuous-value");
+		}
+		expect(parseQuery("due:any", ctx).issues).toEqual([]);
+	});
+
+	it("has: isn't a field: it points at field:any", () => {
+		const parsed = parseQuery("has:project", ctx);
+		expect(parsed.ok).toBe(false);
+		expect(parsed.issues[0]).toMatchObject({ code: "unknown-field", suggestion: "projectKey:any" });
 	});
 });

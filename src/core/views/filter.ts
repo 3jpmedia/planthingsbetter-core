@@ -9,10 +9,11 @@
 
 import { relationScope, type HierarchyScope } from "../hierarchy";
 import { linksMatch } from "../links";
-import { checklistNameKey, hasChecklist, hasOpenChecklist, hasOpenChecklistNamed } from "../checklists";
+import { CHECKLIST_OPEN, checklistNameKey, hasChecklist, hasOpenChecklist, isChecklistKeyword, matchesChecklistValues } from "../checklists";
 import { getValue, isOpen, type Taxonomy } from "../taxonomy";
 import { DEFAULT_DEFINITION } from "./defaults";
 import {
+	ANY,
 	CANVAS_RELATION_KINDS,
 	NONE,
 	SELF,
@@ -204,10 +205,11 @@ export function matchesFilters(
 	}
 	if (filters.unscheduled && (task.dueDate || task.startDate)) return false;
 	if (filters.recurring && !task.recurrence) return false;
-	// Checklists (checklists.ts): having one, one still open, one by name.
+	// Checklists (checklists.ts): `checklist:any|unset|open|done|<name>`,
+	// plus the older flags a filter saved before them may still carry.
 	if (filters.hasChecklist && !hasChecklist(task)) return false;
 	if (filters.checklistOpen && !hasOpenChecklist(task)) return false;
-	if (filters.checklist?.length && !hasOpenChecklistNamed(task, filters.checklist)) return false;
+	if (filters.checklist?.length && !matchesChecklistValues(task, filters.checklist)) return false;
 
 	if (!matchesSingle(task.status, filters.status)) return false;
 	if (!matchesSingle(task.priority, filters.priority)) return false;
@@ -567,7 +569,9 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 	for (const key of EXCLUDE_ARRAY_FIELDS) {
 		const values = filters[key];
 		if (!values || values.length === 0) continue;
-		const deduped: string[] = [];
+		// `NONE` first: it's printed on its own as `x:any`, ahead of the
+		// field's `-x:` clause (print.ts), so it reads back in that order.
+		const deduped: string[] = values.includes(NONE) ? [NONE] : [];
 		for (const value of values) {
 			if (!deduped.includes(value)) deduped.push(value);
 		}
@@ -577,7 +581,17 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 	// Custom field clauses: kept in order, the same clause once.
 	if (filters.custom?.length) {
 		const seen = new Set<string>();
-		const custom = filters.custom.filter((clause) => {
+		// An excluded clause that also excludes "no value" is two clauses:
+		// `custom.x:any` (printed as such) and the rest -- the same test, as
+		// excluding either fails the task.
+		const split = filters.custom.flatMap((clause) => {
+			if (!clause.exclude || clause.matches.length < 2 || !clause.matches.some((match) => match.op === "unset")) return [clause];
+			return [
+				{ ...clause, matches: [{ op: "unset" as const }] },
+				{ ...clause, matches: clause.matches.filter((match) => match.op !== "unset") },
+			];
+		});
+		const custom = split.filter((clause) => {
 			const id = JSON.stringify([clause.field.toUpperCase(), Boolean(clause.exclude), clause.matches]);
 			if (seen.has(id) || clause.matches.length === 0) return false;
 			seen.add(id);
@@ -592,20 +606,25 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 	if (filters.openOnly) out.openOnly = true;
 	if (filters.unscheduled) out.unscheduled = true;
 	if (filters.recurring) out.recurring = true;
-	if (filters.hasChecklist) out.hasChecklist = true;
-	if (filters.checklistOpen) out.checklistOpen = true;
-	// Names in the order typed, each once (compared as checklistNameKey does).
-	if (filters.checklist?.length) {
+	// `checklist:` values in the order typed, each once (names compared as
+	// checklistNameKey does). The older `has:checklist` / `is:checklist-open`
+	// flags fold in: on their own they're `checklist:any` / `checklist:open`;
+	// beside other checklist values they added nothing those didn't (each of
+	// those flags was implied by them), so they go.
+	const checklist = [...(filters.checklist ?? [])];
+	if (checklist.length === 0 && filters.checklistOpen) checklist.push(CHECKLIST_OPEN);
+	else if (checklist.length === 0 && filters.hasChecklist) checklist.push(ANY);
+	if (checklist.length) {
 		const seen = new Set<string>();
-		const names = filters.checklist
-			.map((name) => name.trim())
-			.filter((name) => {
-				const key = checklistNameKey(name);
+		const values = checklist
+			.map((value) => (isChecklistKeyword(value) ? value : value.trim()))
+			.filter((value) => {
+				const key = isChecklistKeyword(value) ? value : checklistNameKey(value);
 				if (!key || seen.has(key)) return false;
 				seen.add(key);
 				return true;
 			});
-		if (names.length > 0) out.checklist = names;
+		if (values.length > 0) out.checklist = values;
 	}
 
 	if (filters.dueDateBefore) out.dueDateBefore = filters.dueDateBefore;

@@ -12,14 +12,16 @@
  * - a number or a day, exactly or compared: `>3`, `<=2026-11-01`;
  * - a checkbox: `yes` / `no`;
  * - text and links: what the value contains (any case);
- * - `unset` for no value (`-custom.points:unset` for any value, as for
- *   every field).
+ * - `unset` for no value, `any` for any value (as for every field; `=any`
+ *   is a value literally "any"). The parser makes `any` an excluded
+ *   `unset` clause, so `custom.points:any` and `-custom.points:unset` are
+ *   the same filter, printed the first way.
  */
 
 import { isValidIsoDay } from "../date";
 import { SELF, type CustomFieldDef, type CustomFieldMatch } from "../types";
 import type { QueryContext } from "./context";
-import { SELF_KEYWORDS, UNSET_KEYWORDS, VERBATIM_PREFIX } from "./grammar";
+import { ANY_KEYWORDS, SELF_KEYWORDS, UNSET_KEYWORDS, VERBATIM_PREFIX } from "./grammar";
 import { lex } from "./lex";
 import { resolvePerson } from "./resolve";
 import type { QueryIssue } from "./types";
@@ -164,6 +166,8 @@ export function printCustomMatch(field: CustomFieldDef, match: CustomFieldMatch,
 		const token = lexed[0];
 		if (lexed.length !== 1 || token.kind !== "clause" || token.values.length !== 1) return false;
 		const value = token.values[0];
+		// Bare `any` reads as the keyword (parse.ts), never as a value.
+		if (!value.verbatim && ANY_KEYWORDS.includes(lower(value.text) as (typeof ANY_KEYWORDS)[number])) return false;
 		const back = parseCustomValue(field, value.text, value.verbatim, context).match;
 		return back.op === match.op && (back.value ?? null) === (match.value ?? null);
 	};

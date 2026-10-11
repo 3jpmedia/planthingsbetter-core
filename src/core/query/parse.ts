@@ -29,6 +29,8 @@ import type {
 	ViewFilters,
 	ViewType,
 } from "../types";
+import { ANY, NONE } from "../types";
+import { CHECKLIST_DONE, CHECKLIST_OPEN } from "../checklists";
 import { isValidIsoDay } from "../date";
 import { canonicalizeDefinition, EXCLUDE_FIELD_KEY } from "../views/filter";
 import { isGroupableCustomField } from "../views/group";
@@ -36,6 +38,7 @@ import { DEFAULT_DEFINITION } from "../views/defaults";
 import type { QueryContext } from "./context";
 import {
 	ALL_FIELD_TOKENS,
+	ANY_KEYWORDS,
 	CANVAS_DIRECTION_BY_TOKEN,
 	CANVAS_LAYOUT_BY_TOKEN,
 	CHECKLIST_FIELD,
@@ -52,11 +55,13 @@ import {
 	GROUP_BY_TOKEN,
 	LAYOUT_BY_TOKEN,
 	LAYOUT_ONLY_CLAUSES,
+	LEGACY_CHECKLIST_FLAGS,
 	LEGACY_TOP_LEVEL_VALUES,
 	NOT_EXPRESSIBLE,
 	RELATION_KIND_BY_TOKEN,
 	SORT_BY_TOKEN,
 	SUBTASK_BY_TOKEN,
+	UNSET_KEYWORDS,
 } from "./grammar";
 import { lex, type LexedToken } from "./lex";
 import { resolveValue } from "./resolve";
@@ -98,6 +103,24 @@ export function nearestField(
 }
 
 /* --------------------------------------------------------------- parse ---- */
+
+/** `any` typed as a value (not `=any`, a value literally named "any"). */
+function isAnyKeyword(text: string, verbatim: boolean): boolean {
+	return !verbatim && (ANY_KEYWORDS as readonly string[]).includes(text.trim().toLowerCase());
+}
+
+/** A `checklist:` value as stored: a keyword's sentinel, or a list's name
+ *  as typed (`=open`: a list named "open"). Empty for a blank one. */
+function checklistValue(text: string, verbatim: boolean): string {
+	const name = text.trim();
+	if (verbatim) return name;
+	const lowered = name.toLowerCase();
+	if ((ANY_KEYWORDS as readonly string[]).includes(lowered)) return ANY;
+	if ((UNSET_KEYWORDS as readonly string[]).includes(lowered)) return NONE;
+	if (lowered === "open") return CHECKLIST_OPEN;
+	if (lowered === "done") return CHECKLIST_DONE;
+	return name;
+}
 
 export function parseQuery(
 	source: string,
@@ -226,12 +249,47 @@ export function parseQueryTokens(
 				fail("empty-value", `"${token.field}" needs a value`, token.span);
 				continue;
 			}
-			const matches = token.values.map((value) => {
-				const parsed = parseCustomValue(def, value.text, value.verbatim, context);
-				if (parsed.issue) issues.push({ ...parsed.issue, span: value.span });
-				return parsed.match;
-			});
-			(filters.custom ??= []).push({ field: def.key, matches, ...(token.excluded ? { exclude: true } : {}) });
+			// `any` (a value) is excluding "no value": its own clause, the
+			// other way round from the rest -- `-custom.x:any` is `custom.x:unset`.
+			const anyValue = token.values.some((value) => isAnyKeyword(value.text, value.verbatim));
+			const matches = token.values
+				.filter((value) => !isAnyKeyword(value.text, value.verbatim))
+				.map((value) => {
+					const parsed = parseCustomValue(def, value.text, value.verbatim, context);
+					if (parsed.issue) issues.push({ ...parsed.issue, span: value.span });
+					return parsed.match;
+				});
+			if (matches.length > 0) (filters.custom ??= []).push({ field: def.key, matches, ...(token.excluded ? { exclude: true } : {}) });
+			if (anyValue) (filters.custom ??= []).push({ field: def.key, matches: [{ op: "unset" }], ...(token.excluded ? {} : { exclude: true }) });
+			continue;
+		}
+
+		/* -- checklists: `checklist:any|unset|open|done|"After deploy"` -- */
+
+		if (field === CHECKLIST_FIELD.token || (CHECKLIST_FIELD.aliases as readonly string[]).includes(field)) {
+			if (token.values.length === 0) {
+				fail("empty-value", `"${token.field}" needs a value`, token.span);
+				continue;
+			}
+			noteDuplicate(CHECKLIST_FIELD.token, token.span);
+			const values = filters.checklist ?? [];
+			for (const value of token.values) {
+				const stored = checklistValue(value.text, value.verbatim);
+				if (!stored) continue;
+				// Only `any` and `unset` turn round: `-checklist:any` is
+				// `checklist:unset`. Nothing else has an excluded form.
+				if (token.excluded) {
+					if (stored === ANY) values.push(NONE);
+					else if (stored === NONE) values.push(ANY);
+					else
+						fail(
+							"not-expressible",
+							`"-${token.field}:${value.text}" isn't supported - only -checklist:any and -checklist:unset`,
+							value.span,
+						);
+				} else values.push(stored);
+			}
+			if (values.length > 0) filters.checklist = values;
 			continue;
 		}
 
@@ -265,7 +323,8 @@ export function parseQueryTokens(
 				filters.unscheduled = true;
 			} else if (lowered === FLAG_TOKENS.recurring.value) {
 				filters.recurring = true;
-			} else if (lowered === FLAG_TOKENS.checklistOpen.value) {
+			} else if (lowered === LEGACY_CHECKLIST_FLAGS.checklistOpen.value) {
+				// Before `checklist:open`; folded into it (canonicalizeFilters).
 				filters.checklistOpen = true;
 			} else {
 				fail("unknown-value", `"is:${lowered}" isn't a known flag`, token.span);
@@ -273,33 +332,21 @@ export function parseQueryTokens(
 			continue;
 		}
 
+		// `has:` isn't a field (anything a task has is `field:any`); only
+		// `has:checklist`, from before `checklist:any`, still reads, folded
+		// into it (canonicalizeFilters).
 		if (field === "has") {
 			const value = soleValue(token);
 			if (!value) continue;
 			const lowered = value.text.trim().toLowerCase();
-			const spec = FLAG_TOKENS.hasChecklist;
+			const spec = LEGACY_CHECKLIST_FLAGS.hasChecklist;
 			if (lowered === spec.value || (spec.aliases as readonly string[]).includes(lowered)) {
 				filters.hasChecklist = true;
 			} else {
-				fail("unknown-value", `"has:${lowered}" isn't a known flag`, token.span, `${spec.field}:${spec.value}`);
+				const named = FILTER_FIELD_BY_TOKEN.get(lowered);
+				const instead = named && named !== "text" ? `${FILTER_FIELDS[named].token}:any` : undefined;
+				fail("unknown-field", `"has:" isn't a field - write ${instead ?? "field:any"}`, token.span, instead);
 			}
-			continue;
-		}
-
-		/* -- checklists by name: `checklist:"After deploy"` -- */
-
-		if (field === CHECKLIST_FIELD.token || (CHECKLIST_FIELD.aliases as readonly string[]).includes(field)) {
-			if (token.values.length === 0) {
-				fail("empty-value", `"${token.field}" needs a value`, token.span);
-				continue;
-			}
-			noteDuplicate(CHECKLIST_FIELD.token, token.span);
-			const names = filters.checklist ?? [];
-			for (const value of token.values) {
-				const name = value.text.trim();
-				if (name) names.push(name);
-			}
-			if (names.length > 0) filters.checklist = names;
 			continue;
 		}
 
@@ -553,16 +600,21 @@ export function parseQueryTokens(
 
 		const key = filterKey;
 		const targetKey = token.excluded ? EXCLUDE_FIELD_KEY[key] : key;
-		noteDuplicate(targetKey, token.span);
+		// `any` is excluding `NONE` (and `-x:any` is `x:unset`), so it lands in
+		// the other list. A clause of nothing but `any` is counted apart, so
+		// `label:any -label:bug` -- how that's printed -- isn't a duplicate.
+		const otherKey = token.excluded ? key : EXCLUDE_FIELD_KEY[key];
+		const onlyAny = token.values.every((value) => isAnyKeyword(value.text, value.verbatim));
+		noteDuplicate(onlyAny ? `${field}:any` : targetKey, token.span);
 
 		const spec = FILTER_FIELDS[key];
-		const collected = (filters as Record<string, string[] | undefined>)[targetKey] ?? [];
+		const lists = filters as Record<string, string[] | undefined>;
 		for (const value of token.values) {
 			const resolved = resolveValue(spec, value.text, value.verbatim, context);
 			if (resolved.issue) issues.push({ ...resolved.issue, span: value.span });
-			collected.push(resolved.value);
+			if (resolved.value === ANY) (lists[otherKey] ??= []).push(NONE);
+			else (lists[targetKey] ??= []).push(resolved.value);
 		}
-		(filters as Record<string, string[]>)[targetKey] = collected;
 	}
 
 	const text = textParts.join(" ").trim();

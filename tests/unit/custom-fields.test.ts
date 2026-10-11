@@ -62,13 +62,29 @@ describe("custom fields in the query language", () => {
 		expect(run("custom.notes:LEGAL").ids).toEqual(["T-1"]);
 	});
 
-	it("reads unset, any value (-…:unset) and exclusions", () => {
+	it("reads unset, any (and -…:unset) and exclusions", () => {
 		expect(run("custom.points:unset").ids).toEqual(["T-3"]);
+		expect(run("custom.points:any").ids).toEqual(["T-1", "T-2", "T-4"]);
 		expect(run("-custom.points:unset").ids).toEqual(["T-1", "T-2", "T-4"]);
+		expect(run("-custom.points:any").ids).toEqual(["T-3"]);
+		expect(run("custom.points:any").parsed.definition).toEqual(run("-custom.points:unset").parsed.definition);
+		expect(run("-custom.points:any").parsed.definition).toEqual(run("custom.points:unset").parsed.definition);
+		// `=any` is a value: notes literally "any".
+		expect(run("custom.notes:=any").parsed.definition.filters.custom).toEqual([{ field: "CF-0005", matches: [{ op: "eq", value: "any" }] }]);
+		expect(printQuery(run("custom.notes:=any").parsed.definition, qctx)).toContain('custom.notes:="any"');
 		// One spelling for every field: field:value, no has:.
 		expect(parseQuery("has:custom.points", qctx).ok).toBe(false);
 		expect(run("-custom.client:globex").ids).toEqual(["T-1", "T-3", "T-4"]);
 		expect(run("custom.points:>1 custom.client:globex").ids).toEqual(["T-2"]);
+	});
+
+	it("splits an exclusion of no value from the rest, and prints both back", () => {
+		const source = "-custom.client:globex,unset";
+		const { parsed, ids } = run(source);
+		expect(ids).toEqual(["T-1"]);
+		const printed = printQuery(parsed.definition, qctx);
+		expect(printed).toContain("custom.client:any -custom.client:Globex");
+		expect(parseQuery(printed, qctx).definition).toEqual(parsed.definition);
 	});
 
 	it("keeps a field named like a built-in apart from the built-in", () => {
@@ -101,8 +117,9 @@ describe("custom fields in the query language", () => {
 		expect(parsed.definition.filters.custom?.[0]).toEqual({ field: "CF-0002", matches: [{ op: "eq", value: "o-acme" }, { op: "eq", value: "o-glob" }] });
 		const printed = printQuery(parsed.definition, qctx);
 		expect(printed).toContain('custom.client:"Acme Corp",Globex');
-		expect(printed).toContain("-custom.points:unset");
-		expect(printed).toContain("-custom.notes:unset");
+		// Any value prints as `any` (T-0625), the older `-…:unset` read the same.
+		expect(printed).toContain("custom.points:any");
+		expect(printed).toContain("custom.notes:any");
 		expect(parseQuery(printed, qctx).definition).toEqual(parsed.definition);
 	});
 
