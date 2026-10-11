@@ -7,6 +7,7 @@
  */
 
 import type {
+	Checklist,
 	Comment,
 	IsoDate,
 	LinkTarget,
@@ -54,6 +55,8 @@ export interface ExportInput {
 	descriptions?: Record<string, string>;
 	/** Present only when Comments was requested. Task id → comments. */
 	comments?: Record<string, Comment[]>;
+	/** Present only when Checklists was requested. Task id → its checklists. */
+	checklists?: Record<string, Checklist[]>;
 	/** CSV: a column per custom field (`snapshot.customFields`) after the
 	 *  chosen fields. Default true. */
 	customFields?: boolean;
@@ -104,6 +107,7 @@ export function buildExport(input: ExportInput): ExportOutput {
 		const content = buildWorkspaceJson(input.snapshot, tasks, context, meta, {
 			descriptions: set.has("description") ? input.descriptions ?? {} : undefined,
 			comments: set.has("comments") ? input.comments ?? {} : undefined,
+			checklists: set.has("checklists") ? input.checklists ?? {} : undefined,
 		});
 		return { content, taskCount: tasks.length, scopeLabel };
 	}
@@ -114,6 +118,7 @@ export function buildExport(input: ExportInput): ExportOutput {
 		taskTitleByPath: taskTitleMap(input.snapshot),
 		descriptions: input.descriptions,
 		comments: input.comments,
+		checklists: input.checklists,
 	};
 	const records = tasks.map((task) => resolveDisplayRecord(task, lookups));
 

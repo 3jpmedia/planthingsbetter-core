@@ -371,7 +371,17 @@ export const FLAG_TOKENS = {
 	unscheduled: { field: "is", value: "unscheduled", aliases: [] },
 	recurring: { field: "is", value: "recurring", aliases: [] },
 	recurringPreview: { field: "show", value: "recurring", aliases: [] },
+	// Checklists (`Task.checklists`): any unticked item, and having any list.
+	checklistOpen: { field: "is", value: "checklist-open", aliases: [] },
+	hasChecklist: { field: "has", value: "checklist", aliases: ["checklists"] },
 } as const;
+
+/**
+ * `checklist:"After deploy"` -- a task with an unticked item in a checklist
+ * of that name (`ViewFilters.checklist`). Its values are names as typed, not
+ * resolved against anything: a list is the task's own, not a taxonomy.
+ */
+export const CHECKLIST_FIELD = { token: "checklist", aliases: ["checklists"] } as const;
 
 /**
  * Legacy spellings of the removed `is:top-level` flag. Still parsed - they set
@@ -537,6 +547,9 @@ export const ALL_FIELD_TOKENS: readonly string[] = [
 	"canvas-direction",
 	"relations",
 	"is",
+	"has",
 	"show",
 	"include",
+	CHECKLIST_FIELD.token,
+	...CHECKLIST_FIELD.aliases,
 ];

@@ -9,6 +9,7 @@
 
 import { relationScope, type HierarchyScope } from "../hierarchy";
 import { linksMatch } from "../links";
+import { checklistNameKey, hasChecklist, hasOpenChecklist, hasOpenChecklistNamed } from "../checklists";
 import { getValue, isOpen, type Taxonomy } from "../taxonomy";
 import { DEFAULT_DEFINITION } from "./defaults";
 import {
@@ -195,6 +196,10 @@ export function matchesFilters(
 	}
 	if (filters.unscheduled && (task.dueDate || task.startDate)) return false;
 	if (filters.recurring && !task.recurrence) return false;
+	// Checklists (checklists.ts): having one, one still open, one by name.
+	if (filters.hasChecklist && !hasChecklist(task)) return false;
+	if (filters.checklistOpen && !hasOpenChecklist(task)) return false;
+	if (filters.checklist?.length && !hasOpenChecklistNamed(task, filters.checklist)) return false;
 
 	if (!matchesSingle(task.status, filters.status)) return false;
 	if (!matchesSingle(task.priority, filters.priority)) return false;
@@ -410,6 +415,9 @@ export type ArrayFilterKey = Exclude<
 	| "openOnly"
 	| "unscheduled"
 	| "recurring"
+	| "hasChecklist"
+	| "checklistOpen"
+	| "checklist"
 	| "custom"
 	| "dueDateBefore"
 	| "dueDateAfter"
@@ -570,6 +578,21 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 	if (filters.openOnly) out.openOnly = true;
 	if (filters.unscheduled) out.unscheduled = true;
 	if (filters.recurring) out.recurring = true;
+	if (filters.hasChecklist) out.hasChecklist = true;
+	if (filters.checklistOpen) out.checklistOpen = true;
+	// Names in the order typed, each once (compared as checklistNameKey does).
+	if (filters.checklist?.length) {
+		const seen = new Set<string>();
+		const names = filters.checklist
+			.map((name) => name.trim())
+			.filter((name) => {
+				const key = checklistNameKey(name);
+				if (!key || seen.has(key)) return false;
+				seen.add(key);
+				return true;
+			});
+		if (names.length > 0) out.checklist = names;
+	}
 
 	if (filters.dueDateBefore) out.dueDateBefore = filters.dueDateBefore;
 	if (filters.dueDateAfter) out.dueDateAfter = filters.dueDateAfter;
@@ -751,6 +774,9 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.text?.trim() &&
 		!filters.custom?.length &&
 		!filters.recurring &&
+		!filters.hasChecklist &&
+		!filters.checklistOpen &&
+		!filters.checklist?.length &&
 		filters.archived !== "only" &&
 		!filters.dueDate?.length &&
 		!filters.startDate?.length &&

@@ -6,3 +6,4 @@ export * from "./views";
 export * from "./dashboards";
 export * from "./comments";
 export * from "./description";
+export * from "./checklists";

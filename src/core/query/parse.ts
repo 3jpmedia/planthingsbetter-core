@@ -38,6 +38,7 @@ import {
 	ALL_FIELD_TOKENS,
 	CANVAS_DIRECTION_BY_TOKEN,
 	CANVAS_LAYOUT_BY_TOKEN,
+	CHECKLIST_FIELD,
 	TIMELINE_ZOOM_BY_TOKEN,
 	DATE_BOUND_FIELD_BY_TOKEN,
 	DATE_FIELD_BY_TOKEN,
@@ -264,9 +265,41 @@ export function parseQueryTokens(
 				filters.unscheduled = true;
 			} else if (lowered === FLAG_TOKENS.recurring.value) {
 				filters.recurring = true;
+			} else if (lowered === FLAG_TOKENS.checklistOpen.value) {
+				filters.checklistOpen = true;
 			} else {
 				fail("unknown-value", `"is:${lowered}" isn't a known flag`, token.span);
 			}
+			continue;
+		}
+
+		if (field === "has") {
+			const value = soleValue(token);
+			if (!value) continue;
+			const lowered = value.text.trim().toLowerCase();
+			const spec = FLAG_TOKENS.hasChecklist;
+			if (lowered === spec.value || (spec.aliases as readonly string[]).includes(lowered)) {
+				filters.hasChecklist = true;
+			} else {
+				fail("unknown-value", `"has:${lowered}" isn't a known flag`, token.span, `${spec.field}:${spec.value}`);
+			}
+			continue;
+		}
+
+		/* -- checklists by name: `checklist:"After deploy"` -- */
+
+		if (field === CHECKLIST_FIELD.token || (CHECKLIST_FIELD.aliases as readonly string[]).includes(field)) {
+			if (token.values.length === 0) {
+				fail("empty-value", `"${token.field}" needs a value`, token.span);
+				continue;
+			}
+			noteDuplicate(CHECKLIST_FIELD.token, token.span);
+			const names = filters.checklist ?? [];
+			for (const value of token.values) {
+				const name = value.text.trim();
+				if (name) names.push(name);
+			}
+			if (names.length > 0) filters.checklist = names;
 			continue;
 		}
 

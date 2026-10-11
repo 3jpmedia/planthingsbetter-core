@@ -163,6 +163,17 @@ export const ACTIVITY_FIELDS = [
 	"customField",
 	"fieldType",
 	"options",
+	// A task's checklists (each a list of items ticked one by one), recorded
+	// on the task: `checklists` (the lists, for one added or removed),
+	// `checklistName` (one renamed), `checklistItems` (one list's items, for
+	// one added or removed -- the change names the list in `checklist`),
+	// `checklistItem` (an item's text edited) and `checked` (an item ticked
+	// or unticked) -- both naming the list and the item.
+	"checklists",
+	"checklistName",
+	"checklistItems",
+	"checklistItem",
+	"checked",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 
@@ -203,6 +214,11 @@ export interface ActivityChange {
 	 *  are a choice as a ref, people or several choices as refs, and a
 	 *  number, day, link or yes/no as is; text is recorded without them. */
 	customField?: ActivityRef;
+	/** A task's checklist change (`checklistName`, `checklistItems`,
+	 *  `checklistItem`, `checked`): the list, as it was named then. */
+	checklist?: ActivityRef;
+	/** `checklistItem` / `checked`: the item, as its text read then. */
+	item?: ActivityRef;
 }
 
 /** What the Activity page's query narrows entries with, beyond the task

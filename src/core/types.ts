@@ -489,6 +489,17 @@ export interface Task {
 	commentCount?: number;
 
 	/**
+	 * Its checklists, counted: each list's name with how many of its items
+	 * are ticked (`done`) and how many it has (`total`), in the task's order.
+	 * Filled where the app knows them (the web app reads them with the task;
+	 * the plugin from the note's `## Checklists` section, see
+	 * `serialization/checklists.ts`). Absent or empty: no checklists. What
+	 * `has:checklist`, `is:checklist-open` and `checklist:<name>` match on,
+	 * and what a card's "7/12" is made of (`checklistTotals`).
+	 */
+	checklists?: ChecklistSummary[];
+
+	/**
 	 * A speculative future occurrence of a recurring series, synthesised by
 	 * `projectRecurrences` for the `show:recurring` preview. Never a real note,
 	 * never serialized, never a drag/rank/select target - a ghost row. Its
@@ -520,6 +531,32 @@ export interface TaskDocument {
 	task: Task;
 	description: string;
 	comments: Comment[];
+	/** Its checklists, in order -- absent when it has none. */
+	checklists?: Checklist[];
+}
+
+/**
+ * A task's checklists: zero or more named lists of items, each item ticked
+ * on its own -- kept apart from the description, so a tick is never a
+ * rewrite of the text around it. One level: an item has no items of its own.
+ */
+export interface ChecklistItem {
+	text: string;
+	done: boolean;
+}
+
+export interface Checklist {
+	name: string;
+	items: ChecklistItem[];
+}
+
+/** One checklist, counted (`Task.checklists`). */
+export interface ChecklistSummary {
+	name: string;
+	/** Items ticked. */
+	done: number;
+	/** Items in it. */
+	total: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -877,6 +914,16 @@ export interface ViewFilters {
 	unscheduled?: boolean;
 	/** Only tasks carrying a live recurrence definition. */
 	recurring?: boolean;
+	/** `has:checklist` -- only tasks with at least one checklist (`Task.checklists`). */
+	hasChecklist?: boolean;
+	/** `is:checklist-open` -- only tasks with an unticked checklist item. */
+	checklistOpen?: boolean;
+	/**
+	 * `checklist:"After deploy"` -- only tasks with an unticked item in a
+	 * checklist of one of these names (case and surrounding spaces don't
+	 * matter). OR'd across names. No exclusion form.
+	 */
+	checklist?: string[];
 
 	/**
 	 * Exact-day filters (OR'd) for the five task date fields. Values are

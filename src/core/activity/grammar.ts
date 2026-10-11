@@ -138,6 +138,11 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	customField: { token: "custom", aliases: ["custom-field", "customfield"] },
 	fieldType: { token: "field-type", aliases: ["fieldtype"] },
 	options: { token: "choices", aliases: ["options"] },
+	checklists: { token: "checklists", aliases: [] },
+	checklistName: { token: "checklist-name", aliases: ["checklistname"] },
+	checklistItems: { token: "checklist-items", aliases: ["checklistitems"] },
+	checklistItem: { token: "checklist-item", aliases: ["checklistitem"] },
+	checked: { token: "ticked", aliases: ["checked", "tick"] },
 };
 
 /** `activityBy:system` -- an entry the app made on its own (the Trash's

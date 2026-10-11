@@ -28,6 +28,7 @@ import type { QueryContext, QueryEntity } from "./context";
 import {
 	CANVAS_DIRECTION_VALUES,
 	CANVAS_LAYOUT_VALUES,
+	CHECKLIST_FIELD,
 	TIMELINE_ZOOM_VALUES,
 	DATE_BOUND_FIELDS,
 	DATE_FIELD_VALUES,
@@ -292,6 +293,16 @@ export function printFilters(
 	}
 	if (canonical.recurring) {
 		parts.push(`${FLAG_TOKENS.recurring.field}:${FLAG_TOKENS.recurring.value}`);
+	}
+	if (canonical.hasChecklist) {
+		parts.push(`${FLAG_TOKENS.hasChecklist.field}:${FLAG_TOKENS.hasChecklist.value}`);
+	}
+	if (canonical.checklistOpen) {
+		parts.push(`${FLAG_TOKENS.checklistOpen.field}:${FLAG_TOKENS.checklistOpen.value}`);
+	}
+	if (canonical.checklist?.length) {
+		// Names as typed, quoted only where the bare form wouldn't lex back.
+		parts.push(`${CHECKLIST_FIELD.token}:${canonical.checklist.map((name) => valueSource({ text: name, verbatim: false })).join(",")}`);
 	}
 
 	if (canonical.dueDateBefore) parts.push(`${DATE_BOUND_FIELDS.dueDateBefore.token}:${canonical.dueDateBefore}`);

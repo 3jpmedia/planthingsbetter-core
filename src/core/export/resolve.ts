@@ -9,7 +9,7 @@
 
 import { basename } from "../links";
 import { displayName } from "../taxonomy";
-import type { Comment, CustomFieldDef, CustomFieldValue, IsoDate, LinkTarget, Task } from "../types";
+import type { Checklist, Comment, CustomFieldDef, CustomFieldValue, IsoDate, LinkTarget, Task } from "../types";
 import type { ViewContext } from "../views";
 import type { FieldId } from "./fields";
 
@@ -21,6 +21,8 @@ export interface ResolveLookups {
 	descriptions?: Record<string, string>;
 	/** Task id → comments. Present only when Comments was requested. */
 	comments?: Record<string, Comment[]>;
+	/** Task id → its checklists. Present only when Checklists was requested. */
+	checklists?: Record<string, Checklist[]>;
 }
 
 /** A resolved row: every field id mapped to its display string. */
@@ -48,6 +50,13 @@ function formatComments(comments: Comment[]): string {
 	return comments
 		.map((c) => `${c.author} (${c.date}): ${c.body}`)
 		.join("\n\n");
+}
+
+/** A sheet's cell: each list on its own line, `Name: [x] one; [ ] two`. */
+function formatChecklists(lists: readonly Checklist[]): string {
+	return lists
+		.map((list) => `${list.name}: ${list.items.map((item) => `[${item.done ? "x" : " "}] ${item.text}`).join("; ")}`.trimEnd())
+		.join("\n");
 }
 
 function formatRelations(task: Task, lookups: ResolveLookups): string {
@@ -96,6 +105,7 @@ export function resolveDisplayRecord(
 
 		description: lookups.descriptions?.[task.id] ?? "",
 		comments: formatComments(lookups.comments?.[task.id] ?? []),
+		checklists: formatChecklists(lookups.checklists?.[task.id] ?? []),
 		estimate: task.estimate == null ? "" : String(task.estimate),
 		relations: formatRelations(task, lookups),
 	};

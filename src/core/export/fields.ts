@@ -39,6 +39,7 @@ export type FieldId =
   // rich data
   | "description"
   | "comments"
+  | "checklists"
   | "estimate"
   | "relations";
 
@@ -201,6 +202,13 @@ export const FIELDS: Record<FieldId, FieldSpec> = {
     icalEligible: false,
     needsDocument: true,
   },
+  checklists: {
+    id: "checklists",
+    label: "Checklists",
+    group: "rich",
+    icalEligible: false,
+    needsDocument: true,
+  },
   estimate: {
     id: "estimate",
     label: "Estimate",
@@ -240,7 +248,7 @@ export const FIELD_GROUPS: FieldGroup[] = [
     id: "rich",
     label: "Rich data",
     defaultOn: true,
-    fields: ["description", "comments", "estimate", "relations"],
+    fields: ["description", "comments", "checklists", "estimate", "relations"],
   },
 ];
 

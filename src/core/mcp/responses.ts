@@ -15,6 +15,7 @@
  * that into an MCP `isError` result.
  */
 
+import { checklistTotals } from "../checklists";
 import { computeWidgetData, type WidgetData } from "../dashboards/aggregate";
 import { formatProgress, projectProgress, scopeOf, subtaskProgress } from "../hierarchy";
 import { describeRecurrence } from "../recurrence/describe";
@@ -274,6 +275,8 @@ export interface McpTaskRow {
 	subTaskCount: number;
 	relationCount: number;
 	commentCount: number;
+	/** Its checklists' items, ticked and in all -- only when it has some. */
+	checklistProgress?: { done: number; total: number };
 	createdAt: string;
 	updatedAt: string;
 }
@@ -288,6 +291,11 @@ export function countSubtasks(
 	}
 	return counts;
 }
+
+const checklistProgressOf = (task: Task): { checklistProgress?: { done: number; total: number } } => {
+	const totals = checklistTotals(task.checklists);
+	return totals ? { checklistProgress: totals } : {};
+};
 
 /** A task's summary row. */
 export function taskRow(
@@ -315,6 +323,7 @@ export function taskRow(
 		subTaskCount: subtaskCounts.get(task.path) ?? 0,
 		relationCount: relationCount(task),
 		commentCount: task.commentCount ?? 0,
+		...checklistProgressOf(task),
 		createdAt: task.createdAt,
 		updatedAt: task.updatedAt,
 	};

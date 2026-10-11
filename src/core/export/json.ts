@@ -10,6 +10,7 @@
  */
 
 import type {
+	Checklist,
 	Comment,
 	IsoDate,
 	LinkTarget,
@@ -37,6 +38,8 @@ export interface ResolvedLookups {
 export interface JsonExtras {
 	descriptions?: Record<string, string>;
 	comments?: Record<string, Comment[]>;
+	/** Task id → its checklists, items and ticks. */
+	checklists?: Record<string, Checklist[]>;
 }
 
 function fromValues(values: readonly { id: string; name: string }[]): Record<string, string> {
@@ -84,6 +87,7 @@ export function buildWorkspaceJson(
 
 	if (extras.descriptions) payload.descriptions = extras.descriptions;
 	if (extras.comments) payload.comments = extras.comments;
+	if (extras.checklists) payload.checklists = extras.checklists;
 	payload.meta = meta;
 
 	return JSON.stringify(payload, null, 2) + "\n";
