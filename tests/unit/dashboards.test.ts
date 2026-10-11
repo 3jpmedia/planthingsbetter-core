@@ -22,6 +22,7 @@ import {
 	retargetFieldMapping,
 } from "../../src/core/dashboards";
 import type {
+	CustomFieldDef,
 	DashboardConfig,
 	DashboardWidget,
 	Task,
@@ -557,7 +558,7 @@ describe("custom fields in charts (T-0274)", () => {
 		],
 	};
 	const owners = { id: "f-owners", key: "CF-0003", slug: "owners", name: "Owners", type: "member" as const };
-	const withFields = (customFields: (typeof points | typeof client | typeof owners)[]) => ({ ...context, customFields });
+	const withFields = (customFields: CustomFieldDef[]) => ({ ...context, customFields });
 	const base = snapshot.tasks[0];
 	const task = (id: string, fields?: Task["fields"]): Task => ({ ...base, id, path: id, fields });
 	const tasks = [
