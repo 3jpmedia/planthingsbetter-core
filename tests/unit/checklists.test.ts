@@ -180,6 +180,14 @@ describe("query clauses", () => {
 		expect(parseQuery("-checklist:Done", ctx).ok).toBe(false);
 		expect(parseQuery("checklist:", ctx).ok).toBe(false);
 	});
+
+	it("hide:checklists hides the progress on cards and rows, and prints back", () => {
+		expect(parseQuery("hide:checklists", ctx).definition.hiddenFields).toEqual(["checklists"]);
+		expect(parseQuery("hide:checklist,progress", ctx).definition.hiddenFields).toEqual(["progress", "checklists"]);
+		expect(printQuery(def({ hiddenFields: ["relations", "checklists"] }), ctx)).toContain("hide:checklists,relations");
+		// It doesn't take the checklist: filter's place.
+		expect(parseQuery("hide:checklists", ctx).definition.filters.checklist).toBeUndefined();
+	});
 });
 
 describe("elsewhere", () => {

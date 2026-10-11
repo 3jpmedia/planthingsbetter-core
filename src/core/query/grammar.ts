@@ -350,6 +350,7 @@ export const FIELD_VALUES: Record<TaskField, EnumValueSpec> = {
 	startDate: { token: "start", aliases: ["startdate"] },
 	dueDate: { token: "due", aliases: ["duedate"] },
 	progress: { token: "progress", aliases: [] },
+	checklists: { token: "checklists", aliases: ["checklist"] },
 	relations: { token: "relations", aliases: ["rel", "relation"] },
 };
 

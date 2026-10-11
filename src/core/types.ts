@@ -1076,6 +1076,7 @@ export const TASK_FIELDS = [
 	"startDate",
 	"dueDate",
 	"progress",
+	"checklists",
 	"relations",
 ] as const;
 export type TaskField = (typeof TASK_FIELDS)[number];
