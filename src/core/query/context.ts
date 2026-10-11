@@ -33,6 +33,8 @@ export interface QueryContext {
 	/** Milestones by key (title as an alias). Hosts without milestones leave
 	 *  it out. */
 	milestones?: QueryEntity[];
+	/** Spaces by key (name as an alias). Hosts without Spaces leave it out. */
+	spaces?: QueryEntity[];
 	tasks: QueryEntity[];
 	/** The workspace's custom fields, for `custom.<slug>` clauses. Hosts
 	 *  without them leave it out. */
@@ -51,6 +53,7 @@ export function queryContext(
 		// Its title still answers on input, as a milestone's does.
 		projects: snapshot.projects.map((p) => ({ path: p.path, title: p.id ?? p.title, alias: p.id ? p.title : undefined })),
 		milestones: (snapshot.milestones ?? []).map((m) => ({ path: m.path, title: m.id ?? m.title, alias: m.title })),
+		spaces: (snapshot.spaces ?? []).map((s) => ({ path: s.path, title: s.id ?? s.title, alias: s.title })),
 		tasks: snapshot.tasks.map((t) => ({ path: t.path, title: t.id })),
 		customFields: snapshot.customFields,
 	};

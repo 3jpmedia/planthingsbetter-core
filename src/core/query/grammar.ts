@@ -33,6 +33,7 @@ export type ResolveAs =
 	| "person"
 	| "project"
 	| "milestone"
+	| "space"
 	| "task"
 	| "date";
 
@@ -105,6 +106,14 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		token: "milestone",
 		aliases: ["milestonekey", "ms"],
 		resolveAs: "milestone",
+		unsetIsVacuous: false,
+	},
+	// Printed as the Space's key ("S-0003"); its name works on input.
+	// `space:unset` is workspace-wide.
+	space: {
+		token: "space",
+		aliases: ["spacekey"],
+		resolveAs: "space",
 		unsetIsVacuous: false,
 	},
 	parent: {

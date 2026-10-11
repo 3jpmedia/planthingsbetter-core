@@ -61,6 +61,7 @@ function entitiesFor(
 ): QueryEntity[] | null {
 	if (kind === "project") return context.projects;
 	if (kind === "milestone") return context.milestones ?? [];
+	if (kind === "space") return context.spaces ?? [];
 	if (kind === "task") return context.tasks;
 	return null;
 }

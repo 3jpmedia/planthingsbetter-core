@@ -424,6 +424,12 @@ export interface Task {
 	 * Optional: hosts without milestones (the Obsidian plugin) leave it out.
 	 */
 	milestone?: LinkTarget | null;
+	/**
+	 * The Space the task is kept in -- a part of the workspace with its own
+	 * people. `null` is workspace-wide. Optional: hosts without Spaces (the
+	 * Obsidian plugin) leave it out.
+	 */
+	space?: LinkTarget | null;
 
 	/**
 	 * The task this occurrence was spawned from, when it's part of a recurring
@@ -632,6 +638,17 @@ export interface Milestone {
 	completedAt: IsoDate | null;
 	createdAt: IsoDate;
 	updatedAt: IsoDate;
+	path: LinkTarget;
+}
+
+/**
+ * A Space: a part of the workspace with its own people, where tasks,
+ * projects and milestones are kept. Tasks say which with `Task.space`.
+ */
+export interface Space {
+	title: string;
+	/** The display key ("S-0003"); queries carry this, like `Milestone.id`. */
+	id?: string;
 	path: LinkTarget;
 }
 
@@ -875,6 +892,8 @@ export interface ViewFilters {
 	assignee?: string[];
 	project?: string[];
 	milestone?: string[];
+	/** Tasks kept in these Spaces; `NONE` is workspace-wide. */
+	space?: string[];
 	parent?: string[];
 	/**
 	 * Scope to a task and everything transitively connected to it via
@@ -969,6 +988,7 @@ export interface ViewFilters {
 	excludeMentions?: string[];
 	excludeProject?: string[];
 	excludeMilestone?: string[];
+	excludeSpace?: string[];
 	excludeParent?: string[];
 	excludeRoot?: string[];
 	excludeId?: string[];
@@ -1418,6 +1438,8 @@ export interface WorkspaceSnapshot {
 	projects: Project[];
 	/** Hosts without milestones leave this out. */
 	milestones?: Milestone[];
+	/** Hosts without Spaces leave this out. */
+	spaces?: Space[];
 	/** The workspace's custom fields, in their order. Hosts without them
 	 *  leave this out. */
 	customFields?: CustomFieldDef[];

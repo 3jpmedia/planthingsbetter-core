@@ -103,6 +103,7 @@ function entitiesFor(
 ): QueryEntity[] | null {
 	if (spec.resolveAs === "project") return context.projects;
 	if (spec.resolveAs === "milestone") return context.milestones ?? [];
+	if (spec.resolveAs === "space") return context.spaces ?? [];
 	if (spec.resolveAs === "task") return context.tasks;
 	return null;
 }

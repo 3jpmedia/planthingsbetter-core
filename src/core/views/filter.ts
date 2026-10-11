@@ -151,6 +151,14 @@ function matchesMilestone(
 	);
 }
 
+/** OR-match Space: exact path. A workspace-wide task (no Space) matches
+ *  only `NONE`. */
+function matchesSpace(actual: LinkTarget | null | undefined, allowed: string[] | undefined): boolean {
+	if (!allowed || allowed.length === 0) return true;
+	if (actual == null) return allowed.includes(NONE);
+	return allowed.some((pattern) => pattern !== NONE && (pattern === actual || linksMatch(actual, pattern)));
+}
+
 /** OR-match an exact-day field, day-truncating a full timestamp. */
 function matchesDateExact(
 	actual: string | null,
@@ -225,6 +233,7 @@ export function matchesFilters(
 	if (!matchesProject(task.project, filters.project, context.titles))
 		return false;
 	if (!matchesMilestone(task.milestone, filters.milestone, context)) return false;
+	if (!matchesSpace(task.space, filters.space)) return false;
 	if (!matchesLink(task.parent, filters.parent)) return false;
 	if (!matchesId(task.path, filters.id)) return false;
 	if (!matchesTaskLinks(task.relations.blocks, filters.blocks)) return false;
@@ -303,6 +312,7 @@ export function matchesFilters(
 		return false;
 	if (filters.excludeMilestone?.length && matchesMilestone(task.milestone, filters.excludeMilestone, context))
 		return false;
+	if (filters.excludeSpace?.length && matchesSpace(task.space, filters.excludeSpace)) return false;
 	if (filters.excludeParent?.length && matchesLink(task.parent, filters.excludeParent))
 		return false;
 	if (filters.excludeId?.length && matchesId(task.path, filters.excludeId)) return false;
@@ -437,6 +447,7 @@ export type ArrayFilterKey = Exclude<
 	| "excludeMentions"
 	| "excludeProject"
 	| "excludeMilestone"
+	| "excludeSpace"
 	| "excludeParent"
 	| "excludeRoot"
 	| "excludeId"
@@ -459,6 +470,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"mentions",
 	"project",
 	"milestone",
+	"space",
 	"parent",
 	"root",
 	"id",
@@ -472,7 +484,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"completedAt",
 ];
 
-/** The 17 `ViewFilters` property names that hold excluded values. */
+/** The 18 `ViewFilters` property names that hold excluded values. */
 export type ExcludeFilterKey =
 	| "excludeStatus"
 	| "excludePriority"
@@ -482,6 +494,7 @@ export type ExcludeFilterKey =
 	| "excludeMentions"
 	| "excludeProject"
 	| "excludeMilestone"
+	| "excludeSpace"
 	| "excludeParent"
 	| "excludeRoot"
 	| "excludeId"
@@ -509,6 +522,7 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	mentions: "excludeMentions",
 	project: "excludeProject",
 	milestone: "excludeMilestone",
+	space: "excludeSpace",
 	parent: "excludeParent",
 	root: "excludeRoot",
 	id: "excludeId",
@@ -759,6 +773,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.assignee?.length &&
 		!filters.project?.length &&
 		!filters.milestone?.length &&
+		!filters.space?.length &&
 		!filters.parent?.length &&
 		!filters.root?.length &&
 		!filters.excludeRoot?.length &&
@@ -801,6 +816,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeMentions?.length &&
 		!filters.excludeProject?.length &&
 		!filters.excludeMilestone?.length &&
+		!filters.excludeSpace?.length &&
 		!filters.excludeParent?.length &&
 		!filters.excludeDueDate?.length &&
 		!filters.excludeStartDate?.length &&
