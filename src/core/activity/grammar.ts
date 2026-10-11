@@ -136,6 +136,7 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	targetDate: { token: "target", aliases: ["targetdate", "target-date"], resolveAs: "date" },
 	milestoneState: { token: "milestone-state", aliases: ["milestonestate"] },
 	customField: { token: "custom", aliases: ["custom-field", "customfield"] },
+	customFields: { token: "custom-fields", aliases: ["customfields"] },
 	fieldType: { token: "field-type", aliases: ["fieldtype"] },
 	options: { token: "choices", aliases: ["options"] },
 	checklists: { token: "checklists", aliases: [] },

@@ -161,6 +161,8 @@ export const ACTIVITY_FIELDS = [
 	// Custom fields: a task's value for one (the change names the field in
 	// `customField`), and a field's own type and choices.
 	"customField",
+	// A template's whole set of field values a new task starts with.
+	"customFields",
 	"fieldType",
 	"options",
 	// A task's checklists (each a list of items ticked one by one), recorded
