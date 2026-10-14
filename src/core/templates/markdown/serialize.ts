@@ -71,11 +71,12 @@ export interface TemplateSerializeInput {
 	 *  cross-links keep resolving); default drops them. */
 	includeArchived?: boolean;
 	/** The workspace's custom fields. Written to frontmatter `fields:` in the
-	 *  taxonomy shorthand (a Space's own field as `space: Design`, a guest-
-	 *  hidden one as `guests: hidden`), and each Task's values (`Task.fields`)
-	 *  ride on its field line. The host passes the fields a template should
-	 *  carry, with `space` set to the Space's name where it has one; a host
-	 *  that wants a field left out drops it here. */
+	 *  taxonomy shorthand (a Space's own field as `space: Design`, a task
+	 *  type's as `type: Bug`, each repeated for several; a guest-hidden one as
+	 *  `guests: hidden`), and each Task's values (`Task.fields`) ride on its
+	 *  field line. The host passes the fields a template should carry, with
+	 *  `spaces` and `taskTypes` set to names where it has them; a host that
+	 *  wants a field left out drops it here. */
 	customFields?: CustomFieldDef[];
 	/** For `printQuery` / `printFilters` - build it with `queryContext(snapshot)`. */
 	queryContext: QueryContext;
@@ -125,10 +126,11 @@ const BUILT_IN_FIELD_KEYS = new Set([
  *  colons or line breaks where they would be read as syntax. */
 function fieldIsWritable(field: CustomFieldDef): boolean {
 	if (!field.name.trim() || /[()|:\n,]/.test(field.name)) return false;
-	// A Space's name sits in the brackets as `space: Name`.
-	if (field.space !== undefined && (!field.space.trim() || /[(),|\n]/.test(field.space))) return false;
+	// Each Space's and task type's name sits in the brackets as `space: Name`
+	// / `type: Name`.
+	if ([...(field.spaces ?? []), ...(field.taskTypes ?? [])].some((name) => !name.trim() || /[(),|\n]/.test(name))) return false;
 	// A choice that reads as a scope setting would be taken for one.
-	return (field.options ?? []).every((o) => o.name.trim() && !/[(),|\n]/.test(o.name) && !/^\s*(space|guests)\s*:/i.test(o.name));
+	return (field.options ?? []).every((o) => o.name.trim() && !/[(),|\n]/.test(o.name) && !/^\s*(space|type|guests)\s*:/i.test(o.name));
 }
 
 function fieldShorthand(field: CustomFieldDef): string {
@@ -136,7 +138,8 @@ function fieldShorthand(field: CustomFieldDef): string {
 		? (field.options ?? []).map((o) => o.name.trim())
 		: [];
 	const scope = [
-		...(field.space?.trim() ? [`space: ${field.space.trim()}`] : []),
+		...(field.spaces ?? []).map((space) => `space: ${space.trim()}`),
+		...(field.taskTypes ?? []).map((type) => `type: ${type.trim()}`),
 		...(field.internal ? ["guests: hidden"] : []),
 	];
 	return `${field.name.trim()} (${[FIELD_TYPE_WORD[field.type], ...choices, ...scope].join(", ")})`;

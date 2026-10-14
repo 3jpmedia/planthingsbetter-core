@@ -295,21 +295,29 @@ function parseCustomFields(raw: unknown): CustomFieldDef[] | undefined {
 	const seen = new Set<string>();
 	return entries.map((entry, index) => {
 		const { name, parts } = splitShorthand(entry);
-		const [typeWord = "text", ...rest] = parts;
-		// `space: Design` and `guests: hidden` are scope settings, not choices.
-		let space: string | undefined;
+		// `space: Design`, `type: Bug` and `guests: hidden` are scope settings,
+		// not choices; `space:` and `type:` repeat for several. A field that
+		// starts with one has no type word, so it's text.
+		const SCOPE = /^(space|type|guests)\s*:\s*(.*)$/i;
+		const [typeWord = "text", ...rest] = parts.length > 0 && SCOPE.test(parts[0]) ? ["text", ...parts] : parts;
+		const spaces: string[] = [];
+		const taskTypes: string[] = [];
 		let internal = false;
 		const choices: string[] = [];
 		for (const part of rest) {
-			const scoped = /^(space|guests)\s*:\s*(.*)$/i.exec(part);
+			const scoped = SCOPE.exec(part);
 			if (!scoped) {
 				choices.push(part);
 				continue;
 			}
 			const value = scoped[2].trim();
-			if (scoped[1].toLowerCase() === "space") {
+			const setting = scoped[1].toLowerCase();
+			if (setting === "space") {
 				if (!value) fail(`"fields[${index}]": "space:" needs the Space's name, like "space: Design"`);
-				space = value;
+				if (!spaces.some((known) => known.toLowerCase() === value.toLowerCase())) spaces.push(value);
+			} else if (setting === "type") {
+				if (!value) fail(`"fields[${index}]": "type:" needs a task type's name, like "type: Bug"`);
+				if (!taskTypes.some((known) => known.toLowerCase() === value.toLowerCase())) taskTypes.push(value);
 			} else if (value.toLowerCase() === "hidden") {
 				internal = true;
 			} else if (value.toLowerCase() !== "visible") {
@@ -329,7 +337,8 @@ function parseCustomFields(raw: unknown): CustomFieldDef[] | undefined {
 			slug,
 			name,
 			type,
-			...(space ? { space } : {}),
+			...(spaces.length ? { spaces } : {}),
+			...(taskTypes.length ? { taskTypes } : {}),
 			...(internal ? { internal: true } : {}),
 			...(hasChoices
 				? { options: choices.map((choice, n) => ({ id: `${slug}-${slugifyPlain(choice)}`, name: choice, color: COLOR_PALETTE[n % COLOR_PALETTE.length] })) }

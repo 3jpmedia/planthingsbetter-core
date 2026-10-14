@@ -78,6 +78,30 @@ describe("custom fields in the query language", () => {
 		expect(run("custom.points:>1 custom.client:globex").ids).toEqual(["T-2"]);
 	});
 
+	it("leaves tasks a field doesn't apply to out of unset and any (T-0720)", () => {
+		const env: CustomFieldDef = { id: "f-env", key: "CF-0010", slug: "environment", name: "Environment", type: "text", appliesTo: { spaces: ["s-a", "s-b"], taskTypes: ["bug"] } };
+		const tasks = [
+			task({ path: "b1", id: "B-1", title: "Bug in A, set", rank: "0|i00010:", space: "s-a", taskType: "bug", fields: { "f-env": "prod" } }),
+			task({ path: "b2", id: "B-2", title: "Bug in B, unset", rank: "0|i00011:", space: "s-b", taskType: "bug", fields: {} }),
+			task({ path: "b3", id: "B-3", title: "Feature in A, kept value", rank: "0|i00012:", space: "s-a", taskType: "feature", fields: { "f-env": "staging" } }),
+			task({ path: "b4", id: "B-4", title: "Bug elsewhere", rank: "0|i00013:", space: "s-c", taskType: "bug", fields: {} }),
+			task({ path: "b5", id: "B-5", title: "No type in A", rank: "0|i00014:", space: "s-a", taskType: null, fields: {} }),
+		];
+		const scoped: WorkspaceSnapshot = { ...snapshot, tasks, customFields: [env] };
+		const q = queryContext(scoped);
+		const v = snapshotContext(scoped);
+		const ids = (source: string) => applyFilters(tasks, parseQuery(source, q).definition.filters, v).map((t) => t.id);
+		expect(ids("custom.environment:unset")).toEqual(["B-2"]);
+		expect(ids("custom.environment:any")).toEqual(["B-1"]);
+		expect(ids("-custom.environment:any")).toEqual(["B-2"]);
+		// A value kept from before it changed type doesn't count.
+		expect(ids("custom.environment:staging")).toEqual([]);
+		expect(ids("-custom.environment:prod")).toEqual(["B-2", "B-3", "B-4", "B-5"]);
+		// No limits: every task.
+		const open: WorkspaceSnapshot = { ...scoped, customFields: [{ ...env, appliesTo: { spaces: [], taskTypes: [] } }] };
+		expect(applyFilters(tasks, parseQuery("custom.environment:unset", queryContext(open)).definition.filters, snapshotContext(open)).map((t) => t.id)).toEqual(["B-2", "B-4", "B-5"]);
+	});
+
 	it("splits an exclusion of no value from the rest, and prints both back", () => {
 		const source = "-custom.client:globex,unset";
 		const { parsed, ids } = run(source);

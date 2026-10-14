@@ -660,12 +660,12 @@ describe("serializeTemplateMarkdown round-trip", () => {
 
 		it("round-trips a field's Space and guest visibility (T-0659)", () => {
 			const scoped: CustomFieldDef[] = [
-				{ id: "s1", key: "CF-0001", slug: "points", name: "Points", type: "number", space: "Design", internal: true },
-				{ id: "s2", key: "CF-0002", slug: "client", name: "Client", type: "select", options: [opt("Acme", 1)], space: "Design" },
+				{ id: "s1", key: "CF-0001", slug: "points", name: "Points", type: "number", spaces: ["Design"], internal: true },
+				{ id: "s2", key: "CF-0002", slug: "client", name: "Client", type: "select", options: [opt("Acme", 1)], spaces: ["Design"] },
 				{ id: "s3", key: "CF-0003", slug: "notes", name: "Notes", type: "text", internal: true },
 				{ id: "s4", key: "CF-0004", slug: "plain", name: "Plain", type: "text" },
 				// A Space name the shorthand can't carry leaves the field out.
-				{ id: "s5", key: "CF-0005", slug: "odd", name: "Odd", type: "text", space: "A, B" },
+				{ id: "s5", key: "CF-0005", slug: "odd", name: "Odd", type: "text", spaces: ["A, B"] },
 				{ id: "s6", key: "CF-0006", slug: "tricky", name: "Tricky", type: "select", options: [{ id: "x", name: "space: Fake", color: "#ff0000" }] },
 			];
 			const source = serializeTemplateMarkdown({
@@ -684,7 +684,7 @@ describe("serializeTemplateMarkdown round-trip", () => {
 			expect(source).not.toContain("Tricky");
 			const parsed = parseTemplateMarkdown(source);
 			const back = parsed.customFields!;
-			expect(back.map((f) => [f.name, f.space, f.internal])).toEqual([
+			expect(back.map((f) => [f.name, f.spaces?.[0], f.internal])).toEqual([
 				["Points", "Design", true],
 				["Client", "Design", undefined],
 				["Notes", undefined, true],
@@ -692,13 +692,46 @@ describe("serializeTemplateMarkdown round-trip", () => {
 			]);
 			expect(back[1].options?.map((o) => o.name)).toEqual(["Acme"]);
 			const content = resolveTemplateContent(parsed, ctx());
-			expect(content.customFields![0]).toMatchObject({ space: "Design", internal: true });
+			expect(content.customFields![0]).toMatchObject({ spaces: ["Design"], internal: true });
+		});
+
+		it("round-trips several Spaces and task types (T-0720)", () => {
+			const scoped: CustomFieldDef[] = [
+				{ id: "e1", key: "CF-0001", slug: "environment", name: "Environment", type: "select", options: [opt("Prod", 1)], spaces: ["Client 2", "Client 3"], taskTypes: ["Bug"] },
+				{ id: "e2", key: "CF-0002", slug: "browser", name: "Browser", type: "text", taskTypes: ["Bug", "Chore"] },
+				// A choice that reads as a task type setting can't be carried.
+				{ id: "e3", key: "CF-0003", slug: "odd", name: "Odd", type: "select", options: [{ id: "x", name: "type: Fake", color: "#ff0000" }] },
+			];
+			const source = serializeTemplateMarkdown({
+				meta: { id: "typed", name: "Typed" },
+				workspace: snapshot.workspace,
+				views: [],
+				dashboards: [],
+				projects: [],
+				customFields: scoped,
+				queryContext: queryContext(snapshot),
+			});
+			expect(source).toContain("Environment (select, Prod, space: Client 2, space: Client 3, type: Bug)");
+			expect(source).toContain("Browser (text, type: Bug, type: Chore)");
+			expect(source).not.toContain("Odd");
+			const back = parseTemplateMarkdown(source).customFields!;
+			expect(back.map((f) => [f.name, f.spaces, f.taskTypes])).toEqual([
+				["Environment", ["Client 2", "Client 3"], ["Bug"]],
+				["Browser", undefined, ["Bug", "Chore"]],
+			]);
+			expect(back[0].options?.map((o) => o.name)).toEqual(["Prod"]);
+		});
+
+		it("reads a field that starts with a scope setting as text", () => {
+			const source = `---\ntype: vertex-flow-workspace-template\ntemplateSchema: 1\nid: x\nname: X\ndescription: d\nfields:\n  - "Steps (type: Bug)"\n---\n`;
+			expect(parseTemplateMarkdown(source).customFields).toMatchObject([{ name: "Steps", type: "text", taskTypes: ["Bug"] }]);
 		});
 
 		it("rejects a bad scope setting", () => {
 			const source = (field: string) => `---\ntype: vertex-flow-workspace-template\ntemplateSchema: 1\nid: x\nname: X\ndescription: d\nfields:\n  - "${field}"\n---\n`;
 			expect(() => parseTemplateMarkdown(source("Points (number, guests: maybe)"))).toThrow(/hidden/);
 			expect(() => parseTemplateMarkdown(source("Points (number, space: )"))).toThrow(/Space/);
+			expect(() => parseTemplateMarkdown(source("Points (number, type: )"))).toThrow(/task type/);
 		});
 
 		it("round-trips a KPI narrowed by a custom field (T-0659)", () => {

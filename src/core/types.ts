@@ -363,11 +363,20 @@ export interface CustomFieldDef {
 	type: CustomFieldType;
 	/** A select's (or multi-select's) choices, in order. */
 	options?: CustomFieldOption[];
-	/** The Space it belongs to, by the Space's name: set, the field is only on
-	 *  tasks in that Space. Absent: on every task in the workspace. Carried
-	 *  by a template's `fields` (`space: Design`); a host that holds Spaces
-	 *  by id keeps its own link and may leave this out. */
-	space?: string;
+	/** The Spaces it belongs to, by name: set, the field is only on tasks in
+	 *  one of them. Absent: on every task in the workspace. Carried by a
+	 *  template's `fields` (`space: Design, space: Client`); a host that holds
+	 *  Spaces by id says so in `appliesTo` and may leave this out. */
+	spaces?: string[];
+	/** The task types it belongs to, by name: set, the field is only on tasks
+	 *  of one of them. Absent: on every type, and on tasks with none. Carried
+	 *  by a template's `fields` (`type: Bug`), like `spaces`. */
+	taskTypes?: string[];
+	/** Where it applies, by id as the host's tasks hold them (`Task.space`,
+	 *  `Task.taskType`): a task outside them has no value for it, even one
+	 *  kept from before it moved, and `custom.<slug>:unset` / `:any` leave
+	 *  it out (`customFieldApplies`). Absent or empty lists: everywhere. */
+	appliesTo?: { spaces?: string[]; taskTypes?: string[] };
 	/** Hidden from guests, like an internal task. Absent or false: guests
 	 *  who can see the task see the field too. */
 	internal?: boolean;

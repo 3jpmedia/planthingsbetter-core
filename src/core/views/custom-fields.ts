@@ -25,9 +25,22 @@ export function customFieldByKey(context: Pick<ViewContext, "customFields">, key
 	return context.customFields?.find((field) => field.key.toUpperCase() === wanted);
 }
 
+/** Whether a field applies to a task: it has no Spaces or the task is in
+ *  one of them, and it has no task types or the task is one of them (a
+ *  task with no type gets only fields with no type limit). */
+export function customFieldApplies(field: Pick<CustomFieldDef, "appliesTo">, task: Pick<Task, "space" | "taskType">): boolean {
+	const spaces = field.appliesTo?.spaces ?? [];
+	const types = field.appliesTo?.taskTypes ?? [];
+	if (spaces.length > 0 && !(task.space && spaces.includes(task.space))) return false;
+	if (types.length > 0 && !(task.taskType && types.includes(task.taskType))) return false;
+	return true;
+}
+
 /** A task's value for a field, or undefined when it has none. An empty
- *  list or an unchecked box counts as none. */
+ *  list or an unchecked box counts as none, and so does a value kept on a
+ *  task the field doesn't apply to (it moved, or changed type). */
 export function customValueOf(task: Task, field: CustomFieldDef): CustomFieldValue | undefined {
+	if (!customFieldApplies(field, task)) return undefined;
 	const value = task.fields?.[field.id];
 	if (value == null || value === "" || value === false) return undefined;
 	if (Array.isArray(value) && value.length === 0) return undefined;
@@ -54,7 +67,8 @@ function compareTo(field: CustomFieldDef, value: CustomFieldValue, target: strin
 
 function matchesOne(task: Task, field: CustomFieldDef, match: CustomFieldMatch, context: ViewContext): boolean {
 	const value = customValueOf(task, field);
-	if (match.op === "unset") return value === undefined;
+	// No value where it should have one: not on a task it doesn't apply to.
+	if (match.op === "unset") return value === undefined && customFieldApplies(field, task);
 	// A checkbox never ticked is as unchecked as one unticked.
 	if (field.type === "checkbox" && match.op === "eq" && match.value != null) return (value === true) === TRUE.has(match.value.toLowerCase());
 	if (value === undefined || match.value == null) return false;
@@ -80,10 +94,12 @@ function matchesOne(task: Task, field: CustomFieldDef, match: CustomFieldMatch, 
 
 /** Whether a task passes every custom field clause. A clause naming a
  *  field the host doesn't have matches nothing (or, excluded, everything),
- *  the same as an unknown taxonomy value. */
+ *  the same as an unknown taxonomy value. A task the field doesn't apply to
+ *  is neither `unset` nor `any`: it has no value, but isn't missing one. */
 export function matchesCustomFilters(task: Task, filters: readonly CustomFieldFilter[] | undefined, context: ViewContext): boolean {
 	for (const clause of filters ?? []) {
 		const field = customFieldByKey(context, clause.field);
+		if (field && clause.exclude && !customFieldApplies(field, task) && clause.matches.some((match) => match.op === "unset")) return false;
 		const any = field ? clause.matches.some((match) => matchesOne(task, field, match, context)) : false;
 		if (clause.exclude ? any : !any) return false;
 	}
