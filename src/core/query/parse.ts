@@ -53,15 +53,19 @@ import {
 	FLAG_FIELD_ALIASES,
 	FLAG_TOKENS,
 	GROUP_BY_TOKEN,
+	KIND_FIELD,
 	LAYOUT_BY_TOKEN,
 	LAYOUT_ONLY_CLAUSES,
 	LEGACY_CHECKLIST_FLAGS,
 	LEGACY_TOP_LEVEL_VALUES,
+	LINKED_NAME_BY_TOKEN,
 	NOT_EXPRESSIBLE,
 	RELATION_KIND_BY_TOKEN,
+	RESULT_KINDS,
 	SORT_BY_TOKEN,
 	SUBTASK_BY_TOKEN,
 	UNSET_KEYWORDS,
+	selfField,
 } from "./grammar";
 import { lex, type LexedToken } from "./lex";
 import { resolveValue } from "./resolve";
@@ -215,7 +219,8 @@ export function parseQueryTokens(
 			continue;
 		}
 
-		const field = FLAG_FIELD_ALIASES[token.field] ?? token.field;
+		// `task.status:` is `status:` -- a task query's own fields are the task's.
+		const field = selfField(FLAG_FIELD_ALIASES[token.field] ?? token.field);
 
 		// Tokens that name something ViewFilters genuinely cannot express.
 		if (token.values.length === 1) {
@@ -230,6 +235,29 @@ export function parseQueryTokens(
 				);
 				continue;
 			}
+		}
+
+		/* -- what the query finds: `kind:task` (grammar.ts RESULT_KINDS) -- */
+
+		// A task query finds tasks, so `kind:task` adds nothing and another
+		// kind can't be found here. A value that isn't a kind is the older
+		// `kind:` spelling of `type:` and falls through to it below.
+		if (
+			field === KIND_FIELD &&
+			token.values.length > 0 &&
+			token.values.every((value) => !value.verbatim && (RESULT_KINDS as readonly string[]).includes(value.text.trim().toLowerCase()))
+		) {
+			noteDuplicate(KIND_FIELD, token.span);
+			const kinds = token.values.map((value) => value.text.trim().toLowerCase());
+			if (token.excluded ? kinds.includes("task") : !kinds.includes("task")) {
+				fail(
+					"not-expressible",
+					token.excluded ? `"-kind:task" leaves nothing - this query finds tasks` : `This query finds tasks, not ${kinds.join(" or ")}`,
+					token.span,
+					"kind:task",
+				);
+			}
+			continue;
 		}
 
 		/* -- custom fields: `custom.<slug>:…` (query/custom.ts) -- */
@@ -420,6 +448,7 @@ export function parseQueryTokens(
 				descending = true;
 				raw = raw.slice(1);
 			}
+			raw = selfField(raw);
 
 			// Closed unions, unlike taxonomy ids - a stale one would just be
 			// coerced away on save, so there's nothing to preserve verbatim.
@@ -499,7 +528,7 @@ export function parseQueryTokens(
 			}
 			noteDuplicate("hide", token.span);
 			for (const value of token.values) {
-				const raw = value.text.trim().toLowerCase();
+				const raw = selfField(value.text.trim());
 				const match = raw.startsWith(CUSTOM_PREFIX) ? customRef(raw, value.span) : FIELD_BY_TOKEN.get(raw);
 				if (!match) {
 					if (!raw.startsWith(CUSTOM_PREFIX)) fail("unknown-value", `"${raw}" isn't a task field`, value.span);
@@ -545,6 +574,7 @@ export function parseQueryTokens(
 					descending = true;
 					raw = raw.slice(1);
 				}
+				raw = selfField(raw);
 				const match = raw.startsWith(CUSTOM_PREFIX) ? customRef(raw, value.span) : SORT_BY_TOKEN.get(raw);
 				if (!match) {
 					if (!raw.startsWith(CUSTOM_PREFIX)) fail("unknown-value", `"${raw}" isn't a sort field`, value.span);
@@ -572,6 +602,20 @@ export function parseQueryTokens(
 			} else {
 				filters[dateBoundKey] = raw;
 			}
+			continue;
+		}
+
+		/* -- a linked item's name: `project.name:web` -- */
+
+		const nameKey = LINKED_NAME_BY_TOKEN.get(field);
+		if (nameKey) {
+			if (token.values.length === 0) {
+				fail("empty-value", `"${token.field}" needs a value`, token.span);
+				continue;
+			}
+			noteDuplicate(nameKey, token.span);
+			const text = token.values.map((value) => value.text).join(" ").trim();
+			if (text) filters[nameKey] = text;
 			continue;
 		}
 

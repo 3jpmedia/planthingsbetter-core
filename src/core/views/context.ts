@@ -10,6 +10,7 @@ import type {
 	Milestone,
 	Person,
 	Project,
+	Space,
 	WorkspaceConfig,
 	WorkspaceSnapshot,
 } from "../types";
@@ -34,9 +35,12 @@ export interface ViewContext {
 	/** Path → milestone, so grouping and sorting by milestone can name it and
 	 *  order it by its target date. Absent without a full snapshot. */
 	milestones?: Map<LinkTarget, Milestone>;
-	/** Path → project, for a task's project's dates (`projectDue:`).
+	/** Path → project, for a task's project's dates (`project.due:`).
 	 *  Absent without a full snapshot. */
 	projects?: Map<LinkTarget, Project>;
+	/** Path → Space, for a task's Space's name (`space.name:`). Absent
+	 *  without a full snapshot. */
+	spaces?: Map<LinkTarget, Space>;
 	/**
 	 * Sub-task/project rollup scope, for sorts that read computed values
 	 * (`progress`). Absent when a caller builds a context from a bare config
@@ -80,8 +84,10 @@ export function snapshotContext(
 	for (const milestone of snapshot.milestones ?? []) milestones.set(milestone.path, milestone);
 	const projects = new Map<LinkTarget, Project>();
 	for (const project of snapshot.projects) projects.set(project.path, project);
+	const spaces = new Map<LinkTarget, Space>();
+	for (const space of snapshot.spaces ?? []) spaces.set(space.path, space);
 
-	return { ...viewContext(snapshot.workspace, me), titles, milestones, projects, scope: scopeOf(snapshot), customFields: snapshot.customFields };
+	return { ...viewContext(snapshot.workspace, me), titles, milestones, projects, spaces, scope: scopeOf(snapshot), customFields: snapshot.customFields };
 }
 
 /**

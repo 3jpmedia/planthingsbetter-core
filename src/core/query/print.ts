@@ -15,7 +15,7 @@
 
 import { basename } from "../links";
 import { getValue, type Taxonomy } from "../taxonomy";
-import { LINKED_DATE_FIELD_KEYS, NONE, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
+import { LINKED_DATE_FIELD_KEYS, LINKED_NAME_FIELD_KEYS, NONE, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
 import { CHECKLIST_KEYWORDS, isChecklistKeyword } from "../checklists";
 import { customFieldToken, printCustomMatch } from "./custom";
 import {
@@ -44,6 +44,7 @@ import {
 	SORT_VALUES,
 	SUBTASK_VALUES,
 	ANY_KEYWORDS,
+	LINKED_NAME_TOKENS,
 	TEXT_FIELD,
 	VERBATIM_PREFIX,
 	type FilterFieldSpec,
@@ -214,13 +215,13 @@ export function printValue(
 }
 
 /**
- * Free text, always labelled with its field (`taskTitle:accent`) -- never as
- * bare words, even though bare words still parse as free text when typed.
- * The value goes unquoted when it lexes straight back as that one value,
- * else quoted (`taskTitle:"two words"`).
+ * Free text, always labelled with its field (`name:accent`, or a linked
+ * item's `project.name:web`) -- never as bare words, even though bare words
+ * still parse as free text when typed. The value goes unquoted when it lexes
+ * straight back as that one value, else quoted (`name:"two words"`).
  */
-function printText(text: string): string {
-	const unquoted = `${TEXT_FIELD.token}:${text}`;
+function printText(text: string, field: string = TEXT_FIELD.token): string {
+	const unquoted = `${field}:${text}`;
 	const lexed = lex(unquoted);
 	const [token] = lexed.tokens;
 	if (
@@ -232,7 +233,7 @@ function printText(text: string): string {
 		token.values[0].text === text
 	)
 		return unquoted;
-	return `${TEXT_FIELD.token}:${quote(text)}`;
+	return `${field}:${quote(text)}`;
 }
 
 /**
@@ -287,6 +288,10 @@ export function printFilters(
 	}
 
 	if (canonical.text) parts.push(printText(canonical.text));
+	for (const field of LINKED_NAME_FIELD_KEYS) {
+		const name = canonical[field];
+		if (name) parts.push(printText(name, LINKED_NAME_TOKENS[field].token));
+	}
 
 	if (canonical.archived === "included") {
 		parts.push(

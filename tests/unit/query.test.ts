@@ -751,7 +751,7 @@ describe("resolution", () => {
 			(p) => p.title === "Core App Experience",
 		)!;
 		const source = printQuery(withFilters({ project: [core.path] }), ctx);
-		expect(source).toContain(`projectKey:"Core App Experience"`);
+		expect(source).toContain(`project:"Core App Experience"`);
 		expect(source).not.toContain(core.path);
 		// And it still round-trips.
 		expect(
@@ -828,7 +828,7 @@ describe("resolution", () => {
 	it("prints the Untriaged definition as its documented query", () => {
 		const inbox = defaultViews().find((v) => v.id === "untriaged")!;
 		expect(printQuery(viewDefinition(inbox), ctx)).toBe(
-			"projectKey:unset taskParentKey:unset is:open is:unscheduled group:status sort:rank",
+			"project:unset parent:unset is:open is:unscheduled group:status sort:rank",
 		);
 	});
 
@@ -846,7 +846,7 @@ describe("resolution", () => {
 		const byName = parseQuery("project:website", keyed);
 		expect(byName.definition.filters.project).toEqual(["p1"]);
 		expect(byName.issues).toEqual([]);
-		expect(printQuery(byName.definition, keyed)).toBe("projectKey:SP-P0001 group:none sort:rank");
+		expect(printQuery(byName.definition, keyed)).toBe("project:SP-P0001 group:none sort:rank");
 		expect(parseQuery("project:SP-P0003", keyed).definition.filters.project).toEqual(["p3"]);
 		const twice = parseQuery("project:Launch", keyed);
 		expect(twice.definition.filters.project).toEqual(["Launch"]);
@@ -877,7 +877,7 @@ describe("resolution", () => {
 		expect(parsed.issues.map((i) => i.code)).toContain("unknown-value");
 		// Printing must therefore use the full path, not the shared basename.
 		expect(printQuery(withFilters({ project: ["Projects/A"] }), ambiguous)).toBe(
-			"projectKey:Projects/A group:none sort:rank",
+			"project:Projects/A group:none sort:rank",
 		);
 	});
 });
@@ -1010,7 +1010,7 @@ describe("diagnostics", () => {
 		}
 		const subtask = parseQuery("is:sub-task", ctx);
 		expect(subtask.issues[0].code).toBe("not-expressible");
-		expect(subtask.issues[0].suggestion).toBe("parent:");
+		expect(subtask.issues[0].suggestion).toBe("parent:any");
 	});
 
 	it("errors on an unknown grouping or sort field", () => {
@@ -1155,8 +1155,8 @@ describe("date field filtering", () => {
 		const started = parseQuery("started-after:2026-01-01 started-at:2026-02-01", ctx);
 		expect(started.definition.filters.startedAtAfter).toBe("2026-01-01");
 		expect(started.definition.filters.startedAt).toEqual(["2026-02-01"]);
-		expect(printQuery(started.definition, ctx)).toContain("taskStarted:2026-02-01");
-		expect(printQuery(started.definition, ctx)).toContain("taskStartedAfter:2026-01-01");
+		expect(printQuery(started.definition, ctx)).toContain("started:2026-02-01");
+		expect(printQuery(started.definition, ctx)).toContain("started-after:2026-01-01");
 		expect(parseQuery("taskStartedBefore:2026-03-01", ctx).definition.filters.startedAtBefore).toBe("2026-03-01");
 
 		const start = parseQuery("start-date:2026-01-01", ctx);
@@ -1285,11 +1285,11 @@ describe("any: the positive form of unset", () => {
 		expect(parsed.ok).toBe(true);
 		expect(parsed.definition.filters.excludeProject).toEqual([NONE]);
 		expect(parsed.definition.filters.project).toBeUndefined();
-		expect(printQuery(parsed.definition, ctx)).toBe("projectKey:any group:none sort:rank");
+		expect(printQuery(parsed.definition, ctx)).toBe("project:any group:none sort:rank");
 		// The older spelling is the same filter, printed the new way.
 		const old = parseQuery("-project:unset", ctx);
 		expect(old.definition).toEqual(parsed.definition);
-		expect(printQuery(old.definition, ctx)).toBe("projectKey:any group:none sort:rank");
+		expect(printQuery(old.definition, ctx)).toBe("project:any group:none sort:rank");
 	});
 
 	it("-x:any is x:unset", () => {
@@ -1335,6 +1335,6 @@ describe("any: the positive form of unset", () => {
 	it("has: isn't a field: it points at field:any", () => {
 		const parsed = parseQuery("has:project", ctx);
 		expect(parsed.ok).toBe(false);
-		expect(parsed.issues[0]).toMatchObject({ code: "unknown-field", suggestion: "projectKey:any" });
+		expect(parsed.issues[0]).toMatchObject({ code: "unknown-field", suggestion: "project:any" });
 	});
 });

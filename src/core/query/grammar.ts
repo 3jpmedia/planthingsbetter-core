@@ -6,6 +6,16 @@
  * That makes them exhaustive: dropping a field from `ViewFilters` or a member
  * from `GroupByField` surfaces as a type error pointing at the exact entry to
  * delete, instead of leaving a silently-dead token behind.
+ *
+ * One form everywhere (T-0728): a field is `field:value`, lowercase, with
+ * dashes between words (`started-before`, `blocked-by`). A plain field is the
+ * item's own; a field of a linked item is `{kind}.{field}`
+ * (`milestone.target-before:`, `project.name:`), and `{kind}:` on its own is
+ * that item (`project:P-0003`, short for `project.key:`). Every kind has a
+ * `.key` and a `.name` (`.title` reads as it). Since a task query is about
+ * tasks, `task.` in front of any field is the task's own (`task.status:` is
+ * `status:`). Every spelling printed before this stays an alias, so stored
+ * queries keep their meaning.
  */
 
 import type {
@@ -23,7 +33,13 @@ import type {
 	ViewType,
 } from "../types";
 import type { ArrayFilterKey } from "../views/filter";
-import { LINKED_DATE_FIELD_KEYS, type LinkedDateBoundKey, type LinkedDateField } from "../types";
+import {
+	LINKED_DATE_FIELDS,
+	LINKED_DATE_FIELD_KEYS,
+	type LinkedDateBoundKey,
+	type LinkedDateField,
+	type LinkedNameField,
+} from "../types";
 
 /** What kind of thing a filter field's values name. */
 export type ResolveAs =
@@ -73,13 +89,13 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 	},
 	labels: {
 		token: "label",
-		aliases: ["labels", "tag", "tags"],
+		aliases: ["labels", "tag", "tags", "label.key"],
 		resolveAs: "label",
 		unsetIsVacuous: false,
 	},
 	assignee: {
 		token: "assignee",
-		aliases: ["assigned", "owner"],
+		aliases: ["assigned", "owner", "assignee.key"],
 		resolveAs: "person",
 		unsetIsVacuous: false,
 	},
@@ -89,23 +105,20 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "person",
 		unsetIsVacuous: true,
 	},
-	// `projectKey`/`taskParentKey`/`taskRootKey`/`taskKey`: renamed from their
-	// original bare `project`/`parent`/`root`/`id` tokens once printing
-	// switched to a stable key (see `print.ts`'s entity branch and
-	// `Project.id` above) rather than a value that can be renamed out from
-	// under a saved or copy-pasted query. The old spellings stay as aliases
-	// so nothing already typed or saved breaks; `printQuery` only ever
-	// emits the new one.
+	// `project`/`parent`/`root`/`task` print an item's stable key (see
+	// `print.ts`'s entity branch), never its renameable name; a name still
+	// works on input. `projectKey`/`taskParentKey`/`taskRootKey`/`taskKey`
+	// were printed before T-0728 and stay aliases, as does `{kind}.key`.
 	project: {
-		token: "projectKey",
-		aliases: ["project"],
+		token: "project",
+		aliases: ["projectkey", "project.key"],
 		resolveAs: "project",
 		unsetIsVacuous: false,
 	},
 	// Printed as the milestone's key ("PRD-R0030"); its title works on input.
 	milestone: {
 		token: "milestone",
-		aliases: ["milestonekey", "ms"],
+		aliases: ["milestonekey", "ms", "milestone.key"],
 		resolveAs: "milestone",
 		unsetIsVacuous: false,
 	},
@@ -113,27 +126,27 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 	// `space:unset` is workspace-wide.
 	space: {
 		token: "space",
-		aliases: ["spacekey"],
+		aliases: ["spacekey", "space.key"],
 		resolveAs: "space",
 		unsetIsVacuous: false,
 	},
 	parent: {
-		token: "taskParentKey",
-		aliases: ["parent", "subtaskof"],
+		token: "parent",
+		aliases: ["taskparentkey", "subtaskof", "parent.key"],
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
 	root: {
-		token: "taskRootKey",
-		aliases: ["root"],
+		token: "root",
+		aliases: ["taskrootkey", "root.key"],
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
 	// No collision with `sort:id` (SORT_VALUES, above): that spelling is
 	// always prefixed, so a bare field token only ever means a filter.
 	id: {
-		token: "taskKey",
-		aliases: ["id", "task"],
+		token: "task",
+		aliases: ["taskkey", "id", "task.key"],
 		resolveAs: "task",
 		unsetIsVacuous: true,
 	},
@@ -143,20 +156,20 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 	// reads naturally as a sentence; PTB's own UI labels them "Blocked
 	// Task"/"Blocking Task" for that reason (see FilterControls.tsx).
 	blocks: {
-		token: "blocksTaskKey",
-		aliases: [],
+		token: "blocks",
+		aliases: ["blockstaskkey"],
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
 	blockedBy: {
-		token: "blockedByTaskKey",
-		aliases: [],
+		token: "blocked-by",
+		aliases: ["blockedbytaskkey", "blockedby"],
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
 	related: {
-		token: "relatedTaskKey",
-		aliases: [],
+		token: "related",
+		aliases: ["relatedtaskkey"],
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
@@ -184,12 +197,12 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "date",
 		unsetIsVacuous: true,
 	},
-	// When work began (`Task.startedAt`): `taskStarted:unset` is never
-	// started. Named for the task, since milestones have dates of their own
-	// (a start, a target); `started:` still reads as it.
+	// When work began (`Task.startedAt`): `started:unset` is never started.
+	// Printed `taskStarted:` before T-0728; a milestone's own start is
+	// `milestone.start:`, so the plain word is the task's again.
 	startedAt: {
-		token: "taskStarted",
-		aliases: ["started", "startedat", "started-at"],
+		token: "started",
+		aliases: ["taskstarted", "startedat", "started-at"],
 		resolveAs: "date",
 		unsetIsVacuous: false,
 	},
@@ -200,12 +213,13 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		unsetIsVacuous: false,
 	},
 	// A task's milestone's and project's dates (LINKED_DATE_FIELDS in types.ts):
-	// `milestoneTarget:2026-10-20`, `projectDue:unset`. Spelled with dashes
-	// too (`milestone-target:`).
+	// `milestone.target:2026-10-20`, `project.due:unset`. The camelCase
+	// (`milestoneTarget:`, printed before T-0728) and dashed
+	// (`milestone-target:`) spellings stay aliases.
 	...(Object.fromEntries(
 		LINKED_DATE_FIELD_KEYS.map((field) => [
 			field,
-			{ token: field, aliases: [kebab(field)], resolveAs: "date", unsetIsVacuous: false } satisfies FilterFieldSpec,
+			{ token: linkedDateToken(field), aliases: [field.toLowerCase(), kebab(field)], resolveAs: "date", unsetIsVacuous: false } satisfies FilterFieldSpec,
 		]),
 	) as unknown as Record<LinkedDateField, FilterFieldSpec>),
 };
@@ -215,13 +229,72 @@ function kebab(token: string): string {
 	return token.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 }
 
-/** The free-text field (a task's title). Not in `FILTER_FIELDS` - its value
- *  isn't a list. Printed as `taskTitle:` -- always labelled, never bare
- *  words, though bare words still parse as it -- self-describing like the
- *  other tokens, leaving room for other titles (a view's, ...) later.
- *  `title`, `text` and `search` stay aliases so nothing already typed or
- *  saved breaks. */
-export const TEXT_FIELD = { token: "taskTitle", aliases: ["title", "text", "search"] };
+/** `milestoneTarget` -> `milestone.target`, `projectDue` -> `project.due`:
+ *  the linked kind, then its field. */
+function linkedDateToken(field: LinkedDateField): string {
+	const of = LINKED_DATE_FIELDS[field].of;
+	return `${of}.${kebab(field.slice(of.length)).replace(/^-/, "")}`;
+}
+
+/** The free-text field (a task's name). Not in `FILTER_FIELDS` - its value
+ *  isn't a list. Printed as `name:` -- always labelled, never bare words,
+ *  though bare words still parse as it. Every kind's display name is
+ *  `.name` (T-0728), even where it's stored as a title; `taskTitle:`
+ *  (printed before that), `title`, `text` and `search` stay aliases so
+ *  nothing already typed or saved breaks. */
+export const TEXT_FIELD = { token: "name", aliases: ["tasktitle", "title", "text", "search", "task.name", "task.title"] };
+
+/**
+ * A linked item's name, as free text: `project.name:web`, tasks whose
+ * project's name contains "web" (LINKED_NAME_FIELDS in types.ts). Each kind's
+ * `.title` reads as its `.name`.
+ */
+export const LINKED_NAME_TOKENS: Record<LinkedNameField, EnumValueSpec> = {
+	projectName: { token: "project.name", aliases: ["project.title"] },
+	milestoneName: { token: "milestone.name", aliases: ["milestone.title"] },
+	spaceName: { token: "space.name", aliases: ["space.title"] },
+	labelName: { token: "label.name", aliases: ["label.title"] },
+	assigneeName: { token: "assignee.name", aliases: ["assignee.title"] },
+};
+
+/**
+ * The kinds a query can be about (`kind:`). A task query (a view, a
+ * dashboard filter, Activity's task clauses) is about tasks, so `kind:task`
+ * is what it already is and any other kind isn't expressible there. Before
+ * T-0728 `kind:` was a spelling of a task's `type:`; a value that isn't one
+ * of these still reads that way, so nothing typed before means less now.
+ */
+export const RESULT_KINDS = [
+	"task",
+	"project",
+	"milestone",
+	"doc",
+	"view",
+	"dashboard",
+	"label",
+	"space",
+	"member",
+	"channel",
+	"template",
+	"form",
+	"link",
+	"activity",
+] as const;
+
+export const KIND_FIELD = "kind";
+
+/**
+ * A field as the parser looks it up: lowercase, and with a leading `task.`
+ * dropped, since a task query's own fields are the task's -- `task.status:`
+ * is `status:`, `task.custom.points:` is `custom.points:`. `task.key`,
+ * `task.name` and `task.title` keep it (they're spellings of their own).
+ */
+export function selfField(field: string): string {
+	const lowered = field.toLowerCase();
+	if (!lowered.startsWith("task.")) return lowered;
+	const rest = lowered.slice("task.".length);
+	return rest === "key" || rest === "name" || rest === "title" || rest === "" ? lowered : rest;
+}
 
 export interface EnumValueSpec {
 	token: string;
@@ -243,14 +316,14 @@ export const SORT_VALUES: Record<SortField, EnumValueSpec> = {
 	rank: { token: "rank", aliases: ["manual"] },
 	priority: { token: "priority", aliases: [] },
 	status: { token: "status", aliases: [] },
-	title: { token: "title", aliases: ["name"] },
+	title: { token: "name", aliases: ["title", "task.name"] },
 	id: { token: "id", aliases: [] },
 	dueDate: { token: "due", aliases: ["duedate"] },
 	startDate: { token: "start", aliases: ["startdate"] },
 	estimate: { token: "estimate", aliases: [] },
 	createdAt: { token: "created", aliases: ["createdat"] },
 	updatedAt: { token: "updated", aliases: ["updatedat"] },
-	startedAt: { token: "taskStarted", aliases: ["started", "startedat"] },
+	startedAt: { token: "started", aliases: ["taskstarted", "startedat"] },
 	taskType: { token: "type", aliases: ["tasktype", "kind"] },
 	project: { token: "project", aliases: [] },
 	milestone: { token: "milestone", aliases: ["ms"] },
@@ -320,16 +393,20 @@ export const DATE_BOUND_FIELDS: Record<
 	createdAtAfter: { token: "created-after", aliases: [] },
 	updatedAtBefore: { token: "updated-before", aliases: [] },
 	updatedAtAfter: { token: "updated-after", aliases: [] },
-	startedAtBefore: { token: "taskStartedBefore", aliases: ["started-before"] },
-	startedAtAfter: { token: "taskStartedAfter", aliases: ["started-after"] },
+	startedAtBefore: { token: "started-before", aliases: ["taskstartedbefore"] },
+	startedAtAfter: { token: "started-after", aliases: ["taskstartedafter"] },
 	completedAtBefore: { token: "completed-before", aliases: [] },
 	completedAtAfter: { token: "completed-after", aliases: [] },
-	// `milestoneTargetBefore:` (and `milestone-target-before:`), like `taskStartedBefore:`.
+	// `milestone.target-before:`; `milestoneTargetBefore:` (printed before
+	// T-0728) and `milestone-target-before:` stay aliases.
 	...(Object.fromEntries(
 		LINKED_DATE_FIELD_KEYS.flatMap((field) =>
 			(["Before", "After"] as const).map((side) => [
 				`${field}${side}`,
-				{ token: `${field}${side}`, aliases: [`${kebab(field)}-${side.toLowerCase()}`] },
+				{
+					token: `${linkedDateToken(field)}-${side.toLowerCase()}`,
+					aliases: [`${field}${side}`.toLowerCase(), `${kebab(field)}-${side.toLowerCase()}`],
+				},
 			]),
 		),
 	) as unknown as Record<LinkedDateBoundKey, EnumValueSpec>),
@@ -494,12 +571,12 @@ export const NOT_EXPRESSIBLE: Record<
 		suggestion: "show:archived-only",
 	},
 	"is:sub-task": {
-		message: "Filtering to sub-tasks isn't expressible; filter by their parent instead",
-		suggestion: "parent:",
+		message: "Use parent:any for sub-tasks, parent:unset for top-level tasks.",
+		suggestion: "parent:any",
 	},
 	"is:subtask": {
-		message: "Filtering to sub-tasks isn't expressible; filter by their parent instead",
-		suggestion: "parent:",
+		message: "Use parent:any for sub-tasks, parent:unset for top-level tasks.",
+		suggestion: "parent:any",
 	},
 };
 
@@ -551,6 +628,10 @@ export const DATE_FIELD_BY_TOKEN = indexBy(
 export const CALENDAR_MODE_BY_TOKEN = indexBy(
 	Object.entries(CALENDAR_MODE_VALUES) as [CalendarMode, EnumValueSpec][],
 ) as Map<string, CalendarMode>;
+
+export const LINKED_NAME_BY_TOKEN = indexBy(
+	Object.entries(LINKED_NAME_TOKENS) as [LinkedNameField, EnumValueSpec][],
+) as Map<string, LinkedNameField>;
 
 export const DATE_BOUND_FIELD_BY_TOKEN = indexBy(
 	Object.entries(DATE_BOUND_FIELDS) as [
@@ -612,6 +693,9 @@ export const LAYOUT_ONLY_CLAUSES: ReadonlySet<string> = new Set([
 export const ALL_FIELD_TOKENS: readonly string[] = [
 	...FILTER_FIELD_BY_TOKEN.keys(),
 	...DATE_BOUND_FIELD_BY_TOKEN.keys(),
+	...LINKED_NAME_BY_TOKEN.keys(),
+	KIND_FIELD,
+	"zoom",
 	"group",
 	"sort",
 	"table-sort",

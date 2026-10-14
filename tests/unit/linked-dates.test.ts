@@ -74,12 +74,12 @@ describe("a task's milestone and project dates in views", () => {
 		expect(paths("milestoneTargetAfter:2000-01-01")).toEqual(["t1", "t2"]);
 	});
 
-	it("prints the camel-case names and reads the dashed ones", () => {
+	it("prints {kind}.{field} names and reads the older ones", () => {
 		const definition = { ...DEFAULT_DEFINITION, filters: { milestoneTarget: ["2026-10-20"], projectDueBefore: "2026-11-01", milestoneStart: [NONE] } };
 		const source = printQuery(definition, ctx);
-		expect(source).toContain("milestoneTarget:2026-10-20");
-		expect(source).toContain("projectDueBefore:2026-11-01");
-		expect(source).toContain("milestoneStart:unset");
+		expect(source).toContain("milestone.target:2026-10-20");
+		expect(source).toContain("project.due-before:2026-11-01");
+		expect(source).toContain("milestone.start:unset");
 		expect(parseQuery(source, ctx).definition.filters).toMatchObject({ milestoneTarget: ["2026-10-20"], projectDueBefore: "2026-11-01", milestoneStart: [NONE] });
 		expect(parseQuery("milestone-target-before:2026-11-01 project-due:2026-10-31", ctx).definition.filters).toMatchObject({
 			milestoneTargetBefore: "2026-11-01",

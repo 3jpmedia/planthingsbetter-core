@@ -592,7 +592,7 @@ export interface Project {
 	/**
 	 * The human-facing, stable identifier ("PRD-P0005"), same idea as
 	 * `Task.id` - a project's own `title` can be renamed at any time, so a
-	 * saved/typed `projectKey:` query encodes this instead (see
+	 * saved/typed `project:` query encodes this instead (see
 	 * `queryContext` in `query/context.ts`). Optional: this plugin's own
 	 * projects (file-backed, no per-workspace counter) have none, and
 	 * `queryContext` falls back to `title` when it's absent.
@@ -943,7 +943,28 @@ export const linkedDateExcludeKey = (field: LinkedDateField) => `exclude${field[
  *  the two bounds, and the excluded days. */
 export type LinkedDateFilters = { [K in LinkedDateField]?: string[] } & { [K in LinkedDateBoundKey]?: IsoDate } & { [K in LinkedDateExcludeKey]?: string[] };
 
-export interface ViewFilters extends LinkedDateFilters {
+/**
+ * Names a task's linked items have, as task filters: `project.name:web` is
+ * tasks whose project's name contains "web". Free text, matched like the
+ * task's own `name:` (case-insensitive, anywhere in the name), so a filter
+ * keeps working as items are renamed or added. Each is a string field of
+ * `ViewFilters` (`projectName`); a task with no such item never matches.
+ * `labelName` matches any of the task's labels, `assigneeName` any person
+ * it's assigned to (by name or email).
+ */
+export const LINKED_NAME_FIELDS = {
+	projectName: "project",
+	milestoneName: "milestone",
+	spaceName: "space",
+	labelName: "label",
+	assigneeName: "assignee",
+} as const;
+
+export type LinkedNameField = keyof typeof LINKED_NAME_FIELDS;
+export const LINKED_NAME_FIELD_KEYS = Object.keys(LINKED_NAME_FIELDS) as LinkedNameField[];
+export type LinkedNameFilters = { [K in LinkedNameField]?: string };
+
+export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters {
 	status?: string[];
 	priority?: string[];
 	taskType?: string[];

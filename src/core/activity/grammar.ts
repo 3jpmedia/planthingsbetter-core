@@ -1,10 +1,13 @@
 /**
  * The Activity query's own clauses -- pure data, like `query/grammar.ts`.
  *
- * Every token starts with `activity`, so a query reads unambiguously:
- * `status:done` is activity on tasks that are Done now, `activityTo:done`
+ * Every token is `activity.<field>` -- the query language's one form for a
+ * field of another kind (T-0728) -- so a query reads unambiguously:
+ * `status:done` is activity on tasks that are Done now, `activity.to:done`
  * is the moments something was moved to Done. It also keeps them clear of
  * the task grammar's own tokens (`created:` is a task's creation date).
+ * The spellings printed before (`activityBy:`, `activity-after:`) stay
+ * aliases, so stored queries keep their meaning.
  */
 
 import type { EnumValueSpec, ResolveAs } from "../query/grammar";
@@ -14,14 +17,14 @@ import type { ActivityField, ActivityFilters, ActivityKind, ActivityVerb } from 
 export type ActivityClauseKey = "by" | "action" | "field" | "kind" | "to" | "from" | "after" | "before";
 
 export const ACTIVITY_CLAUSES: Record<ActivityClauseKey, EnumValueSpec> = {
-	by: { token: "activityBy", aliases: ["activityactor"] },
-	action: { token: "activityAction", aliases: ["activityverb"] },
-	field: { token: "activityField", aliases: ["activityfields"] },
-	kind: { token: "activityItem", aliases: ["activitykind"] },
-	to: { token: "activityTo", aliases: [] },
-	from: { token: "activityFrom", aliases: [] },
-	after: { token: "activity-after", aliases: ["activityafter"] },
-	before: { token: "activity-before", aliases: ["activitybefore"] },
+	by: { token: "activity.by", aliases: ["activityby", "activityactor"] },
+	action: { token: "activity.action", aliases: ["activityaction", "activityverb"] },
+	field: { token: "activity.field", aliases: ["activityfield", "activityfields"] },
+	kind: { token: "activity.kind", aliases: ["activityitem", "activitykind", "activity.item"] },
+	to: { token: "activity.to", aliases: ["activityto"] },
+	from: { token: "activity.from", aliases: ["activityfrom"] },
+	after: { token: "activity.after", aliases: ["activity-after", "activityafter"] },
+	before: { token: "activity.before", aliases: ["activity-before", "activitybefore"] },
 };
 
 /** The clauses `-` can exclude, and where the excluded values go. */
@@ -65,7 +68,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {
-	/** How an `activityTo:`/`activityFrom:` value for this field resolves --
+	/** How an `activity.to:`/`activity.from:` value for this field resolves --
 	 *  absent where the field's values aren't something to name (a title,
 	 *  a color), so those clauses are refused for it. */
 	resolveAs?: ResolveAs;
@@ -89,7 +92,7 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	startDate: { token: "start", aliases: ["startdate"], resolveAs: "date" },
 	archived: { token: "archived", aliases: ["archive"] },
 	blocks: { token: "blocks", aliases: [], resolveAs: "task" },
-	blockedBy: { token: "blockedBy", aliases: ["blocked-by"], resolveAs: "task" },
+	blockedBy: { token: "blocked-by", aliases: ["blockedby"], resolveAs: "task" },
 	related: { token: "related", aliases: [], resolveAs: "task" },
 	icon: { token: "icon", aliases: [] },
 	color: { token: "color", aliases: ["colour"] },
@@ -146,7 +149,7 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	checked: { token: "ticked", aliases: ["checked", "tick"] },
 };
 
-/** `activityBy:system` -- an entry the app made on its own (the Trash's
+/** `activity.by:system` -- an entry the app made on its own (the Trash's
  *  clean-up, a workspace template). Stored as `NONE`. */
 export const SYSTEM_ACTOR_KEYWORD = "system";
 

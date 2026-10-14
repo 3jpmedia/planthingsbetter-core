@@ -104,7 +104,7 @@ describe("printFilters prefers the task key over an opaque stored id", () => {
 
 	it("prints the key for parent, root and id", () => {
 		const printed = printFilters({ parent: [stored], root: [stored], id: [stored] }, opaqueCtx);
-		expect(printed).toBe(`taskParentKey:${key} taskRootKey:${key} taskKey:${key}`);
+		expect(printed).toBe(`parent:${key} root:${key} task:${key}`);
 		expect(printed).not.toContain(stored);
 	});
 
@@ -117,7 +117,7 @@ describe("printFilters prefers the task key over an opaque stored id", () => {
 	// Unchanged for this plugin's own vault, where `Task.id` *is* the filename
 	// stem: title and basename coincide, so only one candidate is emitted.
 	it("is unchanged when the key already is the basename", () => {
-		expect(printFilters({ parent: [ctx.tasks[0].path] }, ctx)).toBe(`taskParentKey:${key}`);
+		expect(printFilters({ parent: [ctx.tasks[0].path] }, ctx)).toBe(`parent:${key}`);
 	});
 
 	it("falls back to the raw value when the key doesn't round-trip", () => {
@@ -130,7 +130,7 @@ describe("printFilters prefers the task key over an opaque stored id", () => {
 				{ path: "oid-two", title: "DUP-0001" },
 			],
 		};
-		expect(printFilters({ parent: ["oid-one"] }, ambiguous)).toBe("taskParentKey:oid-one");
+		expect(printFilters({ parent: ["oid-one"] }, ambiguous)).toBe("parent:oid-one");
 	});
 });
 
@@ -159,25 +159,25 @@ describe("printFilters prefers a person's email over their name", () => {
 	});
 });
 
-describe("task title (free text) always prints with its field", () => {
+describe("task name (free text) always prints with its field", () => {
 	const printText = (text: string) => printFilters({ text }, ctx)
 
 	it("labels a single word instead of printing it bare", () => {
-		expect(printText("accent")).toBe("taskTitle:accent");
+		expect(printText("accent")).toBe("name:accent");
 	});
 
 	it("quotes a value that wouldn't lex back as one value", () => {
-		expect(printText("two words")).toBe('taskTitle:"two words"');
-		expect(printText("a,b")).toBe('taskTitle:"a,b"');
-		expect(printText("=exact")).toBe('taskTitle:"=exact"');
+		expect(printText("two words")).toBe('name:"two words"');
+		expect(printText("a,b")).toBe('name:"a,b"');
+		expect(printText("=exact")).toBe('name:"=exact"');
 	});
 
 	it("round-trips, and bare words and other spellings still parse as it", () => {
 		for (const text of ["accent", "two words", "a,b", 'say "hi"']) {
 			expect(parseQuery(printText(text), ctx).definition.filters.text).toBe(text);
 		}
-		expect(printText(parseQuery("accent", ctx).definition.filters.text!)).toBe("taskTitle:accent");
-		for (const field of ["title", "text", "search", "tasktitle"]) {
+		expect(printText(parseQuery("accent", ctx).definition.filters.text!)).toBe("name:accent");
+		for (const field of ["title", "text", "search", "tasktitle", "taskTitle", "task.name"]) {
 			expect(parseQuery(`${field}:accent`, ctx).definition.filters.text).toBe("accent");
 		}
 	});

@@ -17,6 +17,7 @@ import {
 	CANVAS_RELATION_KINDS,
 	LINKED_DATE_FIELDS,
 	LINKED_DATE_FIELD_KEYS,
+	LINKED_NAME_FIELD_KEYS,
 	NONE,
 	SELF,
 	TASK_FIELDS,
@@ -28,6 +29,7 @@ import {
 	type LinkedDateBoundKey,
 	type LinkedDateExcludeKey,
 	type LinkedDateField,
+	type LinkedNameField,
 	type SavedView,
 	type SortField,
 	type Task,
@@ -187,6 +189,34 @@ function linkedDate(task: Task, field: LinkedDateField, context: ViewContext): s
 	const item = spec.of === "milestone" ? context.milestones?.get(link) : context.projects?.get(link);
 	if (!item) return null;
 	return ((item as unknown as Record<string, string | null | undefined>)[spec.date] ?? null) || null;
+}
+
+/** The names a task's linked items have for a `LINKED_NAME_FIELDS` filter
+ *  (`project.name:`): its project's, milestone's or Space's name, each of its
+ *  labels' names, or its assignee's name and email. Empty when it has none,
+ *  or this context can't see them. */
+function linkedNames(task: Task, field: LinkedNameField, context: ViewContext): string[] {
+	switch (field) {
+		case "projectName": {
+			if (!task.project) return [];
+			const title = context.projects?.get(task.project)?.title ?? context.titles?.get(task.project);
+			return title ? [title] : [];
+		}
+		case "milestoneName": {
+			const title = task.milestone ? context.milestones?.get(task.milestone)?.title : undefined;
+			return title ? [title] : [];
+		}
+		case "spaceName": {
+			const title = task.space ? context.spaces?.get(task.space)?.title : undefined;
+			return title ? [title] : [];
+		}
+		case "labelName":
+			return task.labels.map((id) => getValue(context.taxonomies.label, id)?.name).filter((name): name is string => !!name);
+		case "assigneeName": {
+			const person = task.assignee ? context.people.find((candidate) => candidate.id === task.assignee) : undefined;
+			return person ? [person.name, ...(person.email ? [person.email] : [])] : [];
+		}
+	}
 }
 
 /** Exclusive before/after bound on an (optionally full-timestamp) date field. */
@@ -389,6 +419,11 @@ export function matchesFilters(
 		if (!haystack.includes(needle)) return false;
 	}
 
+	for (const field of LINKED_NAME_FIELD_KEYS) {
+		const needle = filters[field]?.trim().toLowerCase();
+		if (needle && !linkedNames(task, field, context).some((name) => name.toLowerCase().includes(needle))) return false;
+	}
+
 	return true;
 }
 
@@ -501,6 +536,7 @@ export type ArrayFilterKey = Exclude<
 	| "excludeCompletedAt"
 	| LinkedDateBoundKey
 	| LinkedDateExcludeKey
+	| LinkedNameField
 >;
 
 export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
@@ -648,6 +684,10 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 
 	const text = filters.text?.trim();
 	if (text) out.text = text;
+	for (const field of LINKED_NAME_FIELD_KEYS) {
+		const name = filters[field]?.trim();
+		if (name) out[field] = name;
+	}
 	if (filters.archived) out.archived = filters.archived;
 	if (filters.openOnly) out.openOnly = true;
 	if (filters.unscheduled) out.unscheduled = true;
@@ -859,6 +899,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeRelated?.length &&
 		!filters.mentions?.length &&
 		!filters.text?.trim() &&
+		LINKED_NAME_FIELD_KEYS.every((field) => !filters[field]?.trim()) &&
 		!filters.custom?.length &&
 		!filters.recurring &&
 		!filters.hasChecklist &&

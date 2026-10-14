@@ -53,7 +53,7 @@ const PERSON_SPEC: FilterFieldSpec = {
 	unsetIsVacuous: false,
 };
 
-/** The spec `activityTo:`/`activityFrom:` resolve with, when `field` names
+/** The spec `activity.to:`/`activity.from:` resolve with, when `field` names
  *  exactly one field whose values can be named. */
 function valueSpecFor(activity: ActivityFilters, key: "to" | "from"): FilterFieldSpec | null {
 	if (activity.field?.length !== 1) return null;
@@ -182,7 +182,7 @@ export function parseActivityQuery(source: string, context: QueryContext): Parse
 		return match ?? null;
 	};
 
-	// `activityTo:`/`activityFrom:` resolve against the field `activityField:`
+	// `activity.to:`/`activity.from:` resolve against the field `activity.field:`
 	// names, wherever in the query that is -- so they go last.
 	const ordered = [
 		...activityTokens.filter(({ key }) => key !== "to" && key !== "from"),

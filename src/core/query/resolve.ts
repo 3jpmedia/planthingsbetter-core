@@ -322,7 +322,7 @@ export function resolveValue(
 	const entities = entitiesFor(spec.resolveAs, context);
 	if (entities) {
 		// What a person would call it ("project"), not the clause's printed
-		// token ("projectKey", "taskParentKey").
+		// token ("project.key", "parent").
 		const label = spec.resolveAs;
 		if (spec.resolveAs === "project" || spec.resolveAs === "milestone") {
 			const group = resolveGroupWildcard(

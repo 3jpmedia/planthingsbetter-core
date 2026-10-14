@@ -122,7 +122,7 @@ describe("printActivityQuery", () => {
 
 	it("prints people by email and the system by keyword", () => {
 		const text = printActivityQuery({ items: {}, activity: { by: ["u2", NONE] } }, ctx);
-		expect(text).toBe("activityBy:bea@example.com,system");
+		expect(text).toBe("activity.by:bea@example.com,system");
 	});
 
 	it("spells out someone called system verbatim", () => {
