@@ -516,6 +516,7 @@ const VIEW_TYPES: readonly ViewType[] = [
 	"timeline",
 	"calendar",
 	"canvas",
+	"graph",
 ];
 const GROUP_FIELDS: readonly GroupByField[] = [
 	"none",

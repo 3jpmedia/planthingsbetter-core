@@ -342,6 +342,8 @@ export const LAYOUT_VALUES: Record<ViewType, EnumValueSpec> = {
 	timeline: { token: "timeline", aliases: ["gantt"] },
 	calendar: { token: "calendar", aliases: ["cal"] },
 	canvas: { token: "canvas", aliases: [] },
+	// The workspace as a graph of dots (T-0729).
+	graph: { token: "graph", aliases: ["network"] },
 };
 
 /** Calendar-only: the date (or two, `date:start,due`) the calendar plots

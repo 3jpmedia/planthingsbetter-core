@@ -19,6 +19,7 @@ export function layoutIcon(viewType: ViewType): string {
 	if (viewType === "timeline") return "chart-gantt";
 	if (viewType === "calendar") return "calendar";
 	if (viewType === "canvas") return "workflow";
+	if (viewType === "graph") return "network";
 	return "list";
 }
 

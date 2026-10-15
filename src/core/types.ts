@@ -809,7 +809,7 @@ export interface WorkspaceConfig {
  * read-only dependency-graph (DAG) layout - Phase 1 renders it, later phases
  * make it interactive.
  */
-export type ViewType = "list" | "board" | "table" | "timeline" | "calendar" | "canvas";
+export type ViewType = "list" | "board" | "table" | "timeline" | "calendar" | "canvas" | "graph";
 
 export type CanvasArrangement = "flow" | "tree";
 

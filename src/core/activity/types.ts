@@ -34,6 +34,8 @@ export const ACTIVITY_KINDS = [
 	"taskField",
 	// Someone's answers to a form (T-0730), and the task they made.
 	"formResponse",
+	// A shared link (T-0729): made, turned off or on, expired, changed.
+	"link",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -178,6 +180,13 @@ export const ACTIVITY_FIELDS = [
 	"checklistItems",
 	"checklistItem",
 	"checked",
+	// A shared link's own (T-0729): whether it works (`active`), who can
+	// open it (`access`: anyone with it, or invited people), when it turns
+	// off (`expires`), and a workspace's default for new links.
+	"active",
+	"access",
+	"expires",
+	"linkExpiryDays",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

@@ -66,6 +66,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	milestone: { token: "milestone", aliases: ["milestones"] },
 	taskField: { token: "field", aliases: ["fields", "custom-field", "custom-fields"] },
 	formResponse: { token: "response", aliases: ["responses", "form-response", "form-responses"] },
+	link: { token: "link", aliases: ["links", "shared-link", "shared-links"] },
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {
@@ -148,6 +149,10 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	checklistItems: { token: "checklist-items", aliases: ["checklistitems"] },
 	checklistItem: { token: "checklist-item", aliases: ["checklistitem"] },
 	checked: { token: "ticked", aliases: ["checked", "tick"] },
+	active: { token: "active", aliases: ["turned-on", "turned-off"] },
+	access: { token: "access", aliases: [] },
+	expires: { token: "expires", aliases: ["expiry", "expires-at"] },
+	linkExpiryDays: { token: "link-expiry", aliases: ["linkexpirydays", "share-expiry"] },
 };
 
 /** `activity.by:system` -- an entry the app made on its own (the Trash's

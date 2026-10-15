@@ -60,6 +60,7 @@ const VIEW_TYPES: ViewType[] = [
 	"timeline",
 	"calendar",
 	"canvas",
+	"graph",
 ];
 
 /**

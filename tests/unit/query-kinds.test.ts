@@ -157,3 +157,26 @@ describe("what isn't a field", () => {
 		expect(parseKindQuery("status:").issues[0].code).toBe("empty-value");
 	});
 });
+
+describe("shared links (T-0729)", () => {
+	const links: KindItem[] = [
+		{ kind: "link", key: "a", name: "Intake form", fields: { type: ["form"], access: ["public"], status: ["on"], "last-viewed": "2026-06-01T00:00:00.000Z", expires: "2027-01-01" }, links: { member: ["M-0001"] } },
+		{ kind: "link", key: "b", name: "Roadmap view", fields: { type: ["view"], access: ["invited"], status: ["off"], "last-viewed": null, expires: null }, links: { member: ["M-0002"] } },
+	];
+	const ctx = { index: indexKindItems(links), self: ["M-0001"] };
+	const find = (source: string) => {
+		const parsed = parseKindQuery(source, { kinds: ["link"] });
+		expect(parsed.issues).toEqual([]);
+		return links.filter((item) => matchesKindQuery(item, parsed.query, ctx)).map((item) => item.key);
+	};
+
+	it("reads by:, type:, access:, status:, last-viewed and expires", () => {
+		expect(find("by:me")).toEqual(["a"]);
+		expect(find("type:form,view access:public")).toEqual(["a"]);
+		expect(find("status:off")).toEqual(["b"]);
+		expect(find("last-viewed-before:2026-09-01")).toEqual(["a"]);
+		expect(find("last-viewed:unset")).toEqual(["b"]);
+		expect(find("expires:unset")).toEqual(["b"]);
+		expect(find("expires-before:2027-06-01")).toEqual(["a"]);
+	});
+});

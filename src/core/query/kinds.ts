@@ -152,7 +152,22 @@ export const KIND_SPECS: Record<ResultKind, KindSpec> = {
 	channel: { kind: "channel", label: "Channel", plural: "Channels", fields: [space] },
 	template: { kind: "template", label: "Template", plural: "Templates", fields: [owner] },
 	form: { kind: "form", label: "Form", plural: "Forms", fields: [owner, space, folder] },
-	link: { kind: "link", label: "Shared link", plural: "Shared links", fields: [owner] },
+	link: {
+		kind: "link",
+		label: "Shared link",
+		plural: "Shared links",
+		fields: [
+			{ ...owner, aliases: ["by", "created-by"], label: "Made by" },
+			// What it shares: task, project, view, dashboard, doc, form, graph,
+			// embed (a live graph) or setup (a published setup).
+			{ token: "type", aliases: ["of"], type: "list", label: "What it shares" },
+			{ token: "access", type: "list", label: "Who can open it (public, invited)" },
+			{ token: "status", aliases: ["state"], type: "list", label: "On, off or expired" },
+			{ token: "last-viewed", aliases: ["lastviewed", "viewed"], type: "date", label: "Last opened" },
+			{ token: "expires", aliases: ["expiry"], type: "date", label: "Turns off" },
+			space,
+		],
+	},
 	activity: { kind: "activity", label: "Activity", plural: "Activity", fields: [] },
 };
 
