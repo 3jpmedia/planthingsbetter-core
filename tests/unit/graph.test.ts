@@ -76,6 +76,13 @@ describe("layoutGraph", () => {
 		for (const hub of labelled.hubs.filter((h) => h.kind === "label")) expect(a.points.has(hub.id)).toBe(true);
 	});
 
+	it("spreads to fill a wide box", () => {
+		const round = layoutGraph(graph).bounds;
+		const wide = layoutGraph(graph, { aspect: 4 }).bounds;
+		const ratio = (b: typeof round) => (b.maxX - b.minX) / Math.max(1, b.maxY - b.minY);
+		expect(ratio(wide)).toBeGreaterThan(ratio(round) * 1.5);
+	});
+
 	it("sizes hubs by their tasks", () => {
 		const layout = layoutGraph(graph);
 		const [big, small] = graph.hubs.filter((h) => h.kind === "project").sort((x, y) => y.size - x.size);

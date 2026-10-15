@@ -153,6 +153,10 @@ export interface LayoutGraphOptions {
 	/** The layout before this change: dots already placed start where they
 	 *  were and settle briefly, so nothing jumps. */
 	previous?: GraphLayout | null;
+	/** The shape it's drawn in, width over height: a wide box (a banner)
+	 *  spreads the graph sideways to fill it, a tall one upwards. 1 for
+	 *  as round as it comes. */
+	aspect?: number;
 }
 
 /** A dot's size: a task, or a hub of `size` tasks. */
@@ -182,6 +186,12 @@ function seeded(seed: number) {
  */
 export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions = {}): GraphLayout {
 	const random = seeded(7);
+	// Drawn in a wide (or tall) box: start stretched that way, and pull to
+	// the middle less across it, so the graph fills the shape it's in.
+	const aspect = Math.max(0.25, Math.min(6, options.aspect ?? 1));
+	const stretch = Math.sqrt(aspect);
+	const pullX = 0.004 / Math.max(1, aspect) ** 2;
+	const pullY = 0.004 * Math.min(1, aspect) ** 2 * Math.max(1, aspect);
 	const previous = options.previous?.points;
 	// Hubs first, biggest project first, so the order doesn't depend on input.
 	const placed = graph.hubs.filter((hub) => hub.kind !== "label").sort((a, b) => (a.kind === b.kind ? b.size - a.size || a.name.localeCompare(b.name) : a.kind === "project" ? -1 : 1));
@@ -218,7 +228,7 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 		else if (hub.kind === "project") {
 			const angle = (projects.indexOf(hub) / Math.max(1, projects.length)) * Math.PI * 2;
 			const radius = 120 + random() * 60;
-			[xs[i], ys[i]] = [Math.cos(angle) * radius, Math.sin(angle) * radius];
+			[xs[i], ys[i]] = [Math.cos(angle) * radius * stretch, (Math.sin(angle) * radius) / stretch];
 			fresh++;
 		}
 	});
@@ -235,7 +245,7 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 		const anchor = task.project ? index.get(task.project) : task.parent ? index.get(task.parent) : undefined;
 		const spread = previous ? 20 : 60;
 		if (anchor !== undefined && anchor < hubCount) [xs[i], ys[i]] = [xs[anchor] + (random() - 0.5) * spread, ys[anchor] + (random() - 0.5) * spread];
-		else [xs[i], ys[i]] = [(random() - 0.5) * 300, (random() - 0.5) * 300];
+		else [xs[i], ys[i]] = [(random() - 0.5) * 300 * stretch, ((random() - 0.5) * 300) / stretch];
 	});
 	placed.forEach((hub, i) => {
 		if (hub.kind !== "milestone" || previous?.get(hub.id)) return;
@@ -329,8 +339,8 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 		// A gentle pull to the middle, then move, damped and capped.
 		const cap = 8 * cool + 0.5;
 		for (let i = 0; i < n; i++) {
-			fx[i] -= xs[i] * 0.004;
-			fy[i] -= ys[i] * 0.004;
+			fx[i] -= xs[i] * pullX;
+			fy[i] -= ys[i] * pullY;
 			vx[i] = (vx[i] + fx[i]) * 0.55;
 			vy[i] = (vy[i] + fy[i]) * 0.55;
 			const speed = Math.sqrt(vx[i] * vx[i] + vy[i] * vy[i]);
