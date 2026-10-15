@@ -150,3 +150,10 @@ describe("withKinds: the kind chip writes the query's kind:", () => {
 		expect(withKinds("kind:bug", ["task"])).toBe("kind:task kind:bug");
 	});
 });
+
+describe("what isn't a field", () => {
+	it("is unknown whether it has a value or not, so words with colons stay words", () => {
+		expect(parseKindQuery("Re: launch").issues[0].code).toBe("unknown-field");
+		expect(parseKindQuery("status:").issues[0].code).toBe("empty-value");
+	});
+});

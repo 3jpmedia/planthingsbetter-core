@@ -252,10 +252,12 @@ export function parseKindQuery(source: string, options: { kinds?: readonly Resul
 
 	const clause = (token: Extract<LexedToken, { kind: "clause" }>) => {
 		const values = token.values.map((value: LexedValue) => value.text.trim()).filter(Boolean);
-		if (values.length === 0) return fail("empty-value", `"${token.field}" needs a value`, token.span);
+		// A field it doesn't know is that, valued or not (`Re: launch`).
+		const empty = () => fail("empty-value", `"${token.field}" needs a value`, token.span);
 
 		// `kind:` picks what comes back. A value that isn't a kind is a type,
 		// as in a task query (`kind:bug`).
+		if (token.field === "kind" && values.length === 0) return empty();
 		if (token.field === "kind" && values.every((value) => isResultKind(value.toLowerCase()))) {
 			const named = values.map((value) => value.toLowerCase() as ResultKind);
 			const outside = named.filter((kind) => !allowed.includes(kind));
@@ -285,6 +287,7 @@ export function parseKindQuery(source: string, options: { kinds?: readonly Resul
 				return fail("unknown-field", `${KIND_SPECS[of].label} has no "${rest}" - it has ${own}`, token.fieldSpan);
 			}
 			if (bound && spec.type !== "date") return fail("unknown-field", `"${rest}" isn't a date`, token.fieldSpan);
+			if (values.length === 0) return empty();
 			query.clauses.push({ of, field: spec.token, ...(bound ? { bound } : {}), values, excluded: token.excluded, span: token.span });
 			return;
 		}
@@ -293,6 +296,7 @@ export function parseKindQuery(source: string, options: { kinds?: readonly Resul
 		if (owners.length === 0) return fail("unknown-field", `"${field}" isn't a field`, token.fieldSpan);
 		const spec = kindField(owners[0], base)!;
 		if (bound && spec.type !== "date") return fail("unknown-field", `"${field}" isn't a field`, token.fieldSpan);
+		if (values.length === 0) return empty();
 		query.clauses.push({ of: null, field: spec.token, ...(bound ? { bound } : {}), values, excluded: token.excluded, span: token.span });
 	};
 
