@@ -385,8 +385,8 @@ export function mappingFields(
 function graphOf(tasks: Task[], context: ViewContext): GraphSnapshot {
 	const projects = new Map<string, { key: string; name: string }>();
 	for (const [path, project] of context.projects ?? []) projects.set(path, { key: path, name: project.title });
-	const milestones = new Map<string, { key: string; name: string }>();
-	for (const [path, milestone] of context.milestones ?? []) milestones.set(path, { key: path, name: milestone.title });
+	const milestones = new Map<string, { key: string; name: string; done?: boolean }>();
+	for (const [path, milestone] of context.milestones ?? []) milestones.set(path, { key: path, name: milestone.title, done: milestone.state === "completed" });
 	const graph = buildGraph(tasks, { statuses: context.taxonomies.status, projects, milestones });
 	return graphSnapshot(graph, layoutGraph(graph));
 }
