@@ -5,3 +5,4 @@ export * from "./lex";
 export * from "./parse";
 export * from "./print";
 export * from "./custom";
+export * from "./kinds";
