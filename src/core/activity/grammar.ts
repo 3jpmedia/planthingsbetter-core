@@ -65,6 +65,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	template: { token: "template", aliases: ["templates", "task-template"] },
 	milestone: { token: "milestone", aliases: ["milestones"] },
 	taskField: { token: "field", aliases: ["fields", "custom-field", "custom-fields"] },
+	formResponse: { token: "response", aliases: ["responses", "form-response", "form-responses"] },
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {

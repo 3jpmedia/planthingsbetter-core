@@ -32,6 +32,8 @@ export const ACTIVITY_KINDS = [
 	"milestone",
 	// A workspace's own task field -- "Points", "Client" (custom fields).
 	"taskField",
+	// Someone's answers to a form (T-0730), and the task they made.
+	"formResponse",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 

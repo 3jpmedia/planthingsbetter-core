@@ -173,3 +173,13 @@ describe("custom fields", () => {
 		expectRoundTrip(values.query);
 	});
 });
+
+describe("form responses", () => {
+	it("filter by responses to forms", () => {
+		const parsed = parseActivityQuery("activity.kind:response", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query.activity.kind).toEqual(["formResponse"]);
+		expectRoundTrip(parsed.query);
+		expect(parseActivityQuery("activity.kind:form-responses", ctx).query.activity.kind).toEqual(["formResponse"]);
+	});
+});
