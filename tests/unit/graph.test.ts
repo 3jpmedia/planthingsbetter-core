@@ -76,6 +76,34 @@ describe("layoutGraph", () => {
 		for (const hub of labelled.hubs.filter((h) => h.kind === "label")) expect(a.points.has(hub.id)).toBe(true);
 	});
 
+	it("lets labels pull when asked: tasks that share one gather, and the labels spread out", () => {
+		const labelled = buildGraph(snapshot.tasks, { statuses: taxonomies.status, projects, labels: new Map(taxonomies.label.values.map((l) => [l.id, { key: l.id, name: l.name }])) });
+		const labels = labelled.hubs.filter((h) => h.kind === "label" && h.size >= 2);
+		expect(labels.length).toBeGreaterThan(1);
+		// How far a label's tasks sit from the middle of them, on average.
+		const spread = (layout: ReturnType<typeof layoutGraph>) => {
+			let total = 0;
+			for (const label of labels) {
+				const points = labelled.tasks.filter((t) => t.labels.includes(label.id)).map((t) => layout.points.get(t.key)!);
+				const cx = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+				const cy = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+				total += points.reduce((sum, p) => sum + Math.hypot(p.x - cx, p.y - cy), 0) / points.length;
+			}
+			return total / labels.length;
+		};
+		const still = layoutGraph(labelled);
+		const pulling = layoutGraph(labelled, { labels: true });
+		expect(spread(pulling)).toBeLessThan(spread(still));
+		// No two labels on top of each other.
+		const at = labels.map((l) => pulling.points.get(l.id)!);
+		for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) expect(Math.hypot(at[i].x - at[j].x, at[i].y - at[j].y)).toBeGreaterThan(8);
+		// Turned on from a laid-out graph, it regroups from there, and back.
+		const on = layoutGraph(labelled, { previous: still, labels: true, regroup: true });
+		expect(spread(on)).toBeLessThan(spread(still));
+		const off = layoutGraph(labelled, { previous: on, regroup: true });
+		expect(spread(off)).toBeGreaterThan(spread(on));
+	});
+
 	it("spreads to fill a wide box", () => {
 		const round = layoutGraph(graph).bounds;
 		const wide = layoutGraph(graph, { aspect: 4 }).bounds;

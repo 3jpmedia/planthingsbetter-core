@@ -157,6 +157,14 @@ export interface LayoutGraphOptions {
 	 *  spreads the graph sideways to fill it, a tall one upwards. 1 for
 	 *  as round as it comes. */
 	aspect?: number;
+	/** Labels pull too: each label joins the layout, joined to its tasks by a
+	 *  gentle spring and pushing off the other hubs, so tasks that share a
+	 *  label drift together and the labels spread out among them. Off, the
+	 *  labels sit among their tasks without moving anything. */
+	labels?: boolean;
+	/** What pulls has changed (labels on or off) since `previous`: settle
+	 *  longer, so the dots move to their new groups. */
+	regroup?: boolean;
 }
 
 /** A dot's size: a task, or a hub of `size` tasks. */
@@ -182,7 +190,8 @@ function seeded(seed: number) {
  * to its project, its milestone and its parent) while every dot pushes its
  * near neighbours away -- through a grid, so thousands stay quick -- and
  * the hubs push each other apart. Tasks with no project float free, like
- * notes with no links. Labels go among their tasks at the end.
+ * notes with no links. Labels go among their tasks at the end -- or, with
+ * `labels`, pull in the layout like the other hubs.
  */
 export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions = {}): GraphLayout {
 	const random = seeded(7);
@@ -193,8 +202,12 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 	const pullX = 0.004 / Math.max(1, aspect) ** 2;
 	const pullY = 0.004 * Math.min(1, aspect) ** 2 * Math.max(1, aspect);
 	const previous = options.previous?.points;
-	// Hubs first, biggest project first, so the order doesn't depend on input.
-	const placed = graph.hubs.filter((hub) => hub.kind !== "label").sort((a, b) => (a.kind === b.kind ? b.size - a.size || a.name.localeCompare(b.name) : a.kind === "project" ? -1 : 1));
+	// Hubs first -- projects, milestones, then labels when they pull -- the
+	// biggest first, so the order doesn't depend on input.
+	const KIND_ORDER: Record<GraphHubKind, number> = { project: 0, milestone: 1, label: 2 };
+	const placed = graph.hubs
+		.filter((hub) => hub.kind !== "label" || options.labels)
+		.sort((a, b) => (a.kind === b.kind ? b.size - a.size || a.name.localeCompare(b.name) : KIND_ORDER[a.kind] - KIND_ORDER[b.kind]));
 	const ids: string[] = [...placed.map((hub) => hub.id), ...graph.tasks.map((task) => task.key)];
 	const index = new Map(ids.map((id, i) => [id, i]));
 	const hubCount = placed.length;
@@ -202,7 +215,7 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 	const xs = new Float64Array(n);
 	const ys = new Float64Array(n);
 
-	const edges: [number, number, 0 | 1 | 2][] = [];
+	const edges: [number, number, 0 | 1 | 2 | 3][] = [];
 	graph.tasks.forEach((task, k) => {
 		const i = hubCount + k;
 		const project = task.project ? index.get(task.project) : undefined;
@@ -211,6 +224,11 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 		if (project !== undefined) edges.push([i, project, 0]);
 		if (milestone !== undefined) edges.push([i, milestone, 1]);
 		if (parent !== undefined && parent !== i) edges.push([i, parent, 2]);
+		if (options.labels)
+			for (const label of task.labels) {
+				const at = index.get(label);
+				if (at !== undefined) edges.push([i, at, 3]);
+			}
 	});
 	const degree = new Float64Array(n);
 	for (const [a, b] of edges) {
@@ -248,12 +266,12 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 		else [xs[i], ys[i]] = [(random() - 0.5) * 300 * stretch, ((random() - 0.5) * 300) / stretch];
 	});
 	placed.forEach((hub, i) => {
-		if (hub.kind !== "milestone" || previous?.get(hub.id)) return;
+		if (hub.kind === "project" || previous?.get(hub.id)) return;
 		let x = 0;
 		let y = 0;
 		let count = 0;
 		graph.tasks.forEach((task, k) => {
-			if (task.milestone !== hub.id) return;
+			if (hub.kind === "milestone" ? task.milestone !== hub.id : !task.labels.includes(hub.id)) return;
 			x += xs[hubCount + k];
 			y += ys[hubCount + k];
 			count++;
@@ -263,7 +281,10 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 
 	// A change to a laid-out graph settles briefly; a new one from scratch.
 	// Very large ones take fewer steps, so they still place in a moment.
-	const iterations = previous && fresh < n / 3 ? 50 : Math.max(80, Math.min(260, Math.round(260 * Math.sqrt(1500 / Math.max(1500, n)))));
+	// A change of what pulls settles longer, from where everything was.
+	const settling = !!previous && fresh < n / 3;
+	const full = Math.max(80, Math.min(260, Math.round(260 * Math.sqrt(1500 / Math.max(1500, n)))));
+	const iterations = settling ? (options.regroup ? Math.round(full * 0.6) : 50) : full;
 	const vx = new Float64Array(n);
 	const vy = new Float64Array(n);
 	const fx = new Float64Array(n);
@@ -272,7 +293,7 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 	const grid = new Map<number, number[]>();
 	const cellKey = (cx: number, cy: number) => cx * 73856093 + cy * 19349663;
 	for (let it = 0; it < iterations; it++) {
-		const cool = (previous && fresh < n / 3 ? 0.35 : 1) * (1 - it / (iterations * 1.15));
+		const cool = (settling ? (options.regroup ? 0.7 : 0.35) : 1) * (1 - it / (iterations * 1.15));
 		fx.fill(0);
 		fy.fill(0);
 		grid.clear();
@@ -323,12 +344,14 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 				fx[j] -= (dx / d) * f;
 				fy[j] -= (dy / d) * f;
 			}
-		// Springs along the links: short to a project, longer to a milestone.
+		// Springs along the links: short to a project, longer to a milestone,
+		// and long and gentle to a label, so it gathers its tasks without
+		// pulling them out of their projects.
 		for (const [a, b, kind] of edges) {
 			const dx = xs[b] - xs[a];
 			const dy = ys[b] - ys[a];
 			const d = Math.sqrt(dx * dx + dy * dy) || 1;
-			const f = (d - (kind === 0 ? 14 : kind === 1 ? 26 : 10)) * (kind === 0 ? 0.06 : kind === 1 ? 0.03 : 0.05);
+			const f = (d - SPRING_LENGTH[kind]) * SPRING_STRENGTH[kind];
 			const wa = 1 / (1 + degree[a] * 0.05);
 			const wb = 1 / (1 + degree[b] * 0.05);
 			fx[a] += (dx / d) * f * wa;
@@ -358,9 +381,9 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 	placed.forEach((hub, i) => points.set(hub.id, { x: round(xs[i]), y: round(ys[i]), r: hubRadius(hub.kind, hub.size) }));
 	graph.tasks.forEach((task, k) => points.set(task.key, { x: round(xs[hubCount + k]), y: round(ys[hubCount + k]), r: TASK_RADIUS }));
 
-	// Labels: among their tasks, so switching them on never moves anything.
+	// Labels that don't pull: among their tasks, moving nothing.
 	for (const hub of graph.hubs) {
-		if (hub.kind !== "label") continue;
+		if (hub.kind !== "label" || options.labels) continue;
 		const was = previous?.get(hub.id);
 		let x = 0;
 		let y = 0;
@@ -390,6 +413,10 @@ export function layoutGraph(graph: WorkspaceGraph, options: LayoutGraphOptions =
 	if (points.size === 0) [minX, minY, maxX, maxY] = [0, 0, 0, 0];
 	return { points, bounds: { minX, minY, maxX, maxY } };
 }
+
+/** Each link's spring, by kind: to a project, a milestone, a parent, a label. */
+const SPRING_LENGTH = [14, 26, 10, 34] as const;
+const SPRING_STRENGTH = [0.06, 0.03, 0.05, 0.014] as const;
 
 function hashAngle(id: string): number {
 	let hash = 0;
