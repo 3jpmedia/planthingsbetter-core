@@ -450,6 +450,8 @@ function fieldMappingFor(
 				metric: widget.metric!,
 				scope: widget.scope ? scopeOf(widget.scope) : null,
 			};
+		case "graph":
+			return { chartType: "graph" };
 	}
 }
 

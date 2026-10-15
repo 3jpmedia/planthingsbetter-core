@@ -26,6 +26,7 @@ import { customKeys, groupingField } from "../views/group";
 import { displayColor } from "../taxonomy/engine";
 import { COLOR_PALETTE } from "../color";
 import { linksMatch } from "../links";
+import { buildGraph, graphSnapshot, layoutGraph, type GraphSnapshot } from "../graph";
 import { metricLabel, valueLabel } from "./title";
 
 const NONE_COLOR = "#94a3b8";
@@ -75,6 +76,13 @@ export type WidgetData =
 			 *  an average) leaves its series' key out -- a gap, not a zero. */
 			data: Array<Record<string, number | string>>;
 			series: SeriesMeta[];
+			empty: boolean;
+	  } & Measure)
+	| ({
+			kind: "graph";
+			/** The tasks as the Graph layout places them: shapes, states and
+			 *  days only, never a name or a key (T-0729). */
+			snapshot: GraphSnapshot;
 			empty: boolean;
 	  } & Measure);
 
@@ -340,7 +348,7 @@ export function mappingFields(
 ): { group?: CustomFieldDef; measure?: CustomFieldDef; problem: string | null } {
 	let group: CustomFieldDef | undefined;
 	let measure: CustomFieldDef | undefined;
-	const grouping = mapping.chartType === "kpi" ? null : mapping.groupBy;
+	const grouping = mapping.chartType === "kpi" || mapping.chartType === "graph" ? null : mapping.groupBy;
 	const groupKey = grouping ? customFieldKeyOf(grouping) : null;
 	if (groupKey) {
 		const def = customFieldByKey(context, groupKey);
@@ -369,6 +377,20 @@ export function mappingFields(
 	return { group, measure, problem: null };
 }
 
+/**
+ * The graph of `tasks`, as the Tasks Graph layout draws it: each task joined
+ * to its project and milestone. The hubs are named from the context where it
+ * can, though the snapshot keeps no names anyway.
+ */
+function graphOf(tasks: Task[], context: ViewContext): GraphSnapshot {
+	const projects = new Map<string, { key: string; name: string }>();
+	for (const [path, project] of context.projects ?? []) projects.set(path, { key: path, name: project.title });
+	const milestones = new Map<string, { key: string; name: string }>();
+	for (const [path, milestone] of context.milestones ?? []) milestones.set(path, { key: path, name: milestone.title });
+	const graph = buildGraph(tasks, { statuses: context.taxonomies.status, projects, milestones });
+	return graphSnapshot(graph, layoutGraph(graph));
+}
+
 export function computeWidgetData(
 	widget: DashboardWidget,
 	tasks: Task[],
@@ -379,6 +401,7 @@ export function computeWidgetData(
 	if (used.problem) {
 		const base = { decimals: 0, unavailable: used.problem, empty: true as const };
 		if (mapping.chartType === "kpi") return { kind: "kpi", value: 0, ...base };
+		if (mapping.chartType === "graph") return { kind: "graph", snapshot: graphOf([], context), ...base };
 		if (mapping.chartType === "bar" || mapping.chartType === "pie") return { kind: "categorical", data: [], ...base };
 		return { kind: "series", data: [], series: [], ...base };
 	}
@@ -395,6 +418,11 @@ export function computeWidgetData(
 			...measureOf(mapping.metric, scoped, used.measure),
 			empty: scoped.length === 0 || value == null,
 		};
+	}
+
+	if (mapping.chartType === "graph") {
+		const snapshot = graphOf(tasks, context);
+		return { kind: "graph", snapshot, decimals: 0, empty: snapshot.counts.tasks === 0 };
 	}
 
 	if (mapping.chartType === "bar" || mapping.chartType === "pie") {

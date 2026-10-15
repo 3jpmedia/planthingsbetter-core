@@ -1338,7 +1338,7 @@ export interface ProjectViewSettings extends ViewDefinition {
  * The chart kinds a dashboard widget can be. `timeline` here is a chart type
  * (cumulative area over time), unrelated to the Timeline/Gantt *view*.
  */
-export type ChartType = "bar" | "line" | "pie" | "timeline" | "kpi";
+export type ChartType = "bar" | "line" | "pie" | "timeline" | "kpi" | "graph";
 
 export const CHART_TYPES: readonly ChartType[] = [
 	"bar",
@@ -1346,6 +1346,7 @@ export const CHART_TYPES: readonly ChartType[] = [
 	"pie",
 	"timeline",
 	"kpi",
+	"graph",
 ] as const;
 
 /** Discrete fields a bar/pie/line-grouping/kpi-scope can group or scope by. */
@@ -1483,6 +1484,15 @@ export interface KpiFieldMapping {
 }
 
 /**
+ * The graph of the tasks the dashboard finds (T-0729): each a dot joined to
+ * its project and milestone, as the Tasks Graph layout draws them. It takes
+ * no fields.
+ */
+export interface GraphFieldMapping {
+	chartType: "graph";
+}
+
+/**
  * Shape depends on `chartType` - a discriminated union so an invalid
  * chart-type/field combination is unrepresentable (the config popover derives
  * its options from the compatibility matrix in `core/dashboards/compat`).
@@ -1492,7 +1502,8 @@ export type DashboardFieldMapping =
 	| PieFieldMapping
 	| LineFieldMapping
 	| TimelineFieldMapping
-	| KpiFieldMapping;
+	| KpiFieldMapping
+	| GraphFieldMapping;
 
 export interface DashboardWidgetLayout {
 	x: number;

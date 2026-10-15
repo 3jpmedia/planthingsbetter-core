@@ -153,6 +153,7 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	access: { token: "access", aliases: [] },
 	expires: { token: "expires", aliases: ["expiry", "expires-at"] },
 	linkExpiryDays: { token: "link-expiry", aliases: ["linkexpirydays", "share-expiry"] },
+	publishSetups: { token: "publish-setup", aliases: ["publishsetups", "publish-setups"] },
 };
 
 /** `activity.by:system` -- an entry the app made on its own (the Trash's

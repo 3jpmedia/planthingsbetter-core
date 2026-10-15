@@ -267,6 +267,8 @@ function widgetMap(
 				map.scope = scope;
 			}
 			break;
+		case "graph":
+			break;
 	}
 
 	// `weight` is a relative share within its row - the parser normalises it

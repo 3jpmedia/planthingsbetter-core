@@ -43,7 +43,7 @@ function widget(partial: Partial<DashboardWidget> & Pick<DashboardWidget, "id" |
 
 describe("compatibility matrix", () => {
 	it("accepts every default field mapping", () => {
-		for (const chartType of ["bar", "line", "pie", "timeline", "kpi"] as const) {
+		for (const chartType of ["bar", "line", "pie", "timeline", "kpi", "graph"] as const) {
 			expect(isFieldMappingValid(defaultFieldMapping(chartType))).toBe(true);
 		}
 	});
@@ -694,5 +694,59 @@ describe("custom fields in charts (T-0274)", () => {
 		};
 		const back = parseDashboard(serializeDashboard(dashboard), { path: "W/Dashboards/d" }).value;
 		expect(back.widgets[0].fieldMapping).toEqual(dashboard.widgets[0].fieldMapping);
+	});
+});
+
+describe("graph widget (T-0729)", () => {
+	const tasks = applyFilters(snapshot.tasks, {}, context);
+	const graphWidget = widget({ id: "g", chartType: "graph", fieldMapping: { chartType: "graph" } });
+
+	it("draws the dashboard's tasks on the graph, with counts", () => {
+		const data = computeWidgetData(graphWidget, tasks, context);
+		if (data.kind !== "graph") throw new Error("expected graph");
+		const live = tasks.filter((t) => !t.archived);
+		expect(data.empty).toBe(false);
+		expect(data.decimals).toBe(0);
+		expect(data.snapshot.version).toBe(1);
+		expect(data.snapshot.counts.tasks).toBe(live.length);
+		expect(data.snapshot.counts.done).toBe(live.filter((t) => context.taxonomies.status.values.find((v) => v.id === t.status)?.category === "completed").length);
+		expect(data.snapshot.counts.projects).toBe(new Set(live.map((t) => t.project).filter(Boolean)).size);
+		expect(data.snapshot.nodes.filter((n) => n.k === "t")).toHaveLength(live.length);
+		// Every task is joined to its project hub.
+		expect(data.snapshot.edges.filter(([, , kind]) => kind === "project")).toHaveLength(live.filter((t) => t.project).length);
+	});
+
+	it("holds no names or keys, so a shared dashboard leaks nothing", () => {
+		const json = JSON.stringify(computeWidgetData(graphWidget, tasks, context));
+		for (const task of tasks) expect(json).not.toContain(task.title);
+		for (const task of tasks) expect(json).not.toContain(task.id);
+		for (const project of snapshot.projects) {
+			expect(json).not.toContain(project.title);
+			expect(json).not.toContain(project.path);
+		}
+	});
+
+	it("is empty with no tasks", () => {
+		const data = computeWidgetData(graphWidget, [], context);
+		expect(data).toMatchObject({ kind: "graph", empty: true, snapshot: { counts: { tasks: 0 } } });
+	});
+
+	it("takes no fields, titles itself and sizes like a chart", () => {
+		expect(defaultFieldMapping("graph")).toEqual({ chartType: "graph" });
+		expect(isFieldMappingValid({ chartType: "graph" })).toBe(true);
+		expect(retargetFieldMapping({ chartType: "bar", groupBy: "status", metric: "estimateSum" }, "graph")).toEqual({ chartType: "graph" });
+		expect(retargetFieldMapping({ chartType: "graph" }, "bar")).toEqual(defaultFieldMapping("bar"));
+		expect(autoTitle({ chartType: "graph" }, context)).toBe("Graph");
+		expect(CHART_META.graph).toEqual({ label: "Graph", icon: "network", minW: 3, minH: 3, defaultW: 6, defaultH: 4 });
+		expect(newWidget("graph", [], context).fieldMapping).toEqual({ chartType: "graph" });
+	});
+
+	it("survives a dashboard note round-trip", () => {
+		const dashboard: DashboardConfig = { ...newDashboard("W", "d", "D"), widgets: [graphWidget] };
+		const raw = serializeDashboard(dashboard);
+		expect((raw.widgets as Record<string, unknown>[])[0]).toMatchObject({ chartType: "graph", fieldMapping: {} });
+		const back = parseDashboard(raw, { path: "W/Dashboards/d" });
+		expect(back.issues).toEqual([]);
+		expect(back.value.widgets[0]).toEqual(graphWidget);
 	});
 });

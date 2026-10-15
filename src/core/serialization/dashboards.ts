@@ -176,6 +176,9 @@ function parseFieldMapping(
 			};
 			break;
 		}
+		case "graph":
+			mapping = { chartType };
+			break;
 	}
 
 	if (!isFieldMappingValid(mapping)) {
@@ -381,6 +384,8 @@ function serializeFieldMapping(
 					? { field: mapping.scope.field, value: mapping.scope.value }
 					: undefined,
 			});
+		case "graph":
+			return {};
 	}
 }
 

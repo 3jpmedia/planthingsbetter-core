@@ -187,6 +187,7 @@ export const ACTIVITY_FIELDS = [
 	"access",
 	"expires",
 	"linkExpiryDays",
+	"publishSetups",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

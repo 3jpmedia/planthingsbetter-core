@@ -132,6 +132,30 @@ describe("serializeTemplateMarkdown round-trip", () => {
 		]);
 	});
 
+	it("round-trips a graph widget (T-0729)", () => {
+		const dashboards = [
+			makeDashboard("graph", "Graph board", [
+				makeWidget("w1", "graph", "The work", { chartType: "graph" }, { x: 0, y: 0, w: 6, h: 4 }),
+				makeWidget("w2", "kpi", "Tasks", { chartType: "kpi", metric: "count", scope: null }, { x: 6, y: 0, w: 6, h: 4 }),
+			]),
+		];
+		const source = serializeTemplateMarkdown({
+			meta: { id: "graph", name: "Graph" },
+			workspace: snapshot.workspace,
+			views: [],
+			dashboards,
+			projects: [],
+			queryContext: queryContext(snapshot),
+		});
+		expect(source).toContain("type: graph");
+		const content = resolveTemplateContent(parseTemplateMarkdown(source), ctx());
+		const dash = content.dashboards!.find((d) => d.name === "Graph board")!;
+		expect(dash.widgets.map((w) => [w.chartType, w.title, w.fieldMapping])).toEqual([
+			["graph", "The work", { chartType: "graph" }],
+			["kpi", "Tasks", { chartType: "kpi", metric: "count", scope: null }],
+		]);
+	});
+
 	it("round-trips updatedAt/completedAt chart xFields from a live dashboard", () => {
 		const dashboards = [
 			makeDashboard("temporal", "Temporal", [

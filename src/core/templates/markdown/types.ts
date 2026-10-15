@@ -160,7 +160,7 @@ export interface ParsedView {
 /* --------------------------------------------------------- dashboards ---- */
 
 export interface ParsedWidget {
-	chartType: "bar" | "pie" | "line" | "timeline" | "kpi";
+	chartType: "bar" | "pie" | "line" | "timeline" | "kpi" | "graph";
 	title: string;
 	/** bar/pie: required. line/timeline: optional secondary split. */
 	groupBy?: DashboardGroupingField;

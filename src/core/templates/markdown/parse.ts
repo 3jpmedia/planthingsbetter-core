@@ -624,7 +624,7 @@ function parseViews(raw: unknown): ParsedView[] {
 
 /* ---------------------------------------------------------- dashboards ---- */
 
-const CHART_TYPES = ["bar", "pie", "line", "timeline", "kpi"] as const;
+const CHART_TYPES = ["bar", "pie", "line", "timeline", "kpi", "graph"] as const;
 const TIME_BUCKETS: readonly DashboardTimeBucket[] = ["day", "week", "month"];
 const METRICS: readonly DashboardMetric[] = ["count", "estimateSum", "estimateAvg", "fieldSum", "fieldAvg"];
 
@@ -685,6 +685,8 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 		widget.groupBy = groupBy;
 		widget.groupByField = groupByField;
 		if (chartType === "line") measure();
+	} else if (chartType === "graph") {
+		// The dashboard's tasks on the graph: nothing to pick.
 	} else {
 		const metric = enumOr(data.metric, METRICS, "metric", line);
 		if (!metric) {

@@ -159,5 +159,7 @@ export function autoTitle(
       return mapping.scope
         ? `${metricLabel(mapping.metric, fieldOf(mapping.metricField, context))} where ${describeScope(mapping.scope, context)}`
         : metricLabel(mapping.metric, fieldOf(mapping.metricField, context));
+    case "graph":
+      return "Graph";
   }
 }

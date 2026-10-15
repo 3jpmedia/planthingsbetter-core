@@ -133,6 +133,9 @@ export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 						typeof mapping.scope.value === "string" &&
 						mapping.scope.value.length > 0))
 			);
+		case "graph":
+			// The tasks themselves: there's nothing to pick.
+			return true;
 	}
 }
 
@@ -162,6 +165,8 @@ export function defaultFieldMapping(chartType: ChartType): DashboardFieldMapping
 			};
 		case "kpi":
 			return { chartType: "kpi", metric: "count", scope: null };
+		case "graph":
+			return { chartType: "graph" };
 	}
 }
 
@@ -205,6 +210,9 @@ export function retargetFieldMapping(
 	if (chartType === "kpi") {
 		return metric ? { chartType, ...metric, scope: null } : base;
 	}
+
+	// A graph takes no fields, so nothing carries over.
+	if (chartType === "graph") return base;
 
 	if ((chartType === "bar" || chartType === "pie") && "groupBy" in from) {
 		const groupBy = from.groupBy;
