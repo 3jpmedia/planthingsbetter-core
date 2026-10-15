@@ -12,7 +12,7 @@
 
 import { isValidIsoDay } from "../date";
 import type { QueryContext } from "../query/context";
-import { LAYOUT_ONLY_CLAUSES, type EnumValueSpec, type FilterFieldSpec } from "../query/grammar";
+import { KIND_FIELD, LAYOUT_ONLY_CLAUSES, type EnumValueSpec, type FilterFieldSpec } from "../query/grammar";
 import { lex, type LexedToken } from "../query/lex";
 import { parseQueryTokens } from "../query/parse";
 import { printFilters, printValue } from "../query/print";
@@ -136,13 +136,20 @@ export interface ParsedActivityQuery {
 
 type Clause = Extract<LexedToken, { kind: "clause" }>;
 
+const isKindActivity = (token: Clause) =>
+	token.field === KIND_FIELD && token.values.length > 0 && token.values.every((value) => value.text.trim().toLowerCase() === "activity");
+
 export function parseActivityQuery(source: string, context: QueryContext): ParsedActivityQuery {
 	const { tokens, issues: lexIssues } = lex(source);
 	const itemTokens: LexedToken[] = [];
 	const activityTokens: { key: ActivityClauseKey; token: Clause }[] = [];
+	// `kind:activity` is what this query finds (T-0735): its bar shows it as
+	// a chip, and typing it changes nothing.
+	const kindTokens: Clause[] = [];
 	for (const token of tokens) {
 		const key = token.kind === "clause" ? ACTIVITY_CLAUSE_BY_TOKEN.get(token.field) : undefined;
 		if (key && token.kind === "clause") activityTokens.push({ key, token });
+		else if (token.kind === "clause" && isKindActivity(token)) kindTokens.push(token);
 		else itemTokens.push(token);
 	}
 
@@ -157,6 +164,10 @@ export function parseActivityQuery(source: string, context: QueryContext): Parse
 		if (token.kind === "clause" && LAYOUT_ONLY_CLAUSES.has(token.field)) {
 			fail("not-expressible", `"${token.field}:" configures a view layout - use Display to change how activity shows`, token.span);
 		}
+	}
+
+	for (const token of kindTokens) {
+		if (token.excluded) fail("not-expressible", `"-kind:activity" leaves nothing - this query finds activity`, token.span, "kind:activity");
 	}
 
 	const activity: ActivityFilters = {};

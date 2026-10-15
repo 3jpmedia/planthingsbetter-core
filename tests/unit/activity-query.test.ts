@@ -183,3 +183,17 @@ describe("form responses", () => {
 		expect(parseActivityQuery("activity.kind:form-responses", ctx).query.activity.kind).toEqual(["formResponse"]);
 	});
 });
+
+describe("kind:activity (T-0735)", () => {
+	const ctx = queryContext(sampleSnapshot());
+	it("is what an Activity query finds, so it changes nothing", () => {
+		const parsed = parseActivityQuery("kind:activity activity.action:created", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query).toEqual(parseActivityQuery("activity.action:created", ctx).query);
+	});
+
+	it("can't be excluded, and another kind isn't one", () => {
+		expect(parseActivityQuery("-kind:activity", ctx).ok).toBe(false);
+		expect(parseActivityQuery("kind:project", ctx).ok).toBe(false);
+	});
+});
