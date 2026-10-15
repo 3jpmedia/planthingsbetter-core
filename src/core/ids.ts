@@ -251,7 +251,10 @@ export function nextTaskId(prefix: string, existingIds: Iterable<string>): strin
  * create, the onboarding sample-workspace generator).
  */
 export function newConfigId(prefix: string): string {
-	return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+	// Eight random characters: four collided about once in a hundred runs of
+	// 200 minted in one tick (ids-and-links.test.ts).
+	const random = Array.from({ length: 8 }, () => Math.floor(Math.random() * 36).toString(36)).join("");
+	return `${prefix}-${Date.now().toString(36)}${random}`;
 }
 
 /**
