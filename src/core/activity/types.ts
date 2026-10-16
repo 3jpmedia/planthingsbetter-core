@@ -34,6 +34,9 @@ export const ACTIVITY_KINDS = [
 	"taskField",
 	// Someone's answers to a form (T-0730), and the task they made.
 	"formResponse",
+	// Someone asked to sign off on a task or milestone (T-0731): one entry
+	// per person asked, answered by them (approved, or changes asked for).
+	"signoff",
 	// A shared link (T-0729): made, turned off or on, expired, changed.
 	"link",
 ] as const;
@@ -188,6 +191,9 @@ export const ACTIVITY_FIELDS = [
 	"expires",
 	"linkExpiryDays",
 	"publishSetups",
+	// A sign-off's own (T-0731): waiting, approved, changes asked for, or
+	// canceled.
+	"signoffStatus",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

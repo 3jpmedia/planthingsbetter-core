@@ -66,6 +66,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	milestone: { token: "milestone", aliases: ["milestones"] },
 	taskField: { token: "field", aliases: ["fields", "custom-field", "custom-fields"] },
 	formResponse: { token: "response", aliases: ["responses", "form-response", "form-responses"] },
+	signoff: { token: "signoff", aliases: ["signoffs", "sign-off", "sign-offs"] },
 	link: { token: "link", aliases: ["links", "shared-link", "shared-links"] },
 };
 
@@ -154,6 +155,7 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	expires: { token: "expires", aliases: ["expiry", "expires-at"] },
 	linkExpiryDays: { token: "link-expiry", aliases: ["linkexpirydays", "share-expiry"] },
 	publishSetups: { token: "publish-setup", aliases: ["publishsetups", "publish-setups"] },
+	signoffStatus: { token: "signoff-status", aliases: ["signoffstatus", "sign-off-status"] },
 };
 
 /** `activity.by:system` -- an entry the app made on its own (the Trash's

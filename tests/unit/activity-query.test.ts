@@ -184,6 +184,17 @@ describe("form responses", () => {
 	});
 });
 
+describe("sign-offs (T-0731)", () => {
+	it("filter by sign-offs and their status", () => {
+		const parsed = parseActivityQuery("activity.kind:signoff activity.field:signoff-status", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query.activity.kind).toEqual(["signoff"]);
+		expect(parsed.query.activity.field).toEqual(["signoffStatus"]);
+		expectRoundTrip(parsed.query);
+		expect(parseActivityQuery("activity.kind:sign-offs", ctx).query.activity.kind).toEqual(["signoff"]);
+	});
+});
+
 describe("kind:activity (T-0735)", () => {
 	const ctx = queryContext(sampleSnapshot());
 	it("is what an Activity query finds, so it changes nothing", () => {
