@@ -16,6 +16,7 @@ export * from "./views";
 export * from "./query";
 export * from "./activity";
 export * from "./serialization";
+export * from "./brand";
 export * from "./color";
 export * from "./workspace-color";
 export * from "./tabs";
