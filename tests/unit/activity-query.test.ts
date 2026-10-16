@@ -195,6 +195,17 @@ describe("sign-offs (T-0731)", () => {
 	});
 });
 
+describe("docs sent for signature (T-0732)", () => {
+	it("filter by them, where they stand and who signed", () => {
+		const parsed = parseActivityQuery("activity.kind:signing activity.field:signed-by", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query.activity.kind).toEqual(["signatureRequest"]);
+		expect(parsed.query.activity.field).toEqual(["signedBy"]);
+		expectRoundTrip(parsed.query);
+		expect(parseActivityQuery("activity.field:signing-status", ctx).query.activity.field).toEqual(["signingStatus"]);
+	});
+});
+
 describe("kind:activity (T-0735)", () => {
 	const ctx = queryContext(sampleSnapshot());
 	it("is what an Activity query finds, so it changes nothing", () => {

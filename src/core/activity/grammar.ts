@@ -67,6 +67,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	taskField: { token: "field", aliases: ["fields", "custom-field", "custom-fields"] },
 	formResponse: { token: "response", aliases: ["responses", "form-response", "form-responses"] },
 	signoff: { token: "signoff", aliases: ["signoffs", "sign-off", "sign-offs"] },
+	signatureRequest: { token: "signing", aliases: ["signings", "signature-request", "signature-requests", "for-signature"] },
 	link: { token: "link", aliases: ["links", "shared-link", "shared-links"] },
 };
 
@@ -156,6 +157,8 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	linkExpiryDays: { token: "link-expiry", aliases: ["linkexpirydays", "share-expiry"] },
 	publishSetups: { token: "publish-setup", aliases: ["publishsetups", "publish-setups"] },
 	signoffStatus: { token: "signoff-status", aliases: ["signoffstatus", "sign-off-status"] },
+	signingStatus: { token: "signing-status", aliases: ["signingstatus"] },
+	signedBy: { token: "signed-by", aliases: ["signedby", "signers"] },
 };
 
 /** `activity.by:system` -- an entry the app made on its own (the Trash's

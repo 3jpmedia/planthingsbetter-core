@@ -37,6 +37,9 @@ export const ACTIVITY_KINDS = [
 	// Someone asked to sign off on a task or milestone (T-0731): one entry
 	// per person asked, answered by them (approved, or changes asked for).
 	"signoff",
+	// A doc sent for signature (T-0732): sent, signed by each signer in
+	// turn, then completed (a sealed PDF), expired or canceled.
+	"signatureRequest",
 	// A shared link (T-0729): made, turned off or on, expired, changed.
 	"link",
 ] as const;
@@ -194,6 +197,10 @@ export const ACTIVITY_FIELDS = [
 	// A sign-off's own (T-0731): waiting, approved, changes asked for, or
 	// canceled.
 	"signoffStatus",
+	// A doc sent for signature's own (T-0732): where it stands (out for
+	// signature, completed, expired, canceled), and who has signed it.
+	"signingStatus",
+	"signedBy",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 
