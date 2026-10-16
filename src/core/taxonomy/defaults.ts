@@ -14,6 +14,28 @@ import type {
 } from "../types";
 
 /**
+ * The default status colors, by meaning. Pick from these first whenever
+ * something needs a color (a meter, a badge, a chart series), so new UI
+ * matches the rest of the app. They read well on light and dark backgrounds,
+ * as fills, dots and bars; for small text use the theme's text colors.
+ *
+ *   neutral - queued, nothing yet      info    - to do, informational
+ *   warning - in progress, nearly full good    - done, healthy
+ *   danger  - canceled, full, failed
+ *
+ * A workspace can recolor its own statuses; these stay the app's defaults.
+ */
+export const STATUS_COLORS = {
+  neutral: "#94a3b8",
+  info: "#60a5fa",
+  warning: "#fbbf24",
+  good: "#34d399",
+  danger: "#f87171",
+} as const;
+
+export type StatusColorRole = keyof typeof STATUS_COLORS;
+
+/**
  * Default statuses map 1:1 to the fixed category enum, matching the common
  * default workflow. Users may rename, recolor, reorder, add and remove these
  * freely - the categories underneath never change.
@@ -22,35 +44,35 @@ export const DEFAULT_STATUSES: StatusValue[] = [
   {
     id: "queue",
     name: "Queue",
-    color: "#94a3b8",
+    color: STATUS_COLORS.neutral,
     category: "backlog",
     order: 1,
   },
   {
     id: "todo",
     name: "Todo",
-    color: "#60a5fa",
+    color: STATUS_COLORS.info,
     category: "unstarted",
     order: 2,
   },
   {
     id: "in-progress",
     name: "In Progress",
-    color: "#fbbf24",
+    color: STATUS_COLORS.warning,
     category: "started",
     order: 3,
   },
   {
     id: "done",
     name: "Done",
-    color: "#34d399",
+    color: STATUS_COLORS.good,
     category: "completed",
     order: 4,
   },
   {
     id: "canceled",
     name: "Canceled",
-    color: "#f87171",
+    color: STATUS_COLORS.danger,
     category: "canceled",
     order: 5,
   },

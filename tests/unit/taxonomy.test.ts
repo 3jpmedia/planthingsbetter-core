@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	DEFAULT_STATUSES,
+	STATUS_COLORS,
 	addValue,
 	applyTaxonomyDeletion,
 	categoryOf,
@@ -343,5 +344,17 @@ describe("workspace wiring", () => {
 		);
 		expect(next.labels.map((l) => l.id)).toContain("security");
 		expect(next.statuses).toEqual(snapshot.workspace.statuses);
+	});
+});
+
+describe("STATUS_COLORS", () => {
+	it("is where the default statuses get their colors", () => {
+		const colorOf = (id: string) =>
+			DEFAULT_STATUSES.find((s) => s.id === id)?.color;
+		expect(colorOf("queue")).toBe(STATUS_COLORS.neutral);
+		expect(colorOf("todo")).toBe(STATUS_COLORS.info);
+		expect(colorOf("in-progress")).toBe(STATUS_COLORS.warning);
+		expect(colorOf("done")).toBe(STATUS_COLORS.good);
+		expect(colorOf("canceled")).toBe(STATUS_COLORS.danger);
 	});
 });
