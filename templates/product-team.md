@@ -12,6 +12,7 @@ statuses: ["Backlog (backlog, #94a3b8) - Not planned yet", "To Do (unstarted, #6
 taskTypes: ["Feature (#3b82f6) - New behavior people will notice", "Bug (#ef4444) - Something that's broken", "Design (#ec4899) - Mockups, prototypes and research", "Chore (#94a3b8) - Upkeep nobody sees"]
 labels: ["Frontend (#06b6d4) - Web and mobile UI", "Backend (#8b5cf6) - APIs, data and jobs", "Customer request (#f59e0b) - Asked for by a customer", "Tech debt (#64748b) - Pays down past shortcuts", "Performance (#22c55e) - Faster, lighter, smoother"]
 people: [You*, Maya Chen, Leo Park, Priya Nair, Sam Ortiz]
+fields: ["Points (number)", "Platform (multi-select, iOS, Android, Web)", "Customer (text)", "Design link (url)", "Reviewer (person)", "QA passed (checkbox)", "Device (text, type: Bug)"]
 
 views:
   - name: Sprint Board
@@ -79,7 +80,7 @@ Shipped. Dark mode, keyboard shortcuts and the new search - kept here as a recor
 # Tasks
 
 ## Design the new navigation {#nav-design}
-project: Mobile App 2.0 | type: design | status: done | priority: high | labels: [Frontend] | assignee: Maya Chen | start: -40d | due: -30d | completed: -29d | created: -44d | blocks: [nav-shell]
+project: Mobile App 2.0 | type: design | status: done | priority: high | labels: [Frontend] | assignee: Maya Chen | start: -40d | due: -30d | completed: -29d | created: -44d | blocks: [nav-shell] | Points: 5 | Platform: [iOS, Android] | Design link: https://www.figma.com/design/mobile-2-navigation | Reviewer: Leo Park | QA passed: yes
 
 :::description
 ## Description
@@ -95,12 +96,12 @@ Looks great. The Inbox badge needs a count from the API - I'll add it to the syn
 :::
 
 ## Build the navigation shell {#nav-shell}
-project: Mobile App 2.0 | type: feature | status: done | priority: high | labels: [Frontend] | assignee: Priya Nair | start: -28d | due: -18d | completed: -17d | created: -40d | blockedBy: [nav-design] | blocks: [port-tasks, port-settings]
+project: Mobile App 2.0 | type: feature | status: done | priority: high | labels: [Frontend] | assignee: Priya Nair | start: -28d | due: -18d | completed: -17d | created: -40d | blockedBy: [nav-design] | blocks: [port-tasks, port-settings] | Points: 8 | Platform: [iOS, Android] | Reviewer: Maya Chen | QA passed: yes
 
 The tab bar and routing, with each screen as a placeholder until it's ported.
 
 ## Port the task list to the new shell {#port-tasks}
-project: Mobile App 2.0 | type: feature | status: in-progress | priority: high | labels: [Frontend, Performance] | assignee: Priya Nair | start: -10d | due: +3d | created: -30d | blockedBy: [nav-shell] | blocks: [beta]
+project: Mobile App 2.0 | type: feature | status: in-progress | priority: high | labels: [Frontend, Performance] | assignee: Priya Nair | start: -10d | due: +3d | created: -30d | blockedBy: [nav-shell] | blocks: [beta] | estimate: 960 | Points: 8 | Platform: [iOS, Android] | Reviewer: Maya Chen
 
 :::description
 ## Description
@@ -108,17 +109,17 @@ The list was the slowest screen in 1.x. Virtualize it while porting it.
 :::
 
 ### Virtualize long lists
-type: feature | status: done | priority: medium | labels: [Performance] | assignee: Priya Nair | completed: -4d | created: -12d
+type: feature | status: done | priority: medium | labels: [Performance] | assignee: Priya Nair | completed: -4d | created: -12d | Points: 3 | Platform: [iOS, Android] | QA passed: yes
 
 Only the rows on screen are rendered - scrolling 2,000 tasks stays at 60fps.
 
 ### Swipe actions on rows
-type: feature | status: in-progress | priority: medium | labels: [Frontend] | assignee: Priya Nair | due: +2d | created: -9d
+type: feature | status: in-progress | priority: medium | labels: [Frontend] | assignee: Priya Nair | due: +2d | created: -9d | estimate: 240 | Points: 3 | Platform: [iOS, Android]
 
 Swipe right to complete, left to snooze.
 
 ## Port the settings screen {#port-settings}
-project: Mobile App 2.0 | type: feature | status: in review | priority: medium | labels: [Frontend] | assignee: Maya Chen | start: -8d | due: -1d | created: -28d | blockedBy: [nav-shell] | blocks: [beta]
+project: Mobile App 2.0 | type: feature | status: in review | priority: medium | labels: [Frontend] | assignee: Maya Chen | start: -8d | due: -1d | created: -28d | blockedBy: [nav-shell] | blocks: [beta] | estimate: 120 | Points: 3 | Platform: [iOS, Android] | Reviewer: Sam Ortiz
 
 Waiting on QA. Due yesterday - one review comment left to address.
 
@@ -127,7 +128,7 @@ Two small things: the notification toggles don't save on Android, and the versio
 :::
 
 ## Build the sync API for offline mode {#sync-api}
-project: Mobile App 2.0 | type: feature | status: in-progress | priority: urgent | labels: [Backend] | assignee: Leo Park | start: -14d | due: +2d | created: -35d | blocks: [offline]
+project: Mobile App 2.0 | type: feature | status: in-progress | priority: urgent | labels: [Backend] | assignee: Leo Park | start: -14d | due: +2d | created: -35d | blocks: [offline] | estimate: 1440 | Points: 13 | Platform: [iOS, Android, Web] | Reviewer: Priya Nair
 
 :::description
 ## Description
@@ -135,88 +136,88 @@ A delta endpoint: the app sends its last sync token and gets back every change s
 :::
 
 ## Offline mode {#offline}
-project: Mobile App 2.0 | type: feature | status: to do | priority: high | labels: [Frontend, Backend] | assignee: Priya Nair | start: +3d | due: +12d | created: -35d | blockedBy: [sync-api] | blocks: [beta]
+project: Mobile App 2.0 | type: feature | status: to do | priority: high | labels: [Frontend, Backend] | assignee: Priya Nair | start: +3d | due: +12d | created: -35d | blockedBy: [sync-api] | blocks: [beta] | estimate: 2400 | Points: 13 | Platform: [iOS, Android] | Design link: https://www.figma.com/design/mobile-2-offline-states | Reviewer: Leo Park
 
 Read and edit tasks without a connection; changes sync when it's back.
 
 ## Ship the beta to TestFlight {#beta}
-project: Mobile App 2.0 | type: chore | status: to do | priority: high | assignee: You | due: +14d | created: -20d | blockedBy: [port-tasks, port-settings, offline] | blocks: [store]
+project: Mobile App 2.0 | type: chore | status: to do | priority: high | assignee: You | due: +14d | created: -20d | blockedBy: [port-tasks, port-settings, offline] | blocks: [store] | estimate: 240 | Points: 2 | Platform: [iOS]
 
 ## Submit to the App Store and Play Store {#store}
-project: Mobile App 2.0 | type: chore | status: backlog | priority: high | assignee: You | due: +24d | created: -20d | blockedBy: [beta]
+project: Mobile App 2.0 | type: chore | status: backlog | priority: high | assignee: You | due: +24d | created: -20d | blockedBy: [beta] | estimate: 480 | Points: 3 | Platform: [iOS, Android]
 
 Screenshots, release notes and the review questionnaire.
 
 ## App crashes when rotating on the task detail screen
-project: Mobile App 2.0 | type: bug | status: to do | priority: urgent | labels: [Frontend, Customer request] | assignee: Priya Nair | due: -2d | created: -6d
+project: Mobile App 2.0 | type: bug | status: to do | priority: urgent | labels: [Frontend, Customer request] | assignee: Priya Nair | due: -2d | created: -6d | estimate: 360 | Points: 3 | Platform: [Android] | Customer: Brightline Health | Device: Samsung Galaxy Tab S9, Android 14
 
 Three customers reported it this week. Only on Android tablets.
 
 ## Usage-based pricing model {#pricing-model}
-project: Billing Revamp | type: design | status: done | priority: high | assignee: You | start: -28d | due: -20d | completed: -21d | created: -30d | blocks: [pricing-page, plan-picker]
+project: Billing Revamp | type: design | status: done | priority: high | assignee: You | start: -28d | due: -20d | completed: -21d | created: -30d | blocks: [pricing-page, plan-picker] | Points: 3 | Platform: [Web]
 
 Free up to 3 members, then per active member per month. Signed off by finance.
 
 ## New pricing page {#pricing-page}
-project: Billing Revamp | type: design | status: in review | priority: medium | labels: [Frontend] | assignee: Maya Chen | start: -12d | due: +1d | created: -25d | blockedBy: [pricing-model]
+project: Billing Revamp | type: design | status: in review | priority: medium | labels: [Frontend] | assignee: Maya Chen | start: -12d | due: +1d | created: -25d | blockedBy: [pricing-model] | estimate: 180 | Points: 5 | Platform: [Web] | Design link: https://www.figma.com/design/pricing-page | Reviewer: You
 
 :::comment You (-2d)
 Love the comparison table. Can we move the FAQ above the footer so it's not missed?
 :::
 
 ## Plan picker in settings {#plan-picker}
-project: Billing Revamp | type: feature | status: in-progress | priority: high | labels: [Frontend, Backend] | assignee: Leo Park | start: -7d | due: +5d | created: -25d | blockedBy: [pricing-model] | blocks: [migrate]
+project: Billing Revamp | type: feature | status: in-progress | priority: high | labels: [Frontend, Backend] | assignee: Leo Park | start: -7d | due: +5d | created: -25d | blockedBy: [pricing-model] | blocks: [migrate] | estimate: 960 | Points: 8 | Platform: [Web, iOS, Android] | Reviewer: Maya Chen
 
 ## Migrate existing customers to the new plans {#migrate}
-project: Billing Revamp | type: chore | status: to do | priority: high | labels: [Backend] | assignee: Leo Park | start: +6d | due: +15d | created: -25d | blockedBy: [plan-picker]
+project: Billing Revamp | type: chore | status: to do | priority: high | labels: [Backend] | assignee: Leo Park | start: +6d | due: +15d | created: -25d | blockedBy: [plan-picker] | estimate: 1440 | Points: 8
 
 Every customer lands on the closest new plan, never paying more than before. Email them a week ahead.
 
 ### Email customers about their new plan
-type: chore | status: to do | priority: high | labels: [Customer request] | assignee: You | due: +8d | created: -6d
+type: chore | status: to do | priority: high | labels: [Customer request] | assignee: You | due: +8d | created: -6d | estimate: 120 | Points: 1
 
 ### Drop the legacy billing tables
-type: chore | status: backlog | priority: low | labels: [Tech debt] | assignee: Leo Park | created: -20d
+type: chore | status: backlog | priority: low | labels: [Tech debt] | assignee: Leo Park | created: -20d | estimate: 240 | Points: 2
 
 Once every customer is on a new plan.
 
 ## Invoices show the wrong tax rate for EU customers
-project: Billing Revamp | type: bug | status: in-progress | priority: urgent | labels: [Backend, Customer request] | assignee: Leo Park | due: -1d | created: -4d
+project: Billing Revamp | type: bug | status: in-progress | priority: urgent | labels: [Backend, Customer request] | assignee: Leo Park | due: -1d | created: -4d | estimate: 300 | Points: 5 | Platform: [Web] | Customer: Kestrel Labs | Device: Any browser - happens on the server
 
 VAT is applied twice when a customer's address changes mid-cycle.
 
 ## A sample workspace for new sign-ups {#sample}
-project: Onboarding Improvements | type: feature | status: to do | priority: medium | labels: [Frontend, Customer request] | assignee: You | due: +9d | created: -10d | related: [checklist]
+project: Onboarding Improvements | type: feature | status: to do | priority: medium | labels: [Frontend, Customer request] | assignee: You | due: +9d | created: -10d | related: [checklist] | estimate: 960 | Points: 5 | Platform: [Web] | Customer: Brightline Health
 
 Start new accounts in a workspace with example tasks instead of an empty screen.
 
 ## Shorter sign-up form
-project: Onboarding Improvements | type: design | status: canceled | priority: medium | labels: [Frontend] | assignee: Maya Chen | archived: -3d | created: -10d
+project: Onboarding Improvements | type: design | status: canceled | priority: medium | labels: [Frontend] | assignee: Maya Chen | archived: -3d | created: -10d | Points: 2 | Platform: [Web]
 
 Dropped: the form is already two fields, and the drop-off happens after it.
 
 ## Getting-started checklist {#checklist}
-project: Onboarding Improvements | type: feature | status: backlog | priority: low | labels: [Frontend] | created: -10d | related: [sample]
+project: Onboarding Improvements | type: feature | status: backlog | priority: low | labels: [Frontend] | created: -10d | related: [sample] | estimate: 480 | Points: 3 | Platform: [Web]
 
 ## Dark mode
-project: Q3 Web Release | type: feature | status: done | priority: medium | labels: [Frontend] | assignee: Maya Chen | completed: -50d | archived: -40d | created: -78d
+project: Q3 Web Release | type: feature | status: done | priority: medium | labels: [Frontend] | assignee: Maya Chen | completed: -50d | archived: -40d | created: -78d | Points: 5 | Platform: [Web] | QA passed: yes
 
 ## Keyboard shortcuts everywhere
-project: Q3 Web Release | type: feature | status: done | priority: high | labels: [Frontend] | assignee: Priya Nair | completed: -44d | archived: -35d | created: -75d
+project: Q3 Web Release | type: feature | status: done | priority: high | labels: [Frontend] | assignee: Priya Nair | completed: -44d | archived: -35d | created: -75d | Points: 8 | Platform: [Web] | QA passed: yes
 
 ## New search
-project: Q3 Web Release | type: feature | status: done | priority: high | labels: [Backend, Performance] | assignee: Leo Park | completed: -36d | created: -70d
+project: Q3 Web Release | type: feature | status: done | priority: high | labels: [Backend, Performance] | assignee: Leo Park | completed: -36d | created: -70d | Points: 8 | Platform: [Web] | Reviewer: Priya Nair | QA passed: yes
 
 ## Search misses tasks with accented titles
-project: Q3 Web Release | type: bug | status: done | priority: medium | labels: [Backend, Customer request] | assignee: Leo Park | completed: -24d | created: -35d
+project: Q3 Web Release | type: bug | status: done | priority: medium | labels: [Backend, Customer request] | assignee: Leo Park | completed: -24d | created: -35d | Points: 2 | Platform: [Web] | Customer: Lumen & Co | Device: Safari on macOS | QA passed: yes
 
 ## Release notes for Q3
-project: Q3 Web Release | type: chore | status: done | priority: low | assignee: You | completed: -15d | created: -40d
+project: Q3 Web Release | type: chore | status: done | priority: low | assignee: You | completed: -15d | created: -40d | Points: 1
 
 ## Fix flaky end-to-end tests
-type: chore | status: in-progress | priority: medium | labels: [Tech debt] | assignee: Sam Ortiz | due: +6d | created: -9d
+type: chore | status: in-progress | priority: medium | labels: [Tech debt] | assignee: Sam Ortiz | due: +6d | created: -9d | estimate: 480 | Points: 3 | Platform: [Web]
 
 ## Weekly team sync
-type: chore | status: to do | priority: low | assignee: You | due: +2d | repeat: weekly | created: -60d
+type: chore | status: to do | priority: low | assignee: You | due: +2d | repeat: weekly | created: -60d | estimate: 60
 
 Agenda: blockers first, then demos.

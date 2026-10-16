@@ -420,3 +420,54 @@ describe("workspace template gallery ordering", () => {
 		}
 	});
 });
+
+describe("product-team: custom fields and estimates (the demo's)", () => {
+	const { snapshot } = instantiateTemplate({
+		...base,
+		template: requireTemplate("product-team"),
+		includeExampleContent: true,
+		now: new Date("2026-10-01T12:00:00Z"),
+	});
+	const fields = snapshot.customFields ?? [];
+	const field = (name: string) => fields.find((f) => f.name === name)!;
+	const task = (title: string) => snapshot.tasks.find((t) => t.title === title)!;
+
+	it("has a field of each kind the demo shows, Device kept to bugs", () => {
+		expect(fields.map((f) => [f.name, f.type])).toEqual([
+			["Points", "number"],
+			["Platform", "multiSelect"],
+			["Customer", "text"],
+			["Design link", "url"],
+			["Reviewer", "member"],
+			["QA passed", "checkbox"],
+			["Device", "text"],
+		]);
+		expect(field("Platform").options?.map((o) => o.name)).toEqual(["iOS", "Android", "Web"]);
+		expect(field("Device").taskTypes).toEqual(["Bug"]);
+		expect(fields.filter((f) => f.taskTypes?.length)).toHaveLength(1);
+	});
+
+	it("gives its tasks values, people as the template's people", () => {
+		const sync = task("Build the sync API for offline mode");
+		expect(sync.fields?.[field("Points").id]).toBe(13);
+		expect(sync.fields?.[field("Platform").id]).toEqual(["platform-ios", "platform-android", "platform-web"]);
+		expect(sync.fields?.[field("Reviewer").id]).toEqual(["priya-nair"]);
+		const crash = task("App crashes when rotating on the task detail screen");
+		expect(crash.fields?.[field("Customer").id]).toBe("Brightline Health");
+		expect(crash.fields?.[field("Device").id]).toMatch(/Galaxy Tab/);
+		expect(task("Design the new navigation").fields?.[field("QA passed").id]).toBe(true);
+		expect(task("Design the new navigation").fields?.[field("Design link").id]).toMatch(/^https:\/\//);
+		// Points on most of the work.
+		expect(snapshot.tasks.filter((t) => typeof t.fields?.[field("Points").id] === "number").length).toBeGreaterThanOrEqual(20);
+	});
+
+	it("estimates the open work", () => {
+		const { status } = workspaceTaxonomies(snapshot.workspace);
+		const open = snapshot.tasks.filter((t) => {
+			const category = status.values.find((v) => v.id === t.status)?.category;
+			return category !== "completed" && category !== "canceled";
+		});
+		expect(open.length).toBeGreaterThan(10);
+		expect(open.every((t) => typeof t.estimate === "number" && t.estimate > 0)).toBe(true);
+	});
+});
