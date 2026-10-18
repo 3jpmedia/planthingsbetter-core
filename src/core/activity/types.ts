@@ -205,9 +205,11 @@ export const ACTIVITY_FIELDS = [
 	"signingStatus",
 	"signedBy",
 	// Brands (T-0844): a project's, Space's or shared link's `brand` (who it
-	// shows it's from), the workspace's `defaultBrand`, and a brand's own
-	// `logo` and `website`.
+	// shows it's from), a link's `showAs` (its brand, the workspace, no name,
+	// or what its project or Space shows), the workspace's `defaultBrand`,
+	// and a brand's own `logo` and `website`.
 	"brand",
+	"showAs",
 	"defaultBrand",
 	"logo",
 	"website",

@@ -215,6 +215,7 @@ describe("brands (T-0844)", () => {
 		expectRoundTrip(parsed.query);
 		expect(parseActivityQuery("activity.field:default-brand", ctx).query.activity.field).toEqual(["defaultBrand"]);
 		expect(parseActivityQuery("activity.field:brand", ctx).query.activity.field).toEqual(["brand"]);
+		expect(parseActivityQuery("activity.field:show-as", ctx).query.activity.field).toEqual(["showAs"]);
 	});
 });
 
