@@ -69,6 +69,7 @@ export const ACTIVITY_KIND_VALUES: Record<ActivityKind, EnumValueSpec> = {
 	signoff: { token: "signoff", aliases: ["signoffs", "sign-off", "sign-offs"] },
 	signatureRequest: { token: "signing", aliases: ["signings", "signature-request", "signature-requests", "for-signature"] },
 	link: { token: "link", aliases: ["links", "shared-link", "shared-links"] },
+	brand: { token: "brand", aliases: ["brands"] },
 };
 
 export interface ActivityFieldSpec extends EnumValueSpec {
@@ -159,6 +160,10 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	signoffStatus: { token: "signoff-status", aliases: ["signoffstatus", "sign-off-status"] },
 	signingStatus: { token: "signing-status", aliases: ["signingstatus"] },
 	signedBy: { token: "signed-by", aliases: ["signedby", "signers"] },
+	brand: { token: "brand", aliases: ["show-as", "showas"] },
+	defaultBrand: { token: "default-brand", aliases: ["defaultbrand"] },
+	logo: { token: "logo", aliases: [] },
+	website: { token: "website", aliases: ["site", "url"] },
 };
 
 /** `activity.by:system` -- an entry the app made on its own (the Trash's

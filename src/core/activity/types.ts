@@ -42,6 +42,9 @@ export const ACTIVITY_KINDS = [
 	"signatureRequest",
 	// A shared link (T-0729): made, turned off or on, expired, changed.
 	"link",
+	// A brand (T-0844): who a shared link says it's from -- a name, a logo
+	// and a website, set on a Space, a project, a link or the workspace.
+	"brand",
 ] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
@@ -201,6 +204,13 @@ export const ACTIVITY_FIELDS = [
 	// signature, completed, expired, canceled), and who has signed it.
 	"signingStatus",
 	"signedBy",
+	// Brands (T-0844): a project's, Space's or shared link's `brand` (who it
+	// shows it's from), the workspace's `defaultBrand`, and a brand's own
+	// `logo` and `website`.
+	"brand",
+	"defaultBrand",
+	"logo",
+	"website",
 ] as const;
 export type ActivityField = (typeof ACTIVITY_FIELDS)[number];
 

@@ -201,6 +201,8 @@ export const ENTITY_KEY_LETTERS = {
 	/** A workspace's own task field, a custom field: "CF-0003". A key's
 	 *  letters can be as many as a kind needs (`parseKey`). */
 	field: "CF",
+	/** A brand (T-0844): who a shared link says it's from. */
+	brand: "B",
 } as const;
 
 export type KeyedEntity = keyof typeof ENTITY_KEY_LETTERS;

@@ -206,6 +206,18 @@ describe("docs sent for signature (T-0732)", () => {
 	});
 });
 
+describe("brands (T-0844)", () => {
+	it("filter by them, and by the brand something shows", () => {
+		const parsed = parseActivityQuery("activity.kind:brand activity.field:website", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query.activity.kind).toEqual(["brand"]);
+		expect(parsed.query.activity.field).toEqual(["website"]);
+		expectRoundTrip(parsed.query);
+		expect(parseActivityQuery("activity.field:default-brand", ctx).query.activity.field).toEqual(["defaultBrand"]);
+		expect(parseActivityQuery("activity.field:brand", ctx).query.activity.field).toEqual(["brand"]);
+	});
+});
+
 describe("kind:activity (T-0735)", () => {
 	const ctx = queryContext(sampleSnapshot());
 	it("is what an Activity query finds, so it changes nothing", () => {
