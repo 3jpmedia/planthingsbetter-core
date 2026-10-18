@@ -66,6 +66,12 @@ export interface FilterFieldSpec {
 	 * gives `mentions` no NONE branch. Parsed, then warned about.
 	 */
 	unsetIsVacuous: boolean;
+	/**
+	 * Takes `open` as a keyword (`blocked-by:open`, T-0724): a linked task
+	 * that's still open, stored as `OPEN_LINK`. `=open` is a value literally
+	 * written "open".
+	 */
+	openKeyword?: boolean;
 }
 
 export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
@@ -152,9 +158,11 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 	},
 	// Plain membership on a task's own blocks/blockedBy/related array (see
 	// matchesTaskLinks in views/filter.ts) -- not root's transitive scope.
-	// `blockedBy`/`blocks` name which array is checked, not which direction
-	// reads naturally as a sentence; PTB's own UI labels them "Blocked
-	// Task"/"Blocking Task" for that reason (see FilterControls.tsx).
+	// Each takes a task key, `any` or `unset` (T-0723); `blocked-by:` also
+	// takes `open`, a blocker that's still open (T-0724). The camelCase
+	// `blocksTaskKey:` / `blockedByTaskKey:` / `relatedTaskKey:` were printed
+	// before T-0728 and stay aliases, so saved views keep their filters.
+	// `blocks:X` is "this task blocks X", `blocked-by:X` "X blocks this task".
 	blocks: {
 		token: "blocks",
 		aliases: ["blockstaskkey"],
@@ -166,6 +174,7 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		aliases: ["blockedbytaskkey", "blockedby"],
 		resolveAs: "task",
 		unsetIsVacuous: false,
+		openKeyword: true,
 	},
 	related: {
 		token: "related",
@@ -541,6 +550,16 @@ export const CHECKLIST_VALUES = {
 	open: { token: "open", label: "Something left to tick" },
 	done: { token: "done", label: "Every item ticked" },
 } as const;
+
+/** `blocked-by:`'s keywords, in the order suggestions show them (T-0724). */
+export const BLOCKED_BY_VALUES = {
+	open: { token: "open", label: "Still waiting on unfinished work" },
+	any: { token: "any", label: "Has a blocker" },
+	unset: { token: "unset", label: "No blocker" },
+} as const;
+
+/** The keyword `OPEN_LINK` is written as. */
+export const OPEN_KEYWORD = "open";
 
 /**
  * Legacy spellings of the removed `is:top-level` flag. Still parsed - they set

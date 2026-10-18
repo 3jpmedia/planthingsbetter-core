@@ -19,6 +19,7 @@ import {
 	LINKED_DATE_FIELD_KEYS,
 	LINKED_NAME_FIELD_KEYS,
 	NONE,
+	OPEN_LINK,
 	SELF,
 	TASK_FIELDS,
 	isCustomFieldRef,
@@ -95,12 +96,45 @@ function matchesId(actual: LinkTarget, allowed: string[] | undefined): boolean {
 function matchesTaskLinks(
 	actual: LinkTarget[],
 	allowed: string[] | undefined,
+	context?: ViewContext,
 ): boolean {
 	if (!allowed || allowed.length === 0) return true;
 	if (actual.length === 0) return allowed.includes(NONE);
 	return actual.some((value) =>
-		allowed.some((pattern) => pattern !== NONE && (pattern === value || linksMatch(value, pattern))),
+		allowed.some((pattern) =>
+			pattern === OPEN_LINK
+				? isOpenLink(value, context)
+				: pattern !== NONE && (pattern === value || linksMatch(value, pattern)),
+		),
 	);
+}
+
+/** Path -> task, once per task list (a view evaluates every task against
+ *  the same context, so the map is built once, not per task). */
+const tasksByPath = new WeakMap<Task[], Map<LinkTarget, Task | null>>();
+
+/**
+ * `OPEN_LINK` (`blocked-by:open`, T-0724): is the linked task still open --
+ * neither completed nor canceled, and not archived? A link to a task the
+ * context can't see (no `scope`, or a task outside it) doesn't count: there's
+ * nothing known to be waiting on. Archived counts as finished, as the app's
+ * Blocked by badge has it.
+ */
+function isOpenLink(path: LinkTarget, context: ViewContext | undefined): boolean {
+	const tasks = context?.scope?.tasks;
+	if (!tasks) return false;
+	let byPath = tasksByPath.get(tasks);
+	if (!byPath) {
+		byPath = new Map(tasks.map((task) => [task.path, task]));
+		tasksByPath.set(tasks, byPath);
+	}
+	let task = byPath.get(path);
+	if (task === undefined) {
+		// A short-form wikilink: looked up once, the answer kept.
+		task = tasks.find((candidate) => linksMatch(candidate.path, path)) ?? null;
+		byPath.set(path, task);
+	}
+	return task != null && !task.archived && isOpen(context!.taxonomies.status, task.status);
 }
 
 /** Does `name` fall under the group named by a `"Parent/*"` pattern? */
@@ -287,7 +321,7 @@ export function matchesFilters(
 	if (!matchesLink(task.parent, filters.parent)) return false;
 	if (!matchesId(task.path, filters.id)) return false;
 	if (!matchesTaskLinks(task.relations.blocks, filters.blocks)) return false;
-	if (!matchesTaskLinks(task.relations.blockedBy, filters.blockedBy)) return false;
+	if (!matchesTaskLinks(task.relations.blockedBy, filters.blockedBy, context)) return false;
 	if (!matchesTaskLinks(task.relations.related, filters.related)) return false;
 
 	if (!matchesCustomFilters(task, filters.custom, context)) return false;
@@ -380,7 +414,7 @@ export function matchesFilters(
 	if (filters.excludeId?.length && matchesId(task.path, filters.excludeId)) return false;
 	if (filters.excludeBlocks?.length && matchesTaskLinks(task.relations.blocks, filters.excludeBlocks))
 		return false;
-	if (filters.excludeBlockedBy?.length && matchesTaskLinks(task.relations.blockedBy, filters.excludeBlockedBy))
+	if (filters.excludeBlockedBy?.length && matchesTaskLinks(task.relations.blockedBy, filters.excludeBlockedBy, context))
 		return false;
 	if (filters.excludeRelated?.length && matchesTaskLinks(task.relations.related, filters.excludeRelated))
 		return false;

@@ -915,6 +915,16 @@ export const NONE = "__none__";
 export const ANY = "__any__";
 
 /**
+ * Magic value for a task-link filter: a linked task that's still open --
+ * neither completed nor canceled, and not archived. What `blocked-by:open`
+ * reads as (T-0724): tasks still waiting on unfinished work, unlike
+ * `blocked-by:any`, which also matches tasks whose blockers were finished
+ * long ago. Stored in `ViewFilters.blockedBy` (or `excludeBlockedBy` for
+ * `-blocked-by:open`, nothing left to wait on).
+ */
+export const OPEN_LINK = "__open__";
+
+/**
  * Dates a task's milestone or project has, as task filters: tasks whose
  * milestone starts this month, whose project is due before November. Each is
  * a `ViewFilters` field of its own (`milestoneTarget`), with `…Before` /
@@ -996,6 +1006,8 @@ export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters {
 	 * same non-transitive treatment as `id`, not `root`'s traversal: a task
 	 * matches only if one of the listed tasks is literally in that array.
 	 * OR'd across multiple values, like every other array filter.
+	 * `blockedBy` can also hold `OPEN_LINK` (`blocked-by:open`): a blocker
+	 * that's still open.
 	 */
 	blocks?: string[];
 	blockedBy?: string[];

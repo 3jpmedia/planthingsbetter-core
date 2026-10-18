@@ -15,7 +15,7 @@
 
 import { basename } from "../links";
 import { getValue, type Taxonomy } from "../taxonomy";
-import { LINKED_DATE_FIELD_KEYS, LINKED_NAME_FIELD_KEYS, NONE, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
+import { LINKED_DATE_FIELD_KEYS, LINKED_NAME_FIELD_KEYS, NONE, OPEN_LINK, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
 import { CHECKLIST_KEYWORDS, isChecklistKeyword } from "../checklists";
 import { customFieldToken, printCustomMatch } from "./custom";
 import {
@@ -44,6 +44,7 @@ import {
 	SORT_VALUES,
 	SUBTASK_VALUES,
 	ANY_KEYWORDS,
+	OPEN_KEYWORD,
 	LINKED_NAME_TOKENS,
 	TEXT_FIELD,
 	VERBATIM_PREFIX,
@@ -122,6 +123,9 @@ function candidatesFor(
 ): Candidate[] {
 	if (value === NONE) {
 		return [{ text: "unset", verbatim: false }, { text: value, verbatim: true }];
+	}
+	if (value === OPEN_LINK && spec.openKeyword) {
+		return [{ text: OPEN_KEYWORD, verbatim: false }, { text: value, verbatim: true }];
 	}
 	if (value === SELF && spec.resolveAs === "person") {
 		return [{ text: "me", verbatim: false }, { text: value, verbatim: true }];

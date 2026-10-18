@@ -15,10 +15,11 @@
 import { isValidIsoDay } from "../date";
 import { basename, parseLink } from "../links";
 import { findValueByName, getValue, type Taxonomy } from "../taxonomy";
-import { ANY, NONE, SELF } from "../types";
+import { ANY, NONE, OPEN_LINK, SELF } from "../types";
 import type { QueryContext, QueryEntity } from "./context";
 import {
 	ANY_KEYWORDS,
+	OPEN_KEYWORD,
 	SELF_KEYWORDS,
 	UNSET_KEYWORDS,
 	type FilterFieldSpec,
@@ -259,6 +260,10 @@ export function resolveValue(
 				: undefined,
 		};
 	}
+
+	// `open` on a field that takes it (`blocked-by:open`): a linked task
+	// that's still open (OPEN_LINK, views/filter.ts).
+	if (spec.openKeyword && lowered === OPEN_KEYWORD) return { value: OPEN_LINK };
 
 	// `any`: the field has a value. Never stored as such on an array filter
 	// -- the parser turns it into excluding `NONE` (parse.ts).
