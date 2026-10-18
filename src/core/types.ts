@@ -129,6 +129,13 @@ export interface TaxonomyValue {
 	category?: StatusCategory;
 	/** Optional free text. Currently only surfaced in the UI for labels. */
 	description?: string;
+	/**
+	 * The full name of the folder it's filed in ("Web / Release"), when the
+	 * host keeps values in folders (Plan Things Better's labels). A query
+	 * names a value whose name another value shares by `path / name`
+	 * (`label:"Web / Bug"`); see `findValueByQualifiedName`.
+	 */
+	path?: string;
 }
 
 export interface StatusValue extends TaxonomyValue {

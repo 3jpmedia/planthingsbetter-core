@@ -1338,3 +1338,36 @@ describe("any: the positive form of unset", () => {
 		expect(parsed.issues[0]).toMatchObject({ code: "unknown-field", suggestion: "project:any" });
 	});
 });
+
+/* ------------------------------------------- labels sharing a name -- */
+
+describe("labels sharing a name, told apart by folder (T-0892)", () => {
+	const folderCtx: typeof ctx = {
+		...ctx,
+		taxonomies: {
+			...ctx.taxonomies,
+			label: createTaxonomy("label", [
+				{ id: "bugWeb", name: "Bug", color: "#111111", path: "Web" },
+				{ id: "bugObsidian", name: "Bug", color: "#222222", path: "Plugins / Obsidian" },
+				{ id: "docs", name: "Docs", color: "#333333", path: "Web" },
+			]),
+		},
+	};
+
+	it("reads `folder / name` as that label", () => {
+		expect(parseQuery('label:"Web / Bug"', folderCtx).definition.filters.labels).toEqual(["bugWeb"]);
+		expect(parseQuery('label:"plugins /  obsidian / bug"', folderCtx).definition.filters.labels).toEqual(["bugObsidian"]);
+	});
+
+	it("still reads a plain name -- one only one label has, or the first of several", () => {
+		expect(parseQuery("label:Docs", folderCtx).definition.filters.labels).toEqual(["docs"]);
+		expect(parseQuery("label:Bug", folderCtx).definition.filters.labels).toEqual(["bugWeb"]);
+	});
+
+	it("prints a shared name with its folder, and a unique one plainly", () => {
+		const shared = printQuery(withFilters({ labels: ["bugObsidian"] }), folderCtx);
+		expect(shared).toContain('label:"Plugins / Obsidian / Bug"');
+		expect(parseQuery(shared, folderCtx).definition.filters.labels).toEqual(["bugObsidian"]);
+		expect(printQuery(withFilters({ labels: ["docs"] }), folderCtx)).toContain("label:Docs");
+	});
+});

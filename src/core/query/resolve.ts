@@ -14,7 +14,7 @@
 
 import { isValidIsoDay } from "../date";
 import { basename, parseLink } from "../links";
-import { findValueByName, getValue, type Taxonomy } from "../taxonomy";
+import { findValueByName, findValueByQualifiedName, findValuesByName, getValue, type Taxonomy } from "../taxonomy";
 import { ANY, NONE, OPEN_LINK, SELF } from "../types";
 import type { QueryContext, QueryEntity } from "./context";
 import {
@@ -89,6 +89,12 @@ function resolveTaxonomyValue(
 	const byId = taxonomy.values.find((value) => equalsCI(value.id, raw));
 	if (byId) return { value: byId.id };
 
+	// A name only one value has; else `path / name` for values that share
+	// one (`label:"Web / Bug"`); else, as ever, the first by that name.
+	const named = findValuesByName(taxonomy, raw);
+	if (named.length === 1) return { value: named[0].id };
+	const qualified = findValueByQualifiedName(taxonomy, raw);
+	if (qualified) return { value: qualified.id };
 	const byName = findValueByName(taxonomy, raw);
 	if (byName) return { value: byName.id };
 

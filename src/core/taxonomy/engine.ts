@@ -111,6 +111,36 @@ export function findValueByName<V extends TaxonomyValue>(
 	return taxonomy.values.find((value) => value.name.trim().toLowerCase() === needle);
 }
 
+/** Every value with exactly this name (case and outer spaces aside). */
+export function findValuesByName<V extends TaxonomyValue>(
+	taxonomy: Taxonomy<V>,
+	name: string,
+): V[] {
+	const needle = name.trim().toLowerCase();
+	return taxonomy.values.filter((value) => value.name.trim().toLowerCase() === needle);
+}
+
+/** A value's name with its folder in front ("Web / Bug"), or null when it
+ *  isn't in a folder (`TaxonomyValue.path`). */
+export function qualifiedName(value: TaxonomyValue): string | null {
+	return value.path ? `${value.path} / ${value.name}` : null;
+}
+
+const qualifiedKey = (text: string) => text.trim().replace(/\s+/g, " ").toLowerCase();
+
+/** The value named `path / name` -- how a query tells apart values that
+ *  share a name (case and runs of spaces aside). */
+export function findValueByQualifiedName<V extends TaxonomyValue>(
+	taxonomy: Taxonomy<V>,
+	text: string,
+): V | undefined {
+	const needle = qualifiedKey(text);
+	return taxonomy.values.find((value) => {
+		const qualified = qualifiedName(value);
+		return qualified !== null && qualifiedKey(qualified) === needle;
+	});
+}
+
 /**
  * Display order: ordered taxonomies by `order`, unordered ones alphabetically.
  * Ties fall back to `id` so the result is deterministic across reloads.

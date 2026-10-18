@@ -14,7 +14,7 @@
  */
 
 import { basename } from "../links";
-import { getValue, type Taxonomy } from "../taxonomy";
+import { getValue, qualifiedName, type Taxonomy } from "../taxonomy";
 import { LINKED_DATE_FIELD_KEYS, LINKED_NAME_FIELD_KEYS, NONE, OPEN_LINK, SELF, isCustomFieldRef, type SortField, type ViewDefinition, type ViewFilters } from "../types";
 import { CHECKLIST_KEYWORDS, isChecklistKeyword } from "../checklists";
 import { customFieldToken, printCustomMatch } from "./custom";
@@ -167,7 +167,13 @@ function candidatesFor(
 	const taxonomy = taxonomyFor(spec, context);
 	if (taxonomy) {
 		const found = getValue(taxonomy, value);
-		if (found) pretty.push(found.name);
+		if (found) {
+			pretty.push(found.name);
+			// A name another value shares doesn't round-trip; its folder in
+			// front (`"Web / Bug"`) does, before falling back to the id.
+			const qualified = qualifiedName(found);
+			if (qualified) pretty.push(qualified);
+		}
 	} else if (spec.resolveAs === "person") {
 		// `email`, not `name`, whenever it's there: a person's display name can
 		// change, or a second person can join sharing an old one's name, either
