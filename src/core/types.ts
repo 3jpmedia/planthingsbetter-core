@@ -850,6 +850,8 @@ export type SortField =
 	| "updatedAt"
 	/** When work began; never-started tasks last, either way. */
 	| "startedAt"
+	/** When it was finished; never-finished tasks last, either way (T-0725). */
+	| "completedAt"
 	| "taskType"
 	| "project"
 	| "milestone"
