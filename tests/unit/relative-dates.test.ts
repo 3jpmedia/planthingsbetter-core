@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { sampleSnapshot } from "../../src/core/templates/instantiate";
 import { indexKindItems, matchesKindQuery, parseFilterQuery, parseKindQuery, parseQuery, printQuery, queryContext, type KindItem } from "../../src/core/query";
 import { dateSpan, isRelativeDateValue, normalizeDateValue, todayIn } from "../../src/core/relative-dates";
-import { applyFilters, snapshotContext } from "../../src/core/views";
+import { applyFilters, defaultViews, evaluateView, snapshotContext } from "../../src/core/views";
+import { countTasks, taskRows } from "../../src/core/mcp";
 import type { CustomFieldDef, WorkspaceSnapshot } from "../../src/core/types";
 import { task } from "./fixtures";
 
@@ -161,5 +162,19 @@ describe("relative dates across kinds", () => {
 		expect(keys("created:this-week")).toEqual(["P-0002"]);
 		expect(keys("created-after:last-month")).toEqual(["P-0002"]);
 		expect(keys("created:2026-08-01..2026-09-30")).toEqual(["P-0001"]);
+	});
+});
+
+describe("relative dates where the asker's day is passed in", () => {
+	const snapshot = dated();
+	const ctx = queryContext(snapshot);
+	const filters = parseQuery("due-before:today", ctx).definition.filters;
+
+	it("taskRows, countTasks and evaluateView read against it", () => {
+		expect(taskRows(snapshot, filters, null, false, { today: "2026-10-12" }).map((row) => row.path).sort()).toEqual(["done", "past"]);
+		expect(taskRows(snapshot, filters, null, false, { today: "2026-10-30" }).map((row) => row.path).sort()).toEqual(["done", "past", "soon", "today"]);
+		expect(countTasks(snapshot, filters, null, false, [], "2026-10-12").total).toBe(2);
+		const view = { ...defaultViews()[0], filters };
+		expect(evaluateView(snapshot, view, snapshotContext(snapshot), "2026-10-30").total).toBe(4);
 	});
 });

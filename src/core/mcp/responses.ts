@@ -375,7 +375,8 @@ export function taskRows(
 	showArchived = false,
 	sort: McpTaskSort = {},
 ): McpTaskRow[] {
-	const context = snapshotContext(snapshot, me);
+	// Relative dates (`due-before:today`) read against the asker's day.
+	const context = { ...snapshotContext(snapshot, me), ...(sort.today ? { today: sort.today } : {}) };
 	const effective = showArchived
 		? { ...filters, archived: "included" as const }
 		: filters;
@@ -786,8 +787,10 @@ export function countTasks(
 	me: string | null = null,
 	showArchived = false,
 	by: McpCountBy[] = [],
+	/** The asker's day, for relative dates (`due-before:today`). */
+	today?: IsoDate,
 ): McpCounts {
-	const context = snapshotContext(snapshot, me);
+	const context = { ...snapshotContext(snapshot, me), ...(today ? { today } : {}) };
 	const effective = showArchived
 		? { ...filters, archived: "included" as const }
 		: filters;
@@ -1244,8 +1247,10 @@ export function readDashboard(
 	dashboard: DashboardConfig,
 	links: McpLinks,
 	me: string | null = null,
+	/** The asker's day, for relative dates in its filter. */
+	today?: IsoDate,
 ): McpDashboardData {
-	const context = snapshotContext(snapshot, me);
+	const context = { ...snapshotContext(snapshot, me), ...(today ? { today } : {}) };
 	const tasks = applyFilters(snapshot.tasks, dashboard.filters, context);
 	return {
 		dashboard: dashboardRow(links, dashboard),

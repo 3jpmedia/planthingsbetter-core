@@ -44,6 +44,9 @@ export function evaluateView(
 	// that don't preview futures).
 	today?: IsoDate,
 ): EvaluatedView {
+	// Relative dates (`due-before:today`) read against that day too, unless
+	// the context names its own.
+	if (today && !context.today) context = { ...context, today };
 	const filtered = applyFilters(snapshot.tasks, view.filters, context);
 	// `hidden` drops sub-tasks outright; `nested` and `flat` both keep them in the
 	// evaluated set (the List view derives the tree from it - see `nest.ts`).
