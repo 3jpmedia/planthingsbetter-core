@@ -7,6 +7,7 @@
 export * from "./types";
 export * from "./checklists";
 export * from "./links";
+export * from "./folders";
 export * from "./ids";
 export * from "./ranking";
 export * from "./taxonomy";

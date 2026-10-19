@@ -36,8 +36,11 @@ import type { ArrayFilterKey } from "../views/filter";
 import {
 	LINKED_DATE_FIELDS,
 	LINKED_DATE_FIELD_KEYS,
+	LINKED_FOLDER_FIELDS,
+	LINKED_FOLDER_FIELD_KEYS,
 	type LinkedDateBoundKey,
 	type LinkedDateField,
+	type LinkedFolderField,
 	type LinkedNameField,
 } from "../types";
 
@@ -52,7 +55,8 @@ export type ResolveAs =
 	| "milestone"
 	| "space"
 	| "task"
-	| "date";
+	| "date"
+	| "folder";
 
 export interface FilterFieldSpec {
 	/** The canonical token - what the printer emits. */
@@ -231,6 +235,15 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 			{ token: linkedDateToken(field), aliases: [field.toLowerCase(), kebab(field)], resolveAs: "date", unsetIsVacuous: false } satisfies FilterFieldSpec,
 		]),
 	) as unknown as Record<LinkedDateField, FilterFieldSpec>),
+	// The hub folder a task's project, milestone or labels are filed in
+	// (LINKED_FOLDER_FIELDS in types.ts, T-0926): `project.folder:"Plan
+	// Things Better / Web"`, with everything below it.
+	...(Object.fromEntries(
+		LINKED_FOLDER_FIELD_KEYS.map((field) => [
+			field,
+			{ token: `${LINKED_FOLDER_FIELDS[field]}.folder`, aliases: [field.toLowerCase(), kebab(field)], resolveAs: "folder", unsetIsVacuous: false } satisfies FilterFieldSpec,
+		]),
+	) as unknown as Record<LinkedFolderField, FilterFieldSpec>),
 };
 
 /** `milestoneTarget` -> `milestone-target`. */

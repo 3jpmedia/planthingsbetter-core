@@ -13,6 +13,7 @@
  */
 
 import { isValidIsoDay } from "../date";
+import { normalizeFolderPath } from "../folders";
 import { basename, parseLink } from "../links";
 import { findValueByName, findValueByQualifiedName, findValuesByName, getValue, type Taxonomy } from "../taxonomy";
 import { ANY, NONE, OPEN_LINK, SELF } from "../types";
@@ -314,6 +315,11 @@ export function resolveValue(
 			},
 		};
 	}
+
+	// A folder path is kept as written, its levels tidied
+	// (`Plan Things Better/Web` -> `Plan Things Better / Web`), and matched
+	// live (views/filter.ts), so a folder made later still counts.
+	if (spec.resolveAs === "folder") return { value: normalizeFolderPath(raw) || raw.trim() };
 
 	const taxonomy = taxonomyFor(spec.resolveAs, context);
 	if (taxonomy) {

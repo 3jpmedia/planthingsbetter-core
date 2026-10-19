@@ -22,6 +22,7 @@
  * every kind shares with the others, enough to find things.
  */
 
+import { inFolder } from "../folders";
 import { ANY_KEYWORDS, RESULT_KINDS, SELF_KEYWORDS, UNSET_KEYWORDS } from "./grammar";
 import { lex, type LexedToken, type LexedValue } from "./lex";
 import type { QueryIssue, QuerySpan } from "./types";
@@ -34,8 +35,11 @@ export type ResultKind = (typeof RESULT_KINDS)[number];
  * - `date`: that day, or before / after it with `-before` / `-after`.
  * - `flag`: yes or no.
  * - `link`: the linked item(s) of `links`, by key or name.
+ * - `folder`: in that hub folder or one below it, by its path
+ *   (`folder:"Plan Things Better / Web"`, or a folder's name alone; see
+ *   folders.ts).
  */
-export type KindFieldType = "text" | "list" | "date" | "flag" | "link";
+export type KindFieldType = "text" | "list" | "date" | "flag" | "link" | "folder";
 
 export interface KindFieldSpec {
 	token: string;
@@ -65,7 +69,7 @@ export const COMMON_FIELDS: readonly KindFieldSpec[] = [
 ];
 
 const space: KindFieldSpec = { token: "space", type: "link", links: "space", label: "Space" };
-const folder: KindFieldSpec = { token: "folder", type: "list", label: "Folder" };
+const folder: KindFieldSpec = { token: "folder", type: "folder", label: "Folder" };
 const owner: KindFieldSpec = { token: "owner", type: "link", links: "member", label: "Owner" };
 const shared: KindFieldSpec = { token: "shared", type: "flag", label: "Shared with the workspace" };
 
@@ -382,6 +386,7 @@ function ownMatch(item: KindItem, clause: KindClause, context: KindMatchContext)
 		if (UNSET.has(wanted)) return lower.length === 0 || (spec.type === "flag" && lower.includes("no"));
 		if (ANY.has(wanted)) return lower.length > 0 && !(spec.type === "flag" && lower.includes("no"));
 		if (spec.type === "text") return lower.some((value) => value.includes(wanted));
+		if (spec.type === "folder") return values.some((value) => inFolder(value, raw));
 		if (spec.type === "date") {
 			const days = values.map(dayOf);
 			if (clause.bound === "before") return days.some((day) => day < raw);

@@ -628,6 +628,12 @@ export interface Project {
 	updatedAt: IsoDate;
 	path: LinkTarget;
 	/**
+	 * The full name of the hub folder it's filed in ("Plan Things Better /
+	 * Web"), when the host keeps projects in folders, like
+	 * `TaxonomyValue.path`. What `project.folder:` matches (T-0926).
+	 */
+	folder?: string;
+	/**
 	 * The embedded task-list viewport's saved sort/group/filter settings -
 	 * absent until the user hits Save there at least once. `projectView()`
 	 * (`ui/App.tsx`) merges this over its hardcoded defaults. No migration
@@ -663,6 +669,9 @@ export interface Milestone {
 	createdAt: IsoDate;
 	updatedAt: IsoDate;
 	path: LinkTarget;
+	/** Its hub folder's full name, like `Project.folder`; what
+	 *  `milestone.folder:` matches (T-0926). */
+	folder?: string;
 }
 
 /**
@@ -983,7 +992,28 @@ export type LinkedNameField = keyof typeof LINKED_NAME_FIELDS;
 export const LINKED_NAME_FIELD_KEYS = Object.keys(LINKED_NAME_FIELDS) as LinkedNameField[];
 export type LinkedNameFilters = { [K in LinkedNameField]?: string };
 
-export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters {
+/**
+ * The hub folders a task's linked items are filed in, as task filters
+ * (T-0926): `project.folder:"Plan Things Better"` is tasks whose project is
+ * in that folder or one below it (see `inFolder` in folders.ts). Each is a
+ * list of folder paths, OR'd, with an `exclude…` companion, like
+ * `LINKED_DATE_FIELDS`. `NONE` is an item in no folder, or no item: a task
+ * with no project matches `project.folder:unset`. `labelFolder` matches when
+ * any of the task's labels is in the folder.
+ */
+export const LINKED_FOLDER_FIELDS = {
+	projectFolder: "project",
+	milestoneFolder: "milestone",
+	labelFolder: "label",
+} as const;
+
+export type LinkedFolderField = keyof typeof LINKED_FOLDER_FIELDS;
+export const LINKED_FOLDER_FIELD_KEYS = Object.keys(LINKED_FOLDER_FIELDS) as LinkedFolderField[];
+export type LinkedFolderExcludeKey = `exclude${Capitalize<LinkedFolderField>}`;
+export const linkedFolderExcludeKey = (field: LinkedFolderField) => `exclude${field[0].toUpperCase()}${field.slice(1)}` as LinkedFolderExcludeKey;
+export type LinkedFolderFilters = { [K in LinkedFolderField]?: string[] } & { [K in LinkedFolderExcludeKey]?: string[] };
+
+export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters, LinkedFolderFilters {
 	status?: string[];
 	priority?: string[];
 	taskType?: string[];

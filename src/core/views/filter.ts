@@ -11,12 +11,14 @@ import { relationScope, type HierarchyScope } from "../hierarchy";
 import { linksMatch } from "../links";
 import { CHECKLIST_OPEN, checklistNameKey, hasChecklist, hasOpenChecklist, isChecklistKeyword, matchesChecklistValues } from "../checklists";
 import { getValue, isOpen, type Taxonomy } from "../taxonomy";
+import { inFolder } from "../folders";
 import { DEFAULT_DEFINITION } from "./defaults";
 import {
 	ANY,
 	CANVAS_RELATION_KINDS,
 	LINKED_DATE_FIELDS,
 	LINKED_DATE_FIELD_KEYS,
+	LINKED_FOLDER_FIELD_KEYS,
 	LINKED_NAME_FIELD_KEYS,
 	NONE,
 	OPEN_LINK,
@@ -24,12 +26,15 @@ import {
 	TASK_FIELDS,
 	isCustomFieldRef,
 	linkedDateExcludeKey,
+	linkedFolderExcludeKey,
 	type CanvasRelationKind,
 	type CustomFieldRef,
 	type LinkTarget,
 	type LinkedDateBoundKey,
 	type LinkedDateExcludeKey,
 	type LinkedDateField,
+	type LinkedFolderExcludeKey,
+	type LinkedFolderField,
 	type LinkedNameField,
 	type SavedView,
 	type SortField,
@@ -225,6 +230,33 @@ function linkedDate(task: Task, field: LinkedDateField, context: ViewContext): s
 	return ((item as unknown as Record<string, string | null | undefined>)[spec.date] ?? null) || null;
 }
 
+/** The hub folders a task's linked items are filed in, for a
+ *  `LINKED_FOLDER_FIELDS` filter (`project.folder:`): its project's or
+ *  milestone's folder, or each of its labels' folders. Empty when it has no
+ *  such item, none of them is in a folder, or this context can't see them. */
+function linkedFolders(task: Task, field: LinkedFolderField, context: ViewContext): string[] {
+	switch (field) {
+		case "projectFolder": {
+			const folder = task.project ? context.projects?.get(task.project)?.folder : undefined;
+			return folder ? [folder] : [];
+		}
+		case "milestoneFolder": {
+			const folder = task.milestone ? context.milestones?.get(task.milestone)?.folder : undefined;
+			return folder ? [folder] : [];
+		}
+		case "labelFolder":
+			return task.labels.map((id) => getValue(context.taxonomies.label, id)?.path).filter((path): path is string => !!path);
+	}
+}
+
+/** OR-match folders: any of `folders` is in (or below) one of `allowed`;
+ *  `NONE` matches no folder at all. */
+function matchesFolders(folders: string[], allowed: string[] | undefined): boolean {
+	if (!allowed || allowed.length === 0) return true;
+	if (folders.length === 0) return allowed.includes(NONE);
+	return allowed.some((wanted) => wanted !== NONE && folders.some((folder) => inFolder(folder, wanted)));
+}
+
 /** The names a task's linked items have for a `LINKED_NAME_FIELDS` filter
  *  (`project.name:`): its project's, milestone's or Space's name, each of its
  *  labels' names, or its assignee's name and email. Empty when it has none,
@@ -364,6 +396,15 @@ export function matchesFilters(
 		const value = linkedDate(task, field, context);
 		if (!matchesDateExact(value, exact)) return false;
 		if (!matchesDateRange(value, before, after)) return false;
+	}
+
+	for (const field of LINKED_FOLDER_FIELD_KEYS) {
+		const allowed = filters[field];
+		const excluded = filters[linkedFolderExcludeKey(field)];
+		if (!allowed?.length && !excluded?.length) continue;
+		const folders = linkedFolders(task, field, context);
+		if (!matchesFolders(folders, allowed)) return false;
+		if (excluded?.length && matchesFolders(folders, excluded)) return false;
 	}
 
 	/* -- exclusions: task fails if its value falls in any excluded list -- */
@@ -570,6 +611,7 @@ export type ArrayFilterKey = Exclude<
 	| "excludeCompletedAt"
 	| LinkedDateBoundKey
 	| LinkedDateExcludeKey
+	| LinkedFolderExcludeKey
 	| LinkedNameField
 >;
 
@@ -596,6 +638,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"startedAt",
 	"completedAt",
 	...LINKED_DATE_FIELD_KEYS,
+	...LINKED_FOLDER_FIELD_KEYS,
 ];
 
 /** The 19 `ViewFilters` property names that hold excluded values. */
@@ -621,7 +664,8 @@ export type ExcludeFilterKey =
 	| "excludeUpdatedAt"
 	| "excludeStartedAt"
 	| "excludeCompletedAt"
-	| LinkedDateExcludeKey;
+	| LinkedDateExcludeKey
+	| LinkedFolderExcludeKey;
 
 /**
  * `ArrayFilterKey` → the `ViewFilters` property holding its excluded
@@ -652,6 +696,7 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	startedAt: "excludeStartedAt",
 	completedAt: "excludeCompletedAt",
 	...(Object.fromEntries(LINKED_DATE_FIELD_KEYS.map((field) => [field, linkedDateExcludeKey(field)])) as Record<LinkedDateField, LinkedDateExcludeKey>),
+	...(Object.fromEntries(LINKED_FOLDER_FIELD_KEYS.map((field) => [field, linkedFolderExcludeKey(field)])) as Record<LinkedFolderField, LinkedFolderExcludeKey>),
 };
 
 export const EXCLUDE_ARRAY_FIELDS: readonly ExcludeFilterKey[] =
@@ -974,6 +1019,7 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeUpdatedAt?.length &&
 		!filters.excludeStartedAt?.length &&
 		LINKED_DATE_FIELD_KEYS.every((field) => !filters[field]?.length && !filters[`${field}Before`] && !filters[`${field}After`] && !filters[linkedDateExcludeKey(field)]?.length) &&
+		LINKED_FOLDER_FIELD_KEYS.every((field) => !filters[field]?.length && !filters[linkedFolderExcludeKey(field)]?.length) &&
 		!filters.excludeCompletedAt?.length
 	);
 }
