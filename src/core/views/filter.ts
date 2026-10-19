@@ -29,6 +29,7 @@ import {
 	linkedFolderExcludeKey,
 	type CanvasRelationKind,
 	type CustomFieldRef,
+	type IsoDate,
 	type LinkTarget,
 	type LinkedDateBoundKey,
 	type LinkedDateExcludeKey,
@@ -44,7 +45,9 @@ import {
 	type ViewDefinition,
 	type ViewFilters,
 } from "../types";
-import type { ViewContext } from "./context";
+import { contextToday, type ViewContext } from "./context";
+import { dateSpan } from "../relative-dates";
+import { matchesNumberValue } from "../number-values";
 import { matchesCustomFilters } from "./custom-fields";
 
 /** Expand the `self` sentinel against the device's per-workspace "me" personId. */
@@ -209,13 +212,20 @@ function matchesSpace(actual: LinkTarget | null | undefined, allowed: string[] |
 
 /** OR-match an exact-day field, day-truncating a full timestamp. */
 function matchesDateExact(
+	today: IsoDate,
 	actual: string | null,
 	allowed: string[] | undefined,
 ): boolean {
 	if (!allowed || allowed.length === 0) return true;
 	if (actual == null) return allowed.includes(NONE);
 	const day = actual.slice(0, 10);
-	return allowed.some((value) => value === day);
+	return allowed.some((value) => {
+		if (value === NONE) return false;
+		// A day, a word for one or a period (relative-dates.ts); anything
+		// else is kept as written and only matches itself.
+		const span = dateSpan(value, today);
+		return span ? span.from <= day && day <= span.to : value === day;
+	});
 }
 
 /** One of a task's milestone's or project's dates (`LINKED_DATE_FIELDS`),
@@ -287,6 +297,7 @@ function linkedNames(task: Task, field: LinkedNameField, context: ViewContext): 
 
 /** Exclusive before/after bound on an (optionally full-timestamp) date field. */
 function matchesDateRange(
+	today: IsoDate,
 	actual: string | null,
 	before: string | undefined,
 	after: string | undefined,
@@ -294,9 +305,58 @@ function matchesDateRange(
 	if (!before && !after) return true;
 	if (actual == null) return false;
 	const day = actual.slice(0, 10);
-	if (before && !(day < before)) return false;
-	if (after && !(day > after)) return false;
+	// Before a period is before its first day, after one after its last.
+	if (before && !(day < (dateSpan(before, today)?.from ?? before))) return false;
+	if (after && !(day > (dateSpan(after, today)?.to ?? after))) return false;
 	return true;
+}
+
+/** A number (`estimate:`, `comments:`) against stored values
+ *  (number-values.ts); no number is `NONE`. */
+function matchesNumbers(actual: number | null | undefined, allowed: string[] | undefined): boolean {
+	if (!allowed || allowed.length === 0) return true;
+	if (actual == null) return allowed.includes(NONE);
+	return allowed.some((value) => value !== NONE && matchesNumberValue(actual, value));
+}
+
+/** Some of `ids` is one of the people allowed (`me` included); none at
+ *  all is `NONE`. */
+function matchesPeopleList(ids: readonly string[], allowed: string[] | undefined, context: ViewContext): boolean {
+	if (!allowed || allowed.length === 0) return true;
+	if (ids.length === 0) return allowed.includes(NONE);
+	const people = resolvePeople(allowed.filter((value) => value !== NONE), context);
+	return ids.some((id) => people.includes(id));
+}
+
+/** Each task's sub-tasks' paths, by parent, once per task list. */
+const CHILDREN = new WeakMap<readonly Task[], Map<string, string[]>>();
+
+function childrenOf(task: Task, context: ViewContext): string[] {
+	const tasks = context.scope?.tasks;
+	if (!tasks) return [];
+	let byParent = CHILDREN.get(tasks);
+	if (!byParent) {
+		byParent = new Map();
+		const paths = new Set(tasks.map((other) => other.path));
+		for (const candidate of tasks) {
+			if (!candidate.parent) continue;
+			const parent = paths.has(candidate.parent)
+				? candidate.parent
+				: (tasks.find((other) => linksMatch(other.path, candidate.parent!))?.path ?? candidate.parent);
+			const list = byParent.get(parent) ?? [];
+			list.push(candidate.path);
+			byParent.set(parent, list);
+		}
+		CHILDREN.set(tasks, byParent);
+	}
+	return byParent.get(task.path) ?? [];
+}
+
+/** `child:` -- one of its sub-tasks is one of these; `NONE` is none. */
+function matchesChildren(task: Task, allowed: string[], context: ViewContext): boolean {
+	const children = childrenOf(task, context);
+	if (children.length === 0) return allowed.includes(NONE);
+	return allowed.some((value) => value !== NONE && children.some((child) => linksMatch(child, value)));
 }
 
 export function matchesFilters(
@@ -304,6 +364,7 @@ export function matchesFilters(
 	filters: ViewFilters,
 	context: ViewContext,
 ): boolean {
+	const today = contextToday(context);
 	// Archived is a visibility flag, not a status: hidden by default, mixed in
 	// by `archived: "included"`, and shown exclusively by `archived: "only"`.
 	if (filters.archived === "only") {
@@ -318,6 +379,7 @@ export function matchesFilters(
 		return false;
 	}
 	if (filters.unscheduled && (task.dueDate || task.startDate)) return false;
+	if (filters.overdue && !(task.dueDate && task.dueDate.slice(0, 10) < today && isOpen(context.taxonomies.status, task.status))) return false;
 	if (filters.recurring && !task.recurrence) return false;
 	// Checklists (checklists.ts): `checklist:any|unset|open|done|<name>`,
 	// plus the older flags a filter saved before them may still carry.
@@ -355,32 +417,40 @@ export function matchesFilters(
 	if (!matchesTaskLinks(task.relations.blocks, filters.blocks)) return false;
 	if (!matchesTaskLinks(task.relations.blockedBy, filters.blockedBy, context)) return false;
 	if (!matchesTaskLinks(task.relations.related, filters.related)) return false;
+	// T-0951: a task's own numbers, who made it, who commented, its
+	// sub-tasks and whether it's internal.
+	if (!matchesNumbers(task.estimate, filters.estimate)) return false;
+	if (!matchesNumbers(task.commentCount || null, filters.comments)) return false;
+	if (!matchesPeopleList(task.createdBy ? [task.createdBy] : [], filters.creator, context)) return false;
+	if (!matchesPeopleList(task.commenters ?? [], filters.commenter, context)) return false;
+	if (filters.child?.length && !matchesChildren(task, filters.child, context)) return false;
+	if (filters.internal !== undefined && Boolean(task.internal) !== filters.internal) return false;
 
 	if (!matchesCustomFilters(task, filters.custom, context)) return false;
 
-	if (!matchesDateExact(task.dueDate, filters.dueDate)) return false;
-	if (!matchesDateRange(task.dueDate, filters.dueDateBefore, filters.dueDateAfter))
+	if (!matchesDateExact(today, task.dueDate, filters.dueDate)) return false;
+	if (!matchesDateRange(today, task.dueDate, filters.dueDateBefore, filters.dueDateAfter))
 		return false;
-	if (!matchesDateExact(task.startDate, filters.startDate)) return false;
+	if (!matchesDateExact(today, task.startDate, filters.startDate)) return false;
 	if (
-		!matchesDateRange(task.startDate, filters.startDateBefore, filters.startDateAfter)
+		!matchesDateRange(today, task.startDate, filters.startDateBefore, filters.startDateAfter)
 	)
 		return false;
-	if (!matchesDateExact(task.createdAt, filters.createdAt)) return false;
+	if (!matchesDateExact(today, task.createdAt, filters.createdAt)) return false;
 	if (
-		!matchesDateRange(task.createdAt, filters.createdAtBefore, filters.createdAtAfter)
+		!matchesDateRange(today, task.createdAt, filters.createdAtBefore, filters.createdAtAfter)
 	)
 		return false;
-	if (!matchesDateExact(task.updatedAt, filters.updatedAt)) return false;
+	if (!matchesDateExact(today, task.updatedAt, filters.updatedAt)) return false;
 	if (
-		!matchesDateRange(task.updatedAt, filters.updatedAtBefore, filters.updatedAtAfter)
+		!matchesDateRange(today, task.updatedAt, filters.updatedAtBefore, filters.updatedAtAfter)
 	)
 		return false;
-	if (!matchesDateExact(task.startedAt, filters.startedAt)) return false;
-	if (!matchesDateRange(task.startedAt, filters.startedAtBefore, filters.startedAtAfter)) return false;
-	if (!matchesDateExact(task.completedAt, filters.completedAt)) return false;
+	if (!matchesDateExact(today, task.startedAt, filters.startedAt)) return false;
+	if (!matchesDateRange(today, task.startedAt, filters.startedAtBefore, filters.startedAtAfter)) return false;
+	if (!matchesDateExact(today, task.completedAt, filters.completedAt)) return false;
 	if (
-		!matchesDateRange(
+		!matchesDateRange(today, 
 			task.completedAt,
 			filters.completedAtBefore,
 			filters.completedAtAfter,
@@ -394,8 +464,8 @@ export function matchesFilters(
 		const after = filters[`${field}After`];
 		if (!exact?.length && !before && !after) continue;
 		const value = linkedDate(task, field, context);
-		if (!matchesDateExact(value, exact)) return false;
-		if (!matchesDateRange(value, before, after)) return false;
+		if (!matchesDateExact(today, value, exact)) return false;
+		if (!matchesDateRange(today, value, before, after)) return false;
 	}
 
 	for (const field of LINKED_FOLDER_FIELD_KEYS) {
@@ -459,32 +529,37 @@ export function matchesFilters(
 		return false;
 	if (filters.excludeRelated?.length && matchesTaskLinks(task.relations.related, filters.excludeRelated))
 		return false;
+	if (filters.excludeEstimate?.length && matchesNumbers(task.estimate, filters.excludeEstimate)) return false;
+	if (filters.excludeComments?.length && matchesNumbers(task.commentCount || null, filters.excludeComments)) return false;
+	if (filters.excludeCreator?.length && matchesPeopleList(task.createdBy ? [task.createdBy] : [], filters.excludeCreator, context)) return false;
+	if (filters.excludeCommenter?.length && matchesPeopleList(task.commenters ?? [], filters.excludeCommenter, context)) return false;
+	if (filters.excludeChild?.length && matchesChildren(task, filters.excludeChild, context)) return false;
 
-	if (filters.excludeDueDate?.length && matchesDateExact(task.dueDate, filters.excludeDueDate))
+	if (filters.excludeDueDate?.length && matchesDateExact(today, task.dueDate, filters.excludeDueDate))
 		return false;
 	if (
 		filters.excludeStartDate?.length &&
-		matchesDateExact(task.startDate, filters.excludeStartDate)
+		matchesDateExact(today, task.startDate, filters.excludeStartDate)
 	)
 		return false;
 	if (
 		filters.excludeCreatedAt?.length &&
-		matchesDateExact(task.createdAt, filters.excludeCreatedAt)
+		matchesDateExact(today, task.createdAt, filters.excludeCreatedAt)
 	)
 		return false;
 	if (
 		filters.excludeUpdatedAt?.length &&
-		matchesDateExact(task.updatedAt, filters.excludeUpdatedAt)
+		matchesDateExact(today, task.updatedAt, filters.excludeUpdatedAt)
 	)
 		return false;
-	if (filters.excludeStartedAt?.length && matchesDateExact(task.startedAt, filters.excludeStartedAt)) return false;
+	if (filters.excludeStartedAt?.length && matchesDateExact(today, task.startedAt, filters.excludeStartedAt)) return false;
 	for (const field of LINKED_DATE_FIELD_KEYS) {
 		const excluded = filters[linkedDateExcludeKey(field)];
-		if (excluded?.length && matchesDateExact(linkedDate(task, field, context), excluded)) return false;
+		if (excluded?.length && matchesDateExact(today, linkedDate(task, field, context), excluded)) return false;
 	}
 	if (
 		filters.excludeCompletedAt?.length &&
-		matchesDateExact(task.completedAt, filters.excludeCompletedAt)
+		matchesDateExact(today, task.completedAt, filters.excludeCompletedAt)
 	)
 		return false;
 
@@ -492,6 +567,11 @@ export function matchesFilters(
 		const needle = filters.text.trim().toLowerCase();
 		const haystack = `${task.title} ${task.id}`.toLowerCase();
 		if (!haystack.includes(needle)) return false;
+	}
+
+	if (filters.description?.trim()) {
+		const needle = filters.description.trim().toLowerCase();
+		if (!(task.description ?? "").toLowerCase().includes(needle)) return false;
 	}
 
 	for (const field of LINKED_NAME_FIELD_KEYS) {
@@ -568,9 +648,12 @@ export function applyFilters(
 export type ArrayFilterKey = Exclude<
 	keyof ViewFilters,
 	| "text"
+	| "description"
+	| "internal"
 	| "archived"
 	| "openOnly"
 	| "unscheduled"
+	| "overdue"
 	| "recurring"
 	| "hasChecklist"
 	| "checklistOpen"
@@ -609,6 +692,11 @@ export type ArrayFilterKey = Exclude<
 	| "excludeUpdatedAt"
 	| "excludeStartedAt"
 	| "excludeCompletedAt"
+	| "excludeEstimate"
+	| "excludeComments"
+	| "excludeCreator"
+	| "excludeCommenter"
+	| "excludeChild"
 	| LinkedDateBoundKey
 	| LinkedDateExcludeKey
 	| LinkedFolderExcludeKey
@@ -631,6 +719,11 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"blocks",
 	"blockedBy",
 	"related",
+	"estimate",
+	"comments",
+	"creator",
+	"commenter",
+	"child",
 	"dueDate",
 	"startDate",
 	"createdAt",
@@ -664,6 +757,11 @@ export type ExcludeFilterKey =
 	| "excludeUpdatedAt"
 	| "excludeStartedAt"
 	| "excludeCompletedAt"
+	| "excludeEstimate"
+	| "excludeComments"
+	| "excludeCreator"
+	| "excludeCommenter"
+	| "excludeChild"
 	| LinkedDateExcludeKey
 	| LinkedFolderExcludeKey;
 
@@ -689,6 +787,11 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	blocks: "excludeBlocks",
 	blockedBy: "excludeBlockedBy",
 	related: "excludeRelated",
+	estimate: "excludeEstimate",
+	comments: "excludeComments",
+	creator: "excludeCreator",
+	commenter: "excludeCommenter",
+	child: "excludeChild",
 	dueDate: "excludeDueDate",
 	startDate: "excludeStartDate",
 	createdAt: "excludeCreatedAt",
@@ -763,6 +866,9 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 
 	const text = filters.text?.trim();
 	if (text) out.text = text;
+	const description = filters.description?.trim();
+	if (description) out.description = description;
+	if (filters.internal !== undefined) out.internal = filters.internal;
 	for (const field of LINKED_NAME_FIELD_KEYS) {
 		const name = filters[field]?.trim();
 		if (name) out[field] = name;
@@ -770,6 +876,7 @@ export function canonicalizeFilters(filters: ViewFilters): ViewFilters {
 	if (filters.archived) out.archived = filters.archived;
 	if (filters.openOnly) out.openOnly = true;
 	if (filters.unscheduled) out.unscheduled = true;
+	if (filters.overdue) out.overdue = true;
 	if (filters.recurring) out.recurring = true;
 	// `checklist:` values in the order typed, each once (names compared as
 	// checklistNameKey does). The older `has:checklist` / `is:checklist-open`
@@ -978,9 +1085,22 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeRelated?.length &&
 		!filters.mentions?.length &&
 		!filters.text?.trim() &&
+		!filters.description?.trim() &&
+		filters.internal === undefined &&
+		!filters.estimate?.length &&
+		!filters.excludeEstimate?.length &&
+		!filters.comments?.length &&
+		!filters.excludeComments?.length &&
+		!filters.creator?.length &&
+		!filters.excludeCreator?.length &&
+		!filters.commenter?.length &&
+		!filters.excludeCommenter?.length &&
+		!filters.child?.length &&
+		!filters.excludeChild?.length &&
 		LINKED_NAME_FIELD_KEYS.every((field) => !filters[field]?.trim()) &&
 		!filters.custom?.length &&
 		!filters.recurring &&
+		!filters.overdue &&
 		!filters.hasChecklist &&
 		!filters.checklistOpen &&
 		!filters.checklist?.length &&

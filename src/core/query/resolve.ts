@@ -12,7 +12,8 @@
  * directions.
  */
 
-import { isValidIsoDay } from "../date";
+import { normalizeNumberValue } from "../number-values";
+import { normalizeDateValue } from "../relative-dates";
 import { normalizeFolderPath } from "../folders";
 import { basename, parseLink } from "../links";
 import { findValueByName, findValueByQualifiedName, findValuesByName, getValue, type Taxonomy } from "../taxonomy";
@@ -303,15 +304,27 @@ export function resolveValue(
 		};
 	}
 
+	// `5`, `>3`, `3..8` (number-values.ts), kept tidied as written.
+	if (spec.resolveAs === "number") {
+		const number = normalizeNumberValue(raw);
+		if (number) return { value: number };
+		return {
+			value: raw,
+			issue: { severity: "warning", code: "unknown-value", message: `"${raw}" isn't a number (5, >3, <=2, 3..8) - keeping it as written` },
+		};
+	}
+
 	if (spec.resolveAs === "date") {
-		const trimmed = raw.trim();
-		if (isValidIsoDay(trimmed)) return { value: trimmed };
+		// A day, a word for one, a period or a range (relative-dates.ts),
+		// kept as written and read against today when the query runs.
+		const date = normalizeDateValue(raw);
+		if (date) return { value: date };
 		return {
 			value: raw,
 			issue: {
 				severity: "warning",
 				code: "unknown-value",
-				message: `"${raw}" isn't a valid date (expected YYYY-MM-DD) - keeping it as written`,
+				message: `"${raw}" isn't a date (YYYY-MM-DD, today, today-7d, this-week) - keeping it as written`,
 			},
 		};
 	}

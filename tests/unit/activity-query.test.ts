@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sampleSnapshot } from "../../src/core/templates/instantiate";
 import { queryContext, type QueryContext } from "../../src/core/query";
 import {
+	activityDays,
 	activityItemFilters,
 	activityItemScopeActive,
 	activityListDelta,
@@ -78,7 +79,17 @@ describe("parseActivityQuery", () => {
 	it("takes date bounds and rejects bad dates", () => {
 		const parsed = parseActivityQuery("activity-after:2026-09-01 activity-before:2026-10-01", ctx);
 		expect(parsed.query.activity).toEqual({ after: "2026-09-01", before: "2026-10-01" });
-		expect(parseActivityQuery("activity-after:last-week", ctx).ok).toBe(false);
+		expect(parseActivityQuery("activity-after:soon", ctx).ok).toBe(false);
+	});
+
+	it("keeps relative dates as written and reads them against today (T-0950)", () => {
+		const parsed = parseActivityQuery("activity.after:last-week activity.before:Today", ctx);
+		expect(parsed.ok).toBe(true);
+		expect(parsed.query.activity).toEqual({ after: "last-week", before: "today" });
+		expect(printActivityQuery(parsed.query, ctx)).toContain("activity.after:last-week");
+		// After last week is after its Sunday; before today is before today.
+		expect(activityDays(parsed.query.activity, "2026-10-21")).toEqual({ after: "2026-10-18", before: "2026-10-21" });
+		expect(activityDays({ after: "2026-09-01" }, "2026-10-21")).toEqual({ after: "2026-09-01" });
 	});
 
 	it("flags unknown values and layout clauses", () => {

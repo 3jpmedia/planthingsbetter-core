@@ -23,6 +23,7 @@
  */
 
 import { inFolder } from "../folders";
+import { dateSpan, todayIn } from "../relative-dates";
 import { ANY_KEYWORDS, RESULT_KINDS, SELF_KEYWORDS, UNSET_KEYWORDS } from "./grammar";
 import { lex, type LexedToken, type LexedValue } from "./lex";
 import type { QueryIssue, QuerySpan } from "./types";
@@ -340,6 +341,9 @@ export interface KindMatchContext {
 	/** The day of an item's date, for comparing; defaults to its first ten
 	 *  characters (`2026-10-15T...` -> `2026-10-15`). */
 	dayOf?: (value: string) => string;
+	/** The day relative dates (`today`, `this-week`) are read against
+	 *  (relative-dates.ts); absent, this runtime's local day. */
+	today?: string;
 }
 
 /** `kind:key` -> item, for following links. */
@@ -389,9 +393,11 @@ function ownMatch(item: KindItem, clause: KindClause, context: KindMatchContext)
 		if (spec.type === "folder") return values.some((value) => inFolder(value, raw));
 		if (spec.type === "date") {
 			const days = values.map(dayOf);
-			if (clause.bound === "before") return days.some((day) => day < raw);
-			if (clause.bound === "after") return days.some((day) => day > raw);
-			return days.includes(raw);
+			// A day, a word for one or a period; anything else only matches itself.
+			const span = dateSpan(raw, context.today ?? todayIn()) ?? { from: raw, to: raw };
+			if (clause.bound === "before") return days.some((day) => day < span.from);
+			if (clause.bound === "after") return days.some((day) => day > span.to);
+			return days.some((day) => span.from <= day && day <= span.to);
 		}
 		if (spec.type === "flag") return lower.includes(FLAG_WORDS[wanted] ?? wanted);
 		if (SELF.has(wanted) && context.self?.length) return context.self.some((self) => lower.includes(self.toLowerCase()));

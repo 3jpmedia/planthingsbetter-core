@@ -18,7 +18,7 @@
  *   the same filter, printed the first way.
  */
 
-import { isValidIsoDay } from "../date";
+import { normalizeDateValue } from "../relative-dates";
 import { SELF, type CustomFieldDef, type CustomFieldMatch } from "../types";
 import type { QueryContext } from "./context";
 import { ANY_KEYWORDS, SELF_KEYWORDS, UNSET_KEYWORDS, VERBATIM_PREFIX } from "./grammar";
@@ -83,9 +83,10 @@ export function parseCustomValue(
 				issue: { severity: "error", code: "not-expressible", message: `${token} can't be compared - only numbers and dates can` },
 			};
 		}
-		const valid = field.type === "number" ? value !== "" && Number.isFinite(Number(value)) : isValidIsoDay(value);
+		const date = field.type === "date" ? normalizeDateValue(value) : null;
+		const valid = field.type === "number" ? value !== "" && Number.isFinite(Number(value)) : date !== null;
 		return {
-			match: { op, value: field.type === "number" && valid ? String(Number(value)) : value },
+			match: { op, value: field.type === "number" && valid ? String(Number(value)) : (date ?? value) },
 			issue: valid
 				? undefined
 				: { severity: "warning", code: "unknown-value", message: `"${value}" isn't ${field.type === "number" ? "a number" : "a date (YYYY-MM-DD)"} - keeping it as written` },
@@ -120,11 +121,14 @@ export function parseCustomValue(
 				issue: valid ? undefined : { severity: "warning", code: "unknown-value", message: `"${text}" isn't a number - keeping it as written` },
 			};
 		}
-		case "date":
+		case "date": {
+			// A day, or a word for one kept as written (relative-dates.ts).
+			const date = normalizeDateValue(text);
 			return {
-				match: { op: "eq", value: text },
-				issue: isValidIsoDay(text) ? undefined : { severity: "warning", code: "unknown-value", message: `"${text}" isn't a date (YYYY-MM-DD) - keeping it as written` },
+				match: { op: "eq", value: date ?? text },
+				issue: date ? undefined : { severity: "warning", code: "unknown-value", message: `"${text}" isn't a date (YYYY-MM-DD, today, today-7d, this-week) - keeping it as written` },
 			};
+		}
 		case "checkbox": {
 			if (TRUE.has(lower(text))) return { match: { op: "eq", value: "true" } };
 			if (FALSE.has(lower(text))) return { match: { op: "eq", value: "false" } };

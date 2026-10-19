@@ -56,6 +56,7 @@ export type ResolveAs =
 	| "space"
 	| "task"
 	| "date"
+	| "number"
 	| "folder";
 
 export interface FilterFieldSpec {
@@ -186,6 +187,40 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "task",
 		unsetIsVacuous: false,
 	},
+	// A task's own numbers (T-0951), compared as custom number fields are:
+	// `estimate:>3`, `comments:3..8`; `unset` is none.
+	estimate: {
+		token: "estimate",
+		aliases: ["estimates"],
+		resolveAs: "number",
+		unsetIsVacuous: false,
+	},
+	comments: {
+		token: "comments",
+		aliases: ["comment-count"],
+		resolveAs: "number",
+		unsetIsVacuous: false,
+	},
+	// Who made it, and who commented (`comment.by:`, as `activity.by:` is).
+	creator: {
+		token: "creator",
+		aliases: ["created-by", "createdby", "author", "creator.key"],
+		resolveAs: "person",
+		unsetIsVacuous: false,
+	},
+	commenter: {
+		token: "comment.by",
+		aliases: ["commenter", "commented-by", "commentedby"],
+		resolveAs: "person",
+		unsetIsVacuous: false,
+	},
+	// `child:T-0042` is T-0042's parent; `child:any` has sub-tasks.
+	child: {
+		token: "child",
+		aliases: ["children", "child.key"],
+		resolveAs: "task",
+		unsetIsVacuous: false,
+	},
 	dueDate: {
 		token: "due",
 		aliases: ["duedate", "due-date"],
@@ -265,6 +300,12 @@ function linkedDateToken(field: LinkedDateField): string {
  *  (printed before that), `title`, `text` and `search` stay aliases so
  *  nothing already typed or saved breaks. */
 export const TEXT_FIELD = { token: "name", aliases: ["tasktitle", "title", "text", "search", "task.name", "task.title"] };
+
+/** `description:` -- words in a task's description (T-0951). */
+export const DESCRIPTION_FIELD = { token: "description", aliases: ["desc"] } as const;
+
+/** `internal:yes` / `internal:no` -- internal tasks, or the rest (T-0951). */
+export const INTERNAL_FIELD = { token: "internal", aliases: [] } as const;
 
 /**
  * A linked item's name, as free text: `project.name:web`, tasks whose
@@ -530,6 +571,7 @@ export const FLAG_TOKENS = {
 	archivedOnly: { field: "show", value: "archived-only", aliases: [] },
 	openOnly: { field: "is", value: "open", aliases: [] },
 	unscheduled: { field: "is", value: "unscheduled", aliases: [] },
+	overdue: { field: "is", value: "overdue", aliases: [] },
 	recurring: { field: "is", value: "recurring", aliases: [] },
 	recurringPreview: { field: "show", value: "recurring", aliases: [] },
 } as const;
@@ -749,4 +791,7 @@ export const ALL_FIELD_TOKENS: readonly string[] = [
 	"include",
 	CHECKLIST_FIELD.token,
 	...CHECKLIST_FIELD.aliases,
+	DESCRIPTION_FIELD.token,
+	...DESCRIPTION_FIELD.aliases,
+	INTERNAL_FIELD.token,
 ];

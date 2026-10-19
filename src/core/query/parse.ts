@@ -31,7 +31,7 @@ import type {
 } from "../types";
 import { ANY, NONE } from "../types";
 import { CHECKLIST_DONE, CHECKLIST_OPEN } from "../checklists";
-import { isValidIsoDay } from "../date";
+import { normalizeDateValue } from "../relative-dates";
 import { canonicalizeDefinition, EXCLUDE_FIELD_KEY } from "../views/filter";
 import { isGroupableCustomField } from "../views/group";
 import { DEFAULT_DEFINITION } from "../views/defaults";
@@ -42,6 +42,8 @@ import {
 	CANVAS_DIRECTION_BY_TOKEN,
 	CANVAS_LAYOUT_BY_TOKEN,
 	CHECKLIST_FIELD,
+	DESCRIPTION_FIELD,
+	INTERNAL_FIELD,
 	TIMELINE_ZOOM_BY_TOKEN,
 	DATE_BOUND_FIELD_BY_TOKEN,
 	DATE_FIELD_BY_TOKEN,
@@ -71,6 +73,9 @@ import { lex, type LexedToken } from "./lex";
 import { resolveValue } from "./resolve";
 import { CUSTOM_PREFIX, customFieldForToken, customFieldTokens, parseCustomValue } from "./custom";
 import type { ParsedQuery, QueryIssue, QuerySpan } from "./types";
+
+const YES_WORDS = new Set(["yes", "true", "y", "1", "on"]);
+const NO_WORDS = new Set(["no", "false", "n", "0", "off"]);
 
 /* --------------------------------------------------------- suggestions ---- */
 
@@ -321,6 +326,35 @@ export function parseQueryTokens(
 			continue;
 		}
 
+		/* -- `description:` words, `internal:yes|no` (T-0951) -- */
+
+		if (field === DESCRIPTION_FIELD.token || (DESCRIPTION_FIELD.aliases as readonly string[]).includes(field)) {
+			if (token.excluded) {
+				fail("not-expressible", `"-${token.field}:" isn't supported - search for the words you want`, token.span);
+				continue;
+			}
+			if (token.values.length === 0) {
+				fail("empty-value", `"${token.field}" needs a value`, token.span);
+				continue;
+			}
+			noteDuplicate(DESCRIPTION_FIELD.token, token.span);
+			const text = token.values.map((value) => value.text).join(" ").trim();
+			if (text) filters.description = text;
+			continue;
+		}
+
+		if (field === INTERNAL_FIELD.token) {
+			const value = soleValue(token);
+			if (!value) continue;
+			noteDuplicate(INTERNAL_FIELD.token, token.span);
+			const word = value.text.trim().toLowerCase();
+			const yes = YES_WORDS.has(word);
+			if (!yes && !NO_WORDS.has(word)) fail("unknown-value", `"${token.field}" takes yes or no`, value.span);
+			// `-internal:yes` is `internal:no`.
+			else filters.internal = token.excluded ? !yes : yes;
+			continue;
+		}
+
 		// Exclusion only makes sense on a real filter field, never on layout
 		// clauses, flags, range bounds, or free text.
 		if (
@@ -349,6 +383,8 @@ export function parseQueryTokens(
 				filters.openOnly = true;
 			} else if (lowered === FLAG_TOKENS.unscheduled.value) {
 				filters.unscheduled = true;
+			} else if (lowered === FLAG_TOKENS.overdue.value) {
+				filters.overdue = true;
 			} else if (lowered === FLAG_TOKENS.recurring.value) {
 				filters.recurring = true;
 			} else if (lowered === LEGACY_CHECKLIST_FLAGS.checklistOpen.value) {
@@ -593,14 +629,16 @@ export function parseQueryTokens(
 			if (!value) continue;
 			noteDuplicate(dateBoundKey, token.span);
 			const raw = value.text.trim();
-			if (!isValidIsoDay(raw)) {
+			// A day, or a word for one kept as written (relative-dates.ts).
+			const date = normalizeDateValue(raw);
+			if (!date) {
 				fail(
 					"unknown-value",
-					`"${raw}" isn't a valid date (expected YYYY-MM-DD)`,
+					`"${raw}" isn't a date (YYYY-MM-DD, today, today-7d, this-week)`,
 					value.span,
 				);
 			} else {
-				filters[dateBoundKey] = raw;
+				filters[dateBoundKey] = date;
 			}
 			continue;
 		}

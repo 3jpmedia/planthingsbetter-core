@@ -10,7 +10,7 @@
  * the task query bar's two-way sync rests on.
  */
 
-import { isValidIsoDay } from "../date";
+import { dateSpan, normalizeDateValue } from "../relative-dates";
 import type { QueryContext } from "../query/context";
 import { KIND_FIELD, LAYOUT_ONLY_CLAUSES, type EnumValueSpec, type FilterFieldSpec } from "../query/grammar";
 import { lex, type LexedToken } from "../query/lex";
@@ -18,7 +18,7 @@ import { parseQueryTokens } from "../query/parse";
 import { printFilters, printValue } from "../query/print";
 import { resolveValue } from "../query/resolve";
 import type { QueryIssue, QuerySpan } from "../query/types";
-import { NONE, type ViewFilters } from "../types";
+import { NONE, type IsoDate, type ViewFilters } from "../types";
 import { canonicalizeFilters } from "../views/filter";
 import {
 	ACTIVITY_CLAUSE_BY_TOKEN,
@@ -78,6 +78,18 @@ export function canonicalizeActivityFilters(filters: ActivityFilters): ActivityF
 	}
 	if (filters.after) out.after = filters.after;
 	if (filters.before) out.before = filters.before;
+	return out;
+}
+
+/**
+ * `activity.after:` / `activity.before:` as days on `today`: after a
+ * period is after its last day, before one before its first. A value that
+ * isn't a date (one saved by hand) is passed on as it is.
+ */
+export function activityDays(filters: Pick<ActivityFilters, "after" | "before">, today: IsoDate): { after?: IsoDate; before?: IsoDate } {
+	const out: { after?: IsoDate; before?: IsoDate } = {};
+	if (filters.after) out.after = dateSpan(filters.after, today)?.to ?? filters.after;
+	if (filters.before) out.before = dateSpan(filters.before, today)?.from ?? filters.before;
 	return out;
 }
 
@@ -216,8 +228,11 @@ export function parseActivityQuery(source: string, context: QueryContext): Parse
 
 		if (key === "after" || key === "before") {
 			const raw = token.values[0].text.trim();
-			if (!isValidIsoDay(raw)) fail("unknown-value", `"${raw}" isn't a valid date (expected YYYY-MM-DD)`, token.values[0].span);
-			else activity[key] = raw;
+			// A day, or a word for one kept as written (relative-dates.ts):
+			// `activitySpan` reads it against today when the query runs.
+			const date = normalizeDateValue(raw);
+			if (!date) fail("unknown-value", `"${raw}" isn't a date (YYYY-MM-DD, today, today-7d, this-week)`, token.values[0].span);
+			else activity[key] = date;
 			continue;
 		}
 

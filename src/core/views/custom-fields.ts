@@ -17,7 +17,8 @@ import {
 	type SavedView,
 	type Task,
 } from "../types";
-import type { ViewContext } from "./context";
+import { contextToday, type ViewContext } from "./context";
+import { dateSpan } from "../relative-dates";
 
 /** The field a key names, if the host has it. */
 export function customFieldByKey(context: Pick<ViewContext, "customFields">, key: string): CustomFieldDef | undefined {
@@ -50,17 +51,32 @@ export function customValueOf(task: Task, field: CustomFieldDef): CustomFieldVal
 const day = (value: string) => value.slice(0, 10);
 const TRUE = new Set(["true", "yes", "y", "checked", "1", "on", "done"]);
 
+/** A date value against a day, a word for one or a period
+ *  (relative-dates.ts): before a period is before its first day, after it
+ *  after its last. */
+function matchesDate(value: CustomFieldValue, match: CustomFieldMatch, target: string, context: ViewContext): boolean {
+	if (typeof value !== "string") return false;
+	const actual = day(value);
+	const span = dateSpan(target, contextToday(context)) ?? { from: day(target), to: day(target) };
+	switch (match.op) {
+		case "gt":
+			return actual > span.to;
+		case "gte":
+			return actual >= span.from;
+		case "lt":
+			return actual < span.from;
+		case "lte":
+			return actual <= span.to;
+		default:
+			return span.from <= actual && actual <= span.to;
+	}
+}
+
 function compareTo(field: CustomFieldDef, value: CustomFieldValue, target: string): number | null {
 	if (field.type === "number") {
 		const n = Number(target);
 		if (typeof value !== "number" || !Number.isFinite(n)) return null;
 		return value === n ? 0 : value < n ? -1 : 1;
-	}
-	if (field.type === "date") {
-		if (typeof value !== "string") return null;
-		const a = day(value);
-		const b = day(target);
-		return a === b ? 0 : a < b ? -1 : 1;
 	}
 	return null;
 }
@@ -73,6 +89,7 @@ function matchesOne(task: Task, field: CustomFieldDef, match: CustomFieldMatch, 
 	if (field.type === "checkbox" && match.op === "eq" && match.value != null) return (value === true) === TRUE.has(match.value.toLowerCase());
 	if (value === undefined || match.value == null) return false;
 	const target = match.value === SELF ? (context.selfId ?? "\u0000") : match.value;
+	if (field.type === "date") return matchesDate(value, match, target, context);
 	if (match.op !== "eq") {
 		const order = compareTo(field, value, target);
 		if (order === null) return false;
@@ -85,7 +102,6 @@ function matchesOne(task: Task, field: CustomFieldDef, match: CustomFieldMatch, 
 		case "member":
 			return Array.isArray(value) ? value.includes(target) : value === target;
 		case "number":
-		case "date":
 			return compareTo(field, value, target) === 0;
 		default:
 			return String(value).toLowerCase().includes(target.toLowerCase());

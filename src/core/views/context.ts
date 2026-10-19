@@ -3,9 +3,11 @@
  */
 
 import { scopeOf, type HierarchyScope } from "../hierarchy";
+import { todayIn } from "../relative-dates";
 import { workspaceTaxonomies, type WorkspaceTaxonomies } from "../taxonomy";
 import type {
 	CustomFieldDef,
+	IsoDate,
 	LinkTarget,
 	Milestone,
 	Person,
@@ -50,6 +52,17 @@ export interface ViewContext {
 	/** The workspace's custom fields, for clauses and sorts that name one
 	 *  (views/custom-fields.ts). Absent without a full snapshot. */
 	customFields?: CustomFieldDef[];
+	/**
+	 * The day relative dates (`due-before:today`, `this-week` -- see
+	 * relative-dates.ts) and `is:overdue` are read against, as `YYYY-MM-DD`
+	 * in the viewer's own calendar. Absent, this runtime's local day.
+	 */
+	today?: IsoDate;
+}
+
+/** The day a context reads relative dates against. */
+export function contextToday(context: Pick<ViewContext, "today">): IsoDate {
+	return context.today ?? todayIn();
 }
 
 /** The roster person the given `personId` names, if this workspace has that id. */

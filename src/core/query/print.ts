@@ -47,6 +47,8 @@ import {
 	OPEN_KEYWORD,
 	LINKED_NAME_TOKENS,
 	TEXT_FIELD,
+	DESCRIPTION_FIELD,
+	INTERNAL_FIELD,
 	VERBATIM_PREFIX,
 	type FilterFieldSpec,
 } from "./grammar";
@@ -298,6 +300,8 @@ export function printFilters(
 	}
 
 	if (canonical.text) parts.push(printText(canonical.text));
+	if (canonical.description) parts.push(printText(canonical.description, DESCRIPTION_FIELD.token));
+	if (canonical.internal !== undefined) parts.push(`${INTERNAL_FIELD.token}:${canonical.internal ? "yes" : "no"}`);
 	for (const field of LINKED_NAME_FIELD_KEYS) {
 		const name = canonical[field];
 		if (name) parts.push(printText(name, LINKED_NAME_TOKENS[field].token));
@@ -319,6 +323,9 @@ export function printFilters(
 		parts.push(
 			`${FLAG_TOKENS.unscheduled.field}:${FLAG_TOKENS.unscheduled.value}`,
 		);
+	}
+	if (canonical.overdue) {
+		parts.push(`${FLAG_TOKENS.overdue.field}:${FLAG_TOKENS.overdue.value}`);
 	}
 	if (canonical.recurring) {
 		parts.push(`${FLAG_TOKENS.recurring.field}:${FLAG_TOKENS.recurring.value}`);

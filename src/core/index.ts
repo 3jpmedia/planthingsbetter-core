@@ -5,6 +5,7 @@
  */
 
 export * from "./types";
+export * from "./relative-dates";
 export * from "./checklists";
 export * from "./links";
 export * from "./folders";

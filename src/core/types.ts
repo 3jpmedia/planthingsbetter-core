@@ -517,6 +517,19 @@ export interface Task {
 	 * read as 0 when absent.
 	 */
 	commentCount?: number;
+	/**
+	 * Who made it (`Person.id`), where the app records it; absent or null
+	 * when it doesn't. `creator:` matches on it (T-0951).
+	 */
+	createdBy?: string | null;
+	/** Who has commented on it (`Person.id`s), where the app knows;
+	 *  `comment.by:` matches on it. */
+	commenters?: string[];
+	/** Its description, where the app has it at hand; `description:`
+	 *  searches it. */
+	description?: string;
+	/** Hidden from guests (the web app's internal tasks); `internal:`. */
+	internal?: boolean;
 
 	/**
 	 * Its checklists, counted: each list's name with how many of its items
@@ -1053,6 +1066,25 @@ export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters, Linke
 	mentions?: string[];
 	/** Free-text match against title. */
 	text?: string;
+	/** `description:` -- words in its description (`Task.description`). */
+	description?: string;
+	/** `internal:yes` (true) / `internal:no` (false): internal tasks, or
+	 *  everything else. */
+	internal?: boolean;
+	/** `estimate:` / `comments:` (T-0951): numbers compared, OR'd -- `5`,
+	 *  `>3`, `<=2`, `3..8` (number-values.ts) -- or `NONE` for none (no
+	 *  estimate; no comments). */
+	estimate?: string[];
+	comments?: string[];
+	/** `creator:` -- who made it (`Task.createdBy`), people as `assignee`
+	 *  takes them; `NONE` is not known. */
+	creator?: string[];
+	/** `comment.by:` -- someone who commented (`Task.commenters`); `NONE`
+	 *  is no comments. */
+	commenter?: string[];
+	/** `child:` -- tasks with that sub-task, OR'd; `NONE` is no sub-tasks
+	 *  (`child:any` has some). */
+	child?: string[];
 	/**
 	 * Archived-task visibility. Defaults to hidden. `"included"` mixes archived
 	 * tasks in with everything else; `"only"` filters to just them.
@@ -1062,6 +1094,8 @@ export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters, Linke
 	openOnly?: boolean;
 	/** Only tasks with neither a dueDate nor a startDate set. */
 	unscheduled?: boolean;
+	/** `is:overdue`: open tasks due before today (`ViewContext.today`). */
+	overdue?: boolean;
 	/** Only tasks carrying a live recurrence definition. */
 	recurring?: boolean;
 	/**
@@ -1146,6 +1180,11 @@ export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters, Linke
 	excludeUpdatedAt?: string[];
 	excludeStartedAt?: string[];
 	excludeCompletedAt?: string[];
+	excludeEstimate?: string[];
+	excludeComments?: string[];
+	excludeCreator?: string[];
+	excludeCommenter?: string[];
+	excludeChild?: string[];
 }
 
 /** Per-Saved-View, not global. */
