@@ -31,6 +31,7 @@ const GROUPING_LABEL: Record<DashboardGroupingField, string> = {
   assignee: "Assignee",
   project: "Project",
   milestone: "Milestone",
+  space: "Space",
 };
 
 const TEMPORAL_LABEL: Record<DashboardTemporalField, string> = {
@@ -112,6 +113,8 @@ export function valueLabel(
       return context.titles?.get(value) ?? basename(value);
     case "milestone":
       return context.milestones?.get(value)?.title ?? basename(value);
+    case "space":
+      return context.spaces?.get(value)?.title ?? basename(value);
   }
 }
 

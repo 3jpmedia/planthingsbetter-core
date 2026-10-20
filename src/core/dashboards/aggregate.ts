@@ -117,6 +117,8 @@ export function groupKeys(
 			return [task.milestone ?? NONE];
 		case "label":
 			return task.labels.length > 0 ? task.labels.slice() : [NONE];
+		case "space":
+			return [task.space ?? NONE];
 	}
 }
 
@@ -195,6 +197,7 @@ export function matchesScope(
 ): boolean {
 	const keys = groupKeys(task, scope.field, context);
 	if (scope.field === "milestone" && scope.value === NONE) return task.milestone == null;
+	if (scope.field === "space" && scope.value === NONE) return task.space == null;
 	if (scope.field === "project") {
 		if (scope.value === NONE) return task.project == null;
 		return keys.some(

@@ -83,6 +83,7 @@ const NO_VALUE_LABELS: Record<BuiltInGroupByField, string> = {
 	project: "No Project",
 	milestone: "No Milestone",
 	label: "No Labels",
+	space: "No Space",
 };
 
 /** The group key(s) a task belongs to. Only `label`, a multi-select and a
@@ -109,6 +110,8 @@ function keysFor(task: Task, groupBy: GroupByField, context: ViewContext): strin
 			return [task.milestone ?? NONE];
 		case "label":
 			return task.labels.length > 0 ? task.labels.slice() : [NONE];
+		case "space":
+			return [task.space ?? NONE];
 	}
 }
 
@@ -141,6 +144,8 @@ function labelFor(
 			return context.titles?.get(key) ?? basename(key);
 		case "milestone":
 			return context.milestones?.get(key)?.title ?? basename(key);
+		case "space":
+			return context.spaces?.get(key)?.title ?? basename(key);
 		default:
 			return key;
 	}
@@ -226,7 +231,7 @@ function orderedKeys(
 		return keys;
 	}
 
-	// Link grouping (project): only what's actually in play, alphabetically,
+	// Link grouping (project, Space): only what's actually in play, alphabetically,
 	// with the "no value" bucket last.
 	const keys = [...present].filter((key) => key !== NONE);
 	keys.sort((a, b) =>

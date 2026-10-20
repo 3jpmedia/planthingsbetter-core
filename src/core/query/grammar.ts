@@ -373,6 +373,7 @@ export const GROUP_VALUES: Record<BuiltInGroupByField, EnumValueSpec> = {
 	label: { token: "label", aliases: ["labels", "tag", "tags"] },
 	project: { token: "project", aliases: [] },
 	milestone: { token: "milestone", aliases: ["ms"] },
+	space: { token: "space", aliases: ["spaces"] },
 };
 
 export const SORT_VALUES: Record<SortField, EnumValueSpec> = {

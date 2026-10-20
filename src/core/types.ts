@@ -860,7 +860,9 @@ export type BuiltInGroupByField =
 	| "assignee"
 	| "project"
 	| "milestone"
-	| "label";
+	| "label"
+	// The Space a task is kept in (T-0984); workspace-wide tasks are "No Space".
+	| "space";
 
 /**
  * What a view groups by: a built-in grouping, or a select, multi-select or
@@ -1451,7 +1453,8 @@ export type DashboardGroupingField =
 	| "label"
 	| "assignee"
 	| "project"
-	| "milestone";
+	| "milestone"
+	| "space";
 
 export const DASHBOARD_GROUPING_FIELDS: readonly DashboardGroupingField[] = [
 	"status",
@@ -1461,6 +1464,7 @@ export const DASHBOARD_GROUPING_FIELDS: readonly DashboardGroupingField[] = [
 	"assignee",
 	"project",
 	"milestone",
+	"space",
 ] as const;
 
 /**
