@@ -313,10 +313,10 @@ function matchesDateRange(
 
 /** A number (`estimate:`, `comments:`) against stored values
  *  (number-values.ts); no number is `NONE`. */
-function matchesNumbers(actual: number | null | undefined, allowed: string[] | undefined): boolean {
+function matchesNumbers(actual: number | null | undefined, allowed: string[] | undefined, bareHours = false): boolean {
 	if (!allowed || allowed.length === 0) return true;
 	if (actual == null) return allowed.includes(NONE);
-	return allowed.some((value) => value !== NONE && matchesNumberValue(actual, value));
+	return allowed.some((value) => value !== NONE && matchesNumberValue(actual, value, { bareHours }));
 }
 
 /** Some of `ids` is one of the people allowed (`me` included); none at
@@ -419,7 +419,7 @@ export function matchesFilters(
 	if (!matchesTaskLinks(task.relations.related, filters.related)) return false;
 	// T-0951: a task's own numbers, who made it, who commented, its
 	// sub-tasks and whether it's internal.
-	if (!matchesNumbers(task.estimate, filters.estimate)) return false;
+	if (!matchesNumbers(task.estimate, filters.estimate, context.workspace?.estimatesInTime)) return false;
 	if (!matchesNumbers(task.commentCount || null, filters.comments)) return false;
 	if (!matchesPeopleList(task.createdBy ? [task.createdBy] : [], filters.creator, context)) return false;
 	if (!matchesPeopleList(task.commenters ?? [], filters.commenter, context)) return false;
@@ -529,7 +529,7 @@ export function matchesFilters(
 		return false;
 	if (filters.excludeRelated?.length && matchesTaskLinks(task.relations.related, filters.excludeRelated))
 		return false;
-	if (filters.excludeEstimate?.length && matchesNumbers(task.estimate, filters.excludeEstimate)) return false;
+	if (filters.excludeEstimate?.length && matchesNumbers(task.estimate, filters.excludeEstimate, context.workspace?.estimatesInTime)) return false;
 	if (filters.excludeComments?.length && matchesNumbers(task.commentCount || null, filters.excludeComments)) return false;
 	if (filters.excludeCreator?.length && matchesPeopleList(task.createdBy ? [task.createdBy] : [], filters.excludeCreator, context)) return false;
 	if (filters.excludeCommenter?.length && matchesPeopleList(task.commenters ?? [], filters.excludeCommenter, context)) return false;

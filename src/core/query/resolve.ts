@@ -304,13 +304,18 @@ export function resolveValue(
 		};
 	}
 
-	// `5`, `>3`, `3..8` (number-values.ts), kept tidied as written.
+	// `5`, `>3`, `3..8` (number-values.ts), kept tidied as written; an
+	// estimate can be a length of time too (`>2h`, `30m..1d`).
 	if (spec.resolveAs === "number") {
-		const number = normalizeNumberValue(raw);
+		const number = normalizeNumberValue(raw, { durations: spec.token === "estimate" });
 		if (number) return { value: number };
 		return {
 			value: raw,
-			issue: { severity: "warning", code: "unknown-value", message: `"${raw}" isn't a number (5, >3, <=2, 3..8) - keeping it as written` },
+			issue: {
+				severity: "warning",
+				code: "unknown-value",
+				message: `"${raw}" isn't a number (5, >3, <=2, 3..8${spec.token === "estimate" ? ", or a length of time: >2h, 30m..1d" : ""}) - keeping it as written`,
+			},
 		};
 	}
 

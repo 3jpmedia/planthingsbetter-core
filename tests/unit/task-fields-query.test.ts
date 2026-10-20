@@ -44,6 +44,54 @@ describe("number values", () => {
 		expect(matchesNumberValue(3, "3")).toBe(true);
 		expect(matchesNumberValue(3, "nope")).toBe(false);
 	});
+
+	it("reads lengths of time for estimates", () => {
+		expect(normalizeNumberValue(">2H", { durations: true })).toBe(">2h");
+		expect(normalizeNumberValue("1h 30m", { durations: true })).toBe("1h30m");
+		expect(normalizeNumberValue("30m .. 1d", { durations: true })).toBe("30m..1d");
+		expect(normalizeNumberValue("1.50h", { durations: true })).toBe("1.5h");
+		expect(normalizeNumberValue("2h")).toBeNull();
+		expect(normalizeNumberValue("2x", { durations: true })).toBeNull();
+		// Minutes against lengths of time; a bare number is hours when asked.
+		expect(matchesNumberValue(150, ">2h")).toBe(true);
+		expect(matchesNumberValue(90, "1h30m")).toBe(true);
+		expect(matchesNumberValue(480, "1d")).toBe(true);
+		expect(matchesNumberValue(240, "30m..1d")).toBe(true);
+		expect(matchesNumberValue(120, "2", { bareHours: true })).toBe(true);
+		expect(matchesNumberValue(120, ">2", { bareHours: true })).toBe(false);
+		expect(matchesNumberValue(90, "1..2", { bareHours: true })).toBe(true);
+		expect(matchesNumberValue(2, "2")).toBe(true);
+	});
+});
+
+describe("time estimates in queries", () => {
+	const base = sampleSnapshot();
+	const snapshot: WorkspaceSnapshot = {
+		...base,
+		workspace: { ...base.workspace, estimatesInTime: true },
+		tasks: [
+			task({ path: "short", id: "T-1", estimate: 30 }),
+			task({ path: "hour", id: "T-2", estimate: 60 }),
+			task({ path: "half-day", id: "T-3", estimate: 240 }),
+			task({ path: "days", id: "T-4", estimate: 960 }),
+		],
+	};
+	const ctx = queryContext(snapshot);
+	const paths = (query: string) =>
+		applyFilters(snapshot.tasks, parseQuery(query, ctx).definition.filters, snapshotContext(snapshot))
+			.map((t) => t.path)
+			.sort();
+
+	it("reads a bare number as hours, and units as written", () => {
+		expect(paths("estimate:>2")).toEqual(["days", "half-day"]);
+		expect(paths("estimate:<=1")).toEqual(["hour", "short"]);
+		expect(paths("estimate:1")).toEqual(["hour"]);
+		expect(paths("estimate:>=4h")).toEqual(["days", "half-day"]);
+		expect(paths("estimate:30m..1h")).toEqual(["hour", "short"]);
+		expect(paths("estimate:>1d")).toEqual(["days"]);
+		expect(paths("-estimate:<1h")).toEqual(["days", "half-day", "hour"]);
+		expect(printQuery(parseQuery(`estimate:">1H 30m"`, ctx).definition, ctx)).toContain("estimate:>1h30m");
+	});
 });
 
 describe("task fields in queries (T-0951)", () => {

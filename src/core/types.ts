@@ -810,6 +810,10 @@ export interface WorkspaceConfig {
 	newTaskPlacement: "top" | "bottom";
 	/** Cosmetic suffix only - the plugin never calculates on estimates. */
 	estimateUnitLabel: string | null;
+	/** Estimates are lengths of time, saved in minutes (the web app's time
+	 *  scale): a query's bare `estimate:2` is then 2 hours, as a time
+	 *  estimate is typed (number-values.ts). Absent, numbers are as saved. */
+	estimatesInTime?: boolean;
 
 	/**
 	 * Set when the workspace has been soft-deleted: it stays on disk (its own
