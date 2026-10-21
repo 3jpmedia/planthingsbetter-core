@@ -29,18 +29,25 @@ describe("verbatim keys", () => {
 
 	it("keeps a key no Space has as written", () => {
 		const context = queryContext(withSpaces());
-		expect(parseQuery("space:=S-0009", context).definition.filters.space).toEqual(["S-0009"]);
+		const parsed = parseQuery("space:=S-0009", context);
+		expect(parsed.definition.filters.space).toEqual(["S-0009"]);
+		expect(parsed.issues.map((issue) => issue.code)).toEqual(["unknown-value"]);
 	});
 
 	it("keeps it as written while the Spaces aren't there yet", () => {
 		const context = queryContext(withSpaces(false));
-		expect(parseQuery("space:=S-0001", context).definition.filters.space).toEqual(["S-0001"]);
+		const parsed = parseQuery("space:=S-0001", context);
+		expect(parsed.definition.filters.space).toEqual(["S-0001"]);
+		// So the host reads it again once the Spaces arrive.
+		expect(parsed.issues.map((issue) => issue.code)).toEqual(["unknown-value"]);
 	});
 
 	it("still means the value itself when it's stored as is", () => {
 		const snapshot = withSpaces();
 		snapshot.spaces = [...(snapshot.spaces ?? []), { path: "S-0007", id: "S-0001", title: "Odd one" }];
 		const context = queryContext(snapshot);
-		expect(parseQuery("space:=S-0007", context).definition.filters.space).toEqual(["S-0007"]);
+		const parsed = parseQuery("space:=S-0007", context);
+		expect(parsed.definition.filters.space).toEqual(["S-0007"]);
+		expect(parsed.issues).toEqual([]);
 	});
 });

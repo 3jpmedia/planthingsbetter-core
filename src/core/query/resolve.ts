@@ -240,18 +240,23 @@ function resolveEntity(
 const KEY_SHAPE = /^[A-Z]{1,3}-\d+$/;
 
 /**
- * A verbatim key (`space:=S-0003`) that names no stored value but is one
- * item's key: that item. A query read before its list had loaded kept the
- * key as written, and printing that back wrote `=` in front, so the clause
- * never matched again (T-0995). A key is never a stored value (those are
- * paths or ids), so reading it as the item it names changes nothing else.
+ * A verbatim value is kept as written -- except a key (`space:=S-0003`)
+ * that names no stored value. A query read before its list had loaded kept
+ * the key as written, and printing that back put `=` in front, so the
+ * clause never matched again (T-0995). A key is never a stored value (those
+ * are paths or ids), so it reads as the item it names; while no item has it
+ * (the list isn't in yet), it's kept with a warning, so a host knows to read
+ * the query again once the list arrives.
  */
-function healedKey(spec: FilterFieldSpec, raw: string, context: QueryContext): string | null {
-	if (!spec.resolveAs || !KEY_SHAPE.test(raw)) return null;
-	const entities = entitiesFor(spec.resolveAs, context);
-	if (!entities || entities.some((entity) => entity.path === raw)) return null;
+function verbatimValue(spec: FilterFieldSpec, raw: string, context: QueryContext): Resolved {
+	const entities = KEY_SHAPE.test(raw) ? entitiesFor(spec.resolveAs, context) : null;
+	if (!entities || entities.some((entity) => entity.path === raw)) return { value: raw };
 	const named = entities.filter((entity) => entity.title === raw);
-	return named.length === 1 ? named[0].path : null;
+	if (named.length === 1) return { value: named[0].path };
+	return {
+		value: raw,
+		issue: { severity: "warning", code: "unknown-value", message: `Nothing has the key ${raw} - keeping it as written` },
+	};
 }
 
 /**
@@ -266,7 +271,7 @@ export function resolveValue(
 	verbatim: boolean,
 	context: QueryContext,
 ): Resolved {
-	if (verbatim) return { value: healedKey(spec, raw, context) ?? raw };
+	if (verbatim) return verbatimValue(spec, raw, context);
 
 	const lowered = raw.trim().toLowerCase();
 
