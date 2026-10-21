@@ -237,6 +237,23 @@ function resolveEntity(
 	};
 }
 
+const KEY_SHAPE = /^[A-Z]{1,3}-\d+$/;
+
+/**
+ * A verbatim key (`space:=S-0003`) that names no stored value but is one
+ * item's key: that item. A query read before its list had loaded kept the
+ * key as written, and printing that back wrote `=` in front, so the clause
+ * never matched again (T-0995). A key is never a stored value (those are
+ * paths or ids), so reading it as the item it names changes nothing else.
+ */
+function healedKey(spec: FilterFieldSpec, raw: string, context: QueryContext): string | null {
+	if (!spec.resolveAs || !KEY_SHAPE.test(raw)) return null;
+	const entities = entitiesFor(spec.resolveAs, context);
+	if (!entities || entities.some((entity) => entity.path === raw)) return null;
+	const named = entities.filter((entity) => entity.title === raw);
+	return named.length === 1 ? named[0].path : null;
+}
+
 /**
  * Resolve one clause value.
  *
@@ -249,7 +266,7 @@ export function resolveValue(
 	verbatim: boolean,
 	context: QueryContext,
 ): Resolved {
-	if (verbatim) return { value: raw };
+	if (verbatim) return { value: healedKey(spec, raw, context) ?? raw };
 
 	const lowered = raw.trim().toLowerCase();
 
