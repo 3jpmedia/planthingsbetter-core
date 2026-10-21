@@ -500,8 +500,16 @@ describe("relations: clause (canvas relation visibility)", () => {
 describe("defaults", () => {
 	it("prints the built-in All Tasks view", () => {
 		expect(printQuery(viewDefinition(defaultViews()[0]), ctx)).toBe(
-			"group:status sort:rank",
+			"layout:list group:status sort:rank",
 		);
+	});
+
+	it("always prints the layout, List included, and reads no layout as List (T-1036)", () => {
+		for (const layout of ["list", "board", "timeline", "calendar", "canvas", "table", "graph"]) {
+			const printed = printQuery(parseQuery(`layout:${layout}`, ctx).definition, ctx);
+			expect(printed.split(" ")).toContain(`layout:${layout}`);
+		}
+		expect(parseQuery("status:todo", ctx).definition.viewType).toBe("list");
 	});
 
 	it("parses an empty query to the base defaults", () => {
@@ -778,7 +786,7 @@ describe("resolution", () => {
 			"unset",
 		]);
 		expect(printQuery(withFilters({ labels: ["unset"] }), ctx)).toBe(
-			"label:=unset group:none sort:rank",
+			"label:=unset layout:list group:none sort:rank",
 		);
 	});
 
@@ -811,7 +819,7 @@ describe("resolution", () => {
 		expect(parsed.definition.filters.openOnly).toBe(true);
 		expect(parsed.definition.filters.unscheduled).toBe(true);
 		expect(printQuery(parsed.definition, ctx)).toBe(
-			"is:open is:unscheduled group:none sort:rank",
+			"is:open is:unscheduled layout:list group:none sort:rank",
 		);
 	});
 
@@ -821,14 +829,14 @@ describe("resolution", () => {
 		expect(parsed.definition.filters.recurring).toBe(true);
 		expect(parsed.definition.recurringPreview).toBe(true);
 		expect(printQuery(parsed.definition, ctx)).toBe(
-			"is:recurring show:recurring group:none sort:rank",
+			"is:recurring show:recurring layout:list group:none sort:rank",
 		);
 	});
 
 	it("prints the Untriaged definition as its documented query", () => {
 		const inbox = defaultViews().find((v) => v.id === "untriaged")!;
 		expect(printQuery(viewDefinition(inbox), ctx)).toBe(
-			"project:unset parent:unset is:open is:unscheduled group:status sort:rank",
+			"project:unset parent:unset is:open is:unscheduled layout:list group:status sort:rank",
 		);
 	});
 
@@ -846,7 +854,7 @@ describe("resolution", () => {
 		const byName = parseQuery("project:website", keyed);
 		expect(byName.definition.filters.project).toEqual(["p1"]);
 		expect(byName.issues).toEqual([]);
-		expect(printQuery(byName.definition, keyed)).toBe("project:SP-P0001 group:none sort:rank");
+		expect(printQuery(byName.definition, keyed)).toBe("project:SP-P0001 layout:list group:none sort:rank");
 		expect(parseQuery("project:SP-P0003", keyed).definition.filters.project).toEqual(["p3"]);
 		const twice = parseQuery("project:Launch", keyed);
 		expect(twice.definition.filters.project).toEqual(["Launch"]);
@@ -877,7 +885,7 @@ describe("resolution", () => {
 		expect(parsed.issues.map((i) => i.code)).toContain("unknown-value");
 		// Printing must therefore use the full path, not the shared basename.
 		expect(printQuery(withFilters({ project: ["Projects/A"] }), ambiguous)).toBe(
-			"project:Projects/A group:none sort:rank",
+			"project:Projects/A layout:list group:none sort:rank",
 		);
 	});
 });
@@ -1285,16 +1293,16 @@ describe("any: the positive form of unset", () => {
 		expect(parsed.ok).toBe(true);
 		expect(parsed.definition.filters.excludeProject).toEqual([NONE]);
 		expect(parsed.definition.filters.project).toBeUndefined();
-		expect(printQuery(parsed.definition, ctx)).toBe("project:any group:none sort:rank");
+		expect(printQuery(parsed.definition, ctx)).toBe("project:any layout:list group:none sort:rank");
 		// The older spelling is the same filter, printed the new way.
 		const old = parseQuery("-project:unset", ctx);
 		expect(old.definition).toEqual(parsed.definition);
-		expect(printQuery(old.definition, ctx)).toBe("project:any group:none sort:rank");
+		expect(printQuery(old.definition, ctx)).toBe("project:any layout:list group:none sort:rank");
 	});
 
 	it("-x:any is x:unset", () => {
 		expect(parseQuery("-assignee:any", ctx).definition).toEqual(parseQuery("assignee:unset", ctx).definition);
-		expect(printQuery(parseQuery("-due:any", ctx).definition, ctx)).toBe("due:unset group:none sort:rank");
+		expect(printQuery(parseQuery("-due:any", ctx).definition, ctx)).toBe("due:unset layout:list group:none sort:rank");
 	});
 
 	it("matches the tasks with a value, on every field that takes unset", () => {
@@ -1311,7 +1319,7 @@ describe("any: the positive form of unset", () => {
 		const parsed = parseQuery("label:=any", ctx);
 		expect(parsed.definition.filters.labels).toEqual(["any"]);
 		expect(parsed.definition.filters.excludeLabels).toBeUndefined();
-		expect(printQuery(parsed.definition, ctx)).toBe("label:=any group:none sort:rank");
+		expect(printQuery(parsed.definition, ctx)).toBe("label:=any layout:list group:none sort:rank");
 		expectRoundTrip(withFilters({ labels: ["any"], excludeLabels: ["any"] }));
 	});
 
@@ -1319,9 +1327,9 @@ describe("any: the positive form of unset", () => {
 		const parsed = parseQuery("label:any -label:design", ctx);
 		expect(parsed.issues).toEqual([]);
 		expect(parsed.definition.filters.excludeLabels).toEqual([NONE, "design"]);
-		expect(printQuery(parsed.definition, ctx)).toBe("label:any -label:Design group:none sort:rank");
+		expect(printQuery(parsed.definition, ctx)).toBe("label:any -label:Design layout:list group:none sort:rank");
 		// Typed the other way round, it prints the same.
-		expect(printQuery(parseQuery("-label:design label:any", ctx).definition, ctx)).toBe("label:any -label:Design group:none sort:rank");
+		expect(printQuery(parseQuery("-label:design label:any", ctx).definition, ctx)).toBe("label:any -label:Design layout:list group:none sort:rank");
 		expectRoundTrip(withFilters({ priority: ["high"], excludePriority: ["low", NONE] }));
 	});
 

@@ -384,12 +384,12 @@ export function printQuery(
 		);
 	}
 
-	// `layout` and `empty` only when they differ from the default; `group` and
-	// `sort` always, because they're always meaningful and printing them makes
-	// the bar teach its own syntax.
-	if (canonical.viewType !== DEFAULT_DEFINITION.viewType) {
-		parts.push(`layout:${LAYOUT_VALUES[canonical.viewType].token}`);
-	}
+	// `layout`, `group` and `sort` always, because they're always meaningful
+	// and printing them makes the bar teach its own syntax -- List included,
+	// so a query always says which layout it's in (T-1036). `empty` only when
+	// it differs from the default. A query without `layout:` still reads as
+	// List.
+	parts.push(`layout:${LAYOUT_VALUES[canonical.viewType].token}`);
 	parts.push(`group:${isCustomFieldRef(canonical.groupBy) ? customFieldToken(canonical.groupBy.slice(6), context) : GROUP_VALUES[canonical.groupBy].token}`);
 	parts.push(
 		`sort:${canonical.sortDirection === "desc" ? "-" : ""}${sortToken(canonical.sortBy, context)}`,

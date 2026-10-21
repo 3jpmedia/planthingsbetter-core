@@ -176,10 +176,10 @@ describe("query clauses", () => {
 		expect(ids("is:checklist-open")).toEqual(["TSK-4"]);
 		expect(ids("has:checklist is:checklist-open")).toEqual(["TSK-4"]);
 		const print = (source: string) => printQuery(parseQuery(source, ctx).definition, ctx);
-		expect(print("has:checklist")).toBe("checklist:any group:none sort:rank");
-		expect(print("is:checklist-open")).toBe("checklist:open group:none sort:rank");
-		expect(print("has:checklist is:checklist-open")).toBe("checklist:open group:none sort:rank");
-		expect(print('is:checklist-open checklist:"After deploy"')).toBe('checklist:"After deploy" group:none sort:rank');
+		expect(print("has:checklist")).toBe("checklist:any layout:list group:none sort:rank");
+		expect(print("is:checklist-open")).toBe("checklist:open layout:list group:none sort:rank");
+		expect(print("has:checklist is:checklist-open")).toBe("checklist:open layout:list group:none sort:rank");
+		expect(print('is:checklist-open checklist:"After deploy"')).toBe('checklist:"After deploy" layout:list group:none sort:rank');
 		// A saved filter with the old flags reads the same.
 		expect(canonicalizeDefinition(def({ filters: { hasChecklist: true } })).filters).toEqual({ checklist: [ANY] });
 		expect(canonicalizeDefinition(def({ filters: { checklistOpen: true, hasChecklist: true } })).filters).toEqual({ checklist: [CHECKLIST_OPEN] });
