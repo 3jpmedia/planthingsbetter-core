@@ -224,7 +224,9 @@ export function parseActivityQuery(source: string, context: QueryContext): Parse
 			continue;
 		}
 		const target: keyof ActivityFilters = token.excluded && excludeKey ? excludeKey : key;
-		noteDuplicate(target, token.span);
+		// A date takes one value; the rest add to a list, so writing one
+		// twice is the same as one clause with both values (T-1059).
+		if (key === "after" || key === "before") noteDuplicate(target, token.span);
 
 		if (key === "after" || key === "before") {
 			const raw = token.values[0].text.trim();

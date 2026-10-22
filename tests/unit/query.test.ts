@@ -1058,10 +1058,10 @@ describe("diagnostics", () => {
 		expect(parsed.definition.filters.status).toEqual(["long-gone"]);
 	});
 
-	it("merges a duplicated field and says so", () => {
+	it("merges a duplicated field, without a warning (T-1059)", () => {
 		const parsed = parseQuery("status:todo status:done", ctx);
 		expect(parsed.definition.filters.status).toEqual(["todo", "done"]);
-		expect(parsed.issues.map((i) => i.code)).toContain("duplicate-field");
+		expect(parsed.issues).toEqual([]);
 	});
 
 	it("still returns usable filters when part of the query is broken", () => {
@@ -1212,9 +1212,9 @@ describe("exclusion filters", () => {
 		expect(parsed.issues[0].code).toBe("not-expressible");
 	});
 
-	it("warns on a duplicated exclude clause, same as a duplicated include", () => {
+	it("merges a duplicated exclude clause, same as a duplicated include (T-1059)", () => {
 		const parsed = parseQuery("-status:done -status:blocked", ctx);
-		expect(parsed.issues.map((i) => i.code)).toContain("duplicate-field");
+		expect(parsed.issues.map((i) => i.code)).not.toContain("duplicate-field");
 		expect(parsed.definition.filters.excludeStatus).toEqual(["done", "blocked"]);
 	});
 

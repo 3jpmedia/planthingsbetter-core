@@ -683,11 +683,12 @@ export function parseQueryTokens(
 		const key = filterKey;
 		const targetKey = token.excluded ? EXCLUDE_FIELD_KEY[key] : key;
 		// `any` is excluding `NONE` (and `-x:any` is `x:unset`), so it lands in
-		// the other list. A clause of nothing but `any` is counted apart, so
-		// `label:any -label:bug` -- how that's printed -- isn't a duplicate.
+		// the other list.
 		const otherKey = token.excluded ? key : EXCLUDE_FIELD_KEY[key];
-		const onlyAny = token.values.every((value) => isAnyKeyword(value.text, value.verbatim));
-		noteDuplicate(onlyAny ? `${field}:any` : targetKey, token.span);
+		// A field written twice adds its values to the same list, so
+		// `-status:done -status:canceled` is `-status:done,canceled` -- not a
+		// mistake to warn about (T-1059; the query bar merges the text,
+		// `mergeRepeatedClauses`).
 
 		const spec = FILTER_FIELDS[key];
 		const lists = filters as Record<string, string[] | undefined>;
