@@ -9,6 +9,7 @@
  */
 
 import {
+	DASHBOARD_GOAL_PERIODS,
 	DASHBOARD_GROUPING_FIELDS,
 	DASHBOARD_METRICS,
 	DASHBOARD_TEMPORAL_FIELDS,
@@ -18,6 +19,7 @@ import {
 	type CustomFieldDef,
 	type CustomFieldRef,
 	type DashboardFieldMapping,
+	type DashboardGoal,
 	type DashboardGroupBy,
 	type DashboardGroupingField,
 	type DashboardMetric,
@@ -102,6 +104,17 @@ function isMeasure(metric: unknown, metricField: unknown): boolean {
 	return isFieldMetric(metric) ? isCustomFieldRef(metricField) : metricField === undefined;
 }
 
+/** A goal (T-1128): an amount above 0, and, when set, a period and a
+ *  weekday 1 to 7 (a due day only means something for a week). */
+export function isGoalValid(goal: DashboardGoal): boolean {
+	if (typeof goal.amount !== "number" || !Number.isFinite(goal.amount) || goal.amount <= 0) return false;
+	if (goal.period !== undefined && !DASHBOARD_GOAL_PERIODS.includes(goal.period)) return false;
+	if (goal.dueDay !== undefined) {
+		if (goal.period !== "week" || !Number.isInteger(goal.dueDay) || goal.dueDay < 1 || goal.dueDay > 7) return false;
+	}
+	return true;
+}
+
 /**
  * True when `mapping` is a legal combination for its own `chartType`. Used both
  * by the parser (drop/repair invalid) and by tests.
@@ -111,6 +124,16 @@ export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 		case "bar":
 			return (
 				isGroupingField(mapping.groupBy) &&
+				(mapping.metric === undefined || isMeasure(mapping.metric, mapping.metricField)) &&
+				// A split is a second, different grouping (T-1127).
+				(mapping.splitBy === undefined || (isGroupingField(mapping.splitBy) && mapping.splitBy !== mapping.groupBy)) &&
+				(mapping.sideBySide === undefined || (mapping.sideBySide === true && mapping.splitBy !== undefined)) &&
+				(mapping.goal === undefined || isGoalValid(mapping.goal))
+			);
+		case "table":
+			return (
+				isGroupingField(mapping.rows) &&
+				(mapping.columns === null || (isGroupingField(mapping.columns) && mapping.columns !== mapping.rows)) &&
 				(mapping.metric === undefined || isMeasure(mapping.metric, mapping.metricField))
 			);
 		case "pie":
@@ -131,7 +154,8 @@ export function isFieldMappingValid(mapping: DashboardFieldMapping): boolean {
 				(mapping.scope === null ||
 					(isGroupingField(mapping.scope.field) &&
 						typeof mapping.scope.value === "string" &&
-						mapping.scope.value.length > 0))
+						mapping.scope.value.length > 0)) &&
+				(mapping.goal === undefined || isGoalValid(mapping.goal))
 			);
 		case "graph":
 			// The tasks themselves: there's nothing to pick.
@@ -165,6 +189,8 @@ export function defaultFieldMapping(chartType: ChartType): DashboardFieldMapping
 			};
 		case "kpi":
 			return { chartType: "kpi", metric: "count", scope: null };
+		case "table":
+			return { chartType: "table", rows: "status", columns: null };
 		case "graph":
 			return { chartType: "graph" };
 	}
@@ -174,7 +200,12 @@ export function defaultFieldMapping(chartType: ChartType): DashboardFieldMapping
  *  line's height can be any metric; a pie's slices and a timeline's running
  *  total must add up, and a KPI always names its own. */
 export function measuresMetric(chartType: ChartType): boolean {
-	return chartType === "bar" || chartType === "line";
+	return chartType === "bar" || chartType === "line" || chartType === "table";
+}
+
+/** Which chart types take a goal (T-1128): each bar, or the KPI's number. */
+export function takesGoal(chartType: ChartType): boolean {
+	return chartType === "bar" || chartType === "kpi";
 }
 
 /** The metric a mapping measures (a count unless it says otherwise), with
@@ -207,20 +238,29 @@ export function retargetFieldMapping(
 	const withMetric = <T extends DashboardFieldMapping>(mapping: T): T =>
 		metric && measuresMetric(chartType) ? { ...mapping, ...metric } : mapping;
 
+	// A goal carries between the charts that take one (T-1128).
+	const goal = "goal" in from && from.goal && takesGoal(chartType) ? { goal: from.goal } : {};
+	// The first grouping (a table's rows) and the second (a bar's split, a
+	// table's columns, a line's lines) carry over where they fit (T-1127).
+	const first = from.chartType === "table" ? from.rows : "groupBy" in from ? from.groupBy : null;
+	const second =
+		from.chartType === "table" ? from.columns : from.chartType === "bar" ? (from.splitBy ?? null) : null;
+
 	if (chartType === "kpi") {
-		return metric ? { chartType, ...metric, scope: null } : base;
+		return metric ? { chartType, ...metric, scope: null, ...goal } : ({ ...base, ...goal } as DashboardFieldMapping);
 	}
 
 	// A graph takes no fields, so nothing carries over.
 	if (chartType === "graph") return base;
 
-	if ((chartType === "bar" || chartType === "pie") && "groupBy" in from) {
-		const groupBy = from.groupBy;
-		if (groupBy && isGroupingField(groupBy)) {
-			return chartType === "bar"
-				? withMetric({ chartType, groupBy })
-				: { chartType, groupBy };
-		}
+	if (chartType === "table" && first && isGroupingField(first)) {
+		return withMetric({ chartType, rows: first, columns: second && isGroupingField(second) && second !== first ? second : null });
+	}
+
+	if ((chartType === "bar" || chartType === "pie") && first && isGroupingField(first)) {
+		if (chartType === "pie") return { chartType, groupBy: first };
+		const split = second && isGroupingField(second) && second !== first ? { splitBy: second } : {};
+		return withMetric({ chartType, groupBy: first, ...split, ...goal });
 	}
 
 	if (

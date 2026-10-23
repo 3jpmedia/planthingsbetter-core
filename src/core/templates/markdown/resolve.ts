@@ -423,9 +423,22 @@ function fieldMappingFor(
 		if (!option) fail(`"${scope.value}" is not a choice of ${def.name}`, widget.line);
 		return { field: ref, value: option.id };
 	};
+	const second = (): DashboardGroupBy | undefined =>
+		widget.splitByField ? refOf(widget.splitByField, widget.line, "choice") : widget.splitBy;
 	switch (widget.chartType) {
-		case "bar":
-			return { chartType: "bar", groupBy: groupBy()!, ...measure() };
+		case "bar": {
+			const splitBy = second();
+			return {
+				chartType: "bar",
+				groupBy: groupBy()!,
+				...measure(),
+				...(splitBy ? { splitBy } : {}),
+				...(splitBy && widget.sideBySide ? { sideBySide: true as const } : {}),
+				...(widget.goal ? { goal: widget.goal } : {}),
+			};
+		}
+		case "table":
+			return { chartType: "table", rows: groupBy()!, columns: second() ?? null, ...measure() };
 		case "pie":
 			return { chartType: "pie", groupBy: groupBy()! };
 		case "line":
@@ -449,6 +462,7 @@ function fieldMappingFor(
 				...measure(),
 				metric: widget.metric!,
 				scope: widget.scope ? scopeOf(widget.scope) : null,
+				...(widget.goal ? { goal: widget.goal } : {}),
 			};
 		case "graph":
 			return { chartType: "graph" };

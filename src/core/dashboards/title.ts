@@ -11,6 +11,7 @@ import type {
   CustomFieldDef,
   CustomFieldRef,
   DashboardFieldMapping,
+  DashboardGoal,
   DashboardGroupBy,
   DashboardGroupingField,
   DashboardMetric,
@@ -140,14 +141,29 @@ function fieldOf(
   return key ? customFieldByKey(context, key) : undefined;
 }
 
+const PER_PERIOD = { day: "a day", week: "a week", month: "a month" } as const;
+
+/** A goal in words, for a title: "goal 2 a week" (T-1128). */
+export function goalLabel(goal: DashboardGoal): string {
+  return `goal ${goal.amount.toLocaleString("en-US")}${goal.period ? ` ${PER_PERIOD[goal.period]}` : ""}`;
+}
+
 export function autoTitle(
   mapping: DashboardFieldMapping,
   context: ViewContext,
 ): string {
   switch (mapping.chartType) {
-    case "bar":
+    case "bar": {
+      const head = `${measured(mapping.metric, mapping.metricField, context)} by ${groupingFieldLabel(mapping.groupBy, context)}`;
+      const split = mapping.splitBy ? `, split by ${groupingFieldLabel(mapping.splitBy, context)}` : "";
+      return `${head}${split}${mapping.goal ? `, ${goalLabel(mapping.goal)}` : ""}`;
+    }
     case "pie":
-      return `${measured(mapping.chartType === "bar" ? mapping.metric : undefined, mapping.chartType === "bar" ? mapping.metricField : undefined, context)} by ${groupingFieldLabel(mapping.groupBy, context)}`;
+      return `Tasks by ${groupingFieldLabel(mapping.groupBy, context)}`;
+    case "table":
+      return mapping.columns
+        ? `${measured(mapping.metric, mapping.metricField, context)} by ${groupingFieldLabel(mapping.rows, context)} and ${groupingFieldLabel(mapping.columns, context)}`
+        : `${measured(mapping.metric, mapping.metricField, context)} by ${groupingFieldLabel(mapping.rows, context)}`;
     case "line":
     case "timeline": {
       const head =
@@ -158,10 +174,12 @@ export function autoTitle(
         ? `${head}, split by ${groupingFieldLabel(mapping.groupBy, context)}`
         : head;
     }
-    case "kpi":
-      return mapping.scope
+    case "kpi": {
+      const head = mapping.scope
         ? `${metricLabel(mapping.metric, fieldOf(mapping.metricField, context))} where ${describeScope(mapping.scope, context)}`
         : metricLabel(mapping.metric, fieldOf(mapping.metricField, context));
+      return mapping.goal ? `${head}, ${goalLabel(mapping.goal)}` : head;
+    }
     case "graph":
       return "Graph";
   }

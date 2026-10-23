@@ -59,6 +59,8 @@ export const CHART_META: Record<ChartType, ChartMeta> = {
 		defaultW: 6,
 		defaultH: 4,
 	},
+	// Rows by one field, columns by another, with totals (T-1127).
+	table: { label: "Table", icon: "table", minW: 3, minH: 3, defaultW: 6, defaultH: 4 },
 	// The tasks as dots around their project and milestone hubs (T-0729).
 	graph: { label: "Graph", icon: "network", minW: 3, minH: 3, defaultW: 6, defaultH: 4 },
 };

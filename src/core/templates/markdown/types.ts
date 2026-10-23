@@ -14,6 +14,7 @@
 
 import type {
 	CustomFieldDef,
+	DashboardGoal,
 	DashboardGroupingField,
 	DashboardMetric,
 	DashboardTemporalField,
@@ -160,10 +161,19 @@ export interface ParsedView {
 /* --------------------------------------------------------- dashboards ---- */
 
 export interface ParsedWidget {
-	chartType: "bar" | "pie" | "line" | "timeline" | "kpi" | "graph";
+	chartType: "bar" | "pie" | "line" | "timeline" | "kpi" | "table" | "graph";
 	title: string;
-	/** bar/pie: required. line/timeline: optional secondary split. */
+	/** bar/pie: required. line/timeline: optional secondary split. table:
+	 *  its rows (`rows:` in the template). */
 	groupBy?: DashboardGroupingField;
+	/** A bar's split, or a table's columns (`columns:`) (T-1127). */
+	splitBy?: DashboardGroupingField;
+	/** The same, by a custom field's query name. */
+	splitByField?: string;
+	/** A split bar's parts side by side. */
+	sideBySide?: boolean;
+	/** A bar's or KPI's goal (T-1128). */
+	goal?: DashboardGoal;
 	/** The same, by a custom field's query name (`custom.client` -> "client"),
 	 *  resolved against the template's `fields` at resolve time. */
 	groupByField?: string;

@@ -1441,7 +1441,7 @@ export interface ProjectViewSettings extends ViewDefinition {
  * The chart kinds a dashboard widget can be. `timeline` here is a chart type
  * (cumulative area over time), unrelated to the Timeline/Gantt *view*.
  */
-export type ChartType = "bar" | "line" | "pie" | "timeline" | "kpi" | "graph";
+export type ChartType = "bar" | "line" | "pie" | "timeline" | "kpi" | "table" | "graph";
 
 export const CHART_TYPES: readonly ChartType[] = [
 	"bar",
@@ -1449,6 +1449,7 @@ export const CHART_TYPES: readonly ChartType[] = [
 	"pie",
 	"timeline",
 	"kpi",
+	"table",
 	"graph",
 ] as const;
 
@@ -1546,6 +1547,27 @@ export interface DashboardScope {
 	value: string;
 }
 
+/** How often a goal comes round (T-1128). */
+export type DashboardGoalPeriod = "day" | "week" | "month";
+
+export const DASHBOARD_GOAL_PERIODS: readonly DashboardGoalPeriod[] = ["day", "week", "month"] as const;
+
+/**
+ * A chart's goal (T-1128): how much each group (a bar chart) or the whole (a
+ * KPI) should reach. With a `period`, only tasks finished in the current day,
+ * week or month count toward it, and every group among the dashboard's tasks
+ * shows, at 0 if it has nothing yet ("2 a week in each class").
+ */
+export interface DashboardGoal {
+	/** How much: tasks, or the chart's measure ("10 points"). */
+	amount: number;
+	/** Counted afresh each day, week or month. Absent: the chart's count as it is. */
+	period?: DashboardGoalPeriod;
+	/** A week's goal is due on this weekday, 1 Monday to 7 Sunday. Absent:
+	 *  the period's last day. */
+	dueDay?: number;
+}
+
 export interface BarFieldMapping {
 	chartType: "bar";
 	groupBy: DashboardGroupBy;
@@ -1553,6 +1575,13 @@ export interface BarFieldMapping {
 	metric?: DashboardMetric;
 	/** The number custom field `fieldSum` / `fieldAvg` measure (`field:CF-0003`). */
 	metricField?: CustomFieldRef;
+	/** A second grouping (T-1127): each bar split into one part per value
+	 *  of it. Absent: one bar per group, as before. */
+	splitBy?: DashboardGroupBy;
+	/** Split parts side by side rather than stacked. */
+	sideBySide?: true;
+	/** A goal for each group (T-1128). */
+	goal?: DashboardGoal;
 }
 
 export interface PieFieldMapping {
@@ -1586,6 +1615,21 @@ export interface KpiFieldMapping {
 	metricField?: CustomFieldRef;
 	/** Optional single discrete predicate narrowing which tasks are counted. */
 	scope: DashboardScope | null;
+	/** A goal for the number (T-1128). */
+	goal?: DashboardGoal;
+}
+
+/**
+ * A table (T-1127): a row per value of one field, a column per value of
+ * another (or one column), each cell what its tasks measure, with totals.
+ */
+export interface TableFieldMapping {
+	chartType: "table";
+	rows: DashboardGroupBy;
+	columns: DashboardGroupBy | null;
+	/** What each cell measures. Absent: the task count. */
+	metric?: DashboardMetric;
+	metricField?: CustomFieldRef;
 }
 
 /**
@@ -1608,6 +1652,7 @@ export type DashboardFieldMapping =
 	| LineFieldMapping
 	| TimelineFieldMapping
 	| KpiFieldMapping
+	| TableFieldMapping
 	| GraphFieldMapping;
 
 export interface DashboardWidgetLayout {

@@ -33,6 +33,7 @@ import type {
 	CustomFieldType,
 	CustomFieldValue,
 	DashboardConfig,
+	DashboardGoal,
 	DashboardScope,
 	DashboardWidget,
 	PriorityValue,
@@ -237,13 +238,38 @@ function widgetMap(
 		title: widget.title.trim() || fm.chartType,
 	};
 
+	const goalMap = (goal: DashboardGoal): number | Record<string, unknown> =>
+		goal.period
+			? { amount: goal.amount, period: goal.period, ...(goal.dueDay ? { due: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][goal.dueDay - 1] } : {}) }
+			: goal.amount;
 	switch (fm.chartType) {
 		case "bar":
 		case "pie": {
 			const groupBy = groupName(fm.groupBy);
 			if (!groupBy) return null;
 			map.groupBy = groupBy;
-			if (fm.chartType === "bar" && !measure(map)) return null;
+			if (fm.chartType === "bar") {
+				if (!measure(map)) return null;
+				if (fm.splitBy) {
+					const splitBy = groupName(fm.splitBy);
+					if (!splitBy) return null;
+					map.splitBy = splitBy;
+					if (fm.sideBySide) map.sideBySide = true;
+				}
+				if (fm.goal) map.goal = goalMap(fm.goal);
+			}
+			break;
+		}
+		case "table": {
+			const rows = groupName(fm.rows);
+			if (!rows) return null;
+			map.rows = rows;
+			if (fm.columns) {
+				const columns = groupName(fm.columns);
+				if (!columns) return null;
+				map.columns = columns;
+			}
+			if (!measure(map)) return null;
 			break;
 		}
 		case "line":
@@ -266,6 +292,7 @@ function widgetMap(
 				if (!scope) return null;
 				map.scope = scope;
 			}
+			if (fm.goal) map.goal = goalMap(fm.goal);
 			break;
 		case "graph":
 			break;

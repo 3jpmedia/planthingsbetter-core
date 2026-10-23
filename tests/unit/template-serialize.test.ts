@@ -156,6 +156,34 @@ describe("serializeTemplateMarkdown round-trip", () => {
 		]);
 	});
 
+	it("round-trips a split, a goal and a table (T-1127, T-1128)", () => {
+		const dashboards = [
+			makeDashboard("goals", "Goals board", [
+				makeWidget(
+					"w1",
+					"bar",
+					"Weekly",
+					{ chartType: "bar", groupBy: "assignee", splitBy: "project", sideBySide: true, goal: { amount: 2, period: "week", dueDay: 5 } },
+					{ x: 0, y: 0, w: 6, h: 4 },
+				),
+				makeWidget("w2", "table", "Matrix", { chartType: "table", rows: "assignee", columns: "taskType" }, { x: 6, y: 0, w: 6, h: 4 }),
+				makeWidget("w3", "kpi", "Done", { chartType: "kpi", metric: "count", scope: null, goal: { amount: 10, period: "month" } }, { x: 0, y: 4, w: 6, h: 4 }),
+			]),
+		];
+		const source = serializeTemplateMarkdown({
+			meta: { id: "goals", name: "Goals" },
+			workspace: snapshot.workspace,
+			views: [],
+			dashboards,
+			projects: [],
+			queryContext: queryContext(snapshot),
+		});
+		expect(source).toContain("type: table");
+		const content = resolveTemplateContent(parseTemplateMarkdown(source), ctx());
+		const dash = content.dashboards!.find((d) => d.name === "Goals board")!;
+		expect(dash.widgets.map((w) => w.fieldMapping)).toEqual(dashboards[0].widgets.map((w) => w.fieldMapping));
+	});
+
 	it("round-trips updatedAt/completedAt chart xFields from a live dashboard", () => {
 		const dashboards = [
 			makeDashboard("temporal", "Temporal", [

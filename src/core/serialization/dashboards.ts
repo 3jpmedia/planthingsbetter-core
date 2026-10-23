@@ -16,6 +16,7 @@ import {
 	type DashboardConfig,
 	type CustomFieldRef,
 	type DashboardFieldMapping,
+	type DashboardGoal,
 	type DashboardGroupBy,
 	type DashboardGroupingField,
 	type DashboardMetric,
@@ -28,7 +29,7 @@ import {
 	DASHBOARD_TIME_BUCKETS,
 	isCustomFieldRef,
 } from "../types";
-import { defaultFieldMapping, isFieldMappingValid } from "../dashboards/compat";
+import { defaultFieldMapping, isFieldMappingValid, isGoalValid } from "../dashboards/compat";
 import { DEFAULT_WIDGET_SIZE } from "../dashboards/layout";
 import {
 	IssueLog,
@@ -100,6 +101,20 @@ function parseScope(raw: unknown): DashboardScope | null {
 	return { field, value };
 }
 
+/** A chart's goal (T-1128), or none when it isn't whole. */
+function parseGoal(raw: unknown, log: IssueLog): DashboardGoal | undefined {
+	if (raw == null) return undefined;
+	const record = asRecord(raw);
+	const goal: DashboardGoal = { amount: typeof record.amount === "number" ? record.amount : Number.NaN };
+	if (record.period != null) goal.period = record.period as DashboardGoal["period"];
+	if (record.dueDay != null) goal.dueDay = record.dueDay as number;
+	if (!isGoalValid(goal)) {
+		log.add("Malformed goal on a chart; leaving it out.");
+		return undefined;
+	}
+	return goal;
+}
+
 /** A bar's or line's measure: absent (or a count) means a count. */
 function optionalMetric(raw: unknown, log: IssueLog): DashboardMetric | undefined {
 	if (raw == null) return undefined;
@@ -121,11 +136,40 @@ function parseFieldMapping(
 			const groupBy = isGroupBy(asString(record.groupBy))
 				? (asString(record.groupBy) as DashboardGroupBy)
 				: "status";
-			const metric = chartType === "bar" ? optionalMetric(record.metric, log) : undefined;
+			if (chartType === "pie") {
+				mapping = { chartType, groupBy };
+				break;
+			}
+			const metric = optionalMetric(record.metric, log);
 			const metricField = metric ? parseMetricField(record.metricField) : undefined;
-			mapping = metric
-				? { chartType: "bar", groupBy, metric, ...(metricField ? { metricField } : {}) }
-				: { chartType, groupBy };
+			// A split and a goal (T-1127, T-1128): kept only when whole.
+			const splitRaw = asString(record.splitBy);
+			const splitBy = isGroupBy(splitRaw) && splitRaw !== groupBy ? (splitRaw as DashboardGroupBy) : undefined;
+			const goal = parseGoal(record.goal, log);
+			mapping = {
+				chartType: "bar",
+				groupBy,
+				...(metric ? { metric } : {}),
+				...(metricField ? { metricField } : {}),
+				...(splitBy ? { splitBy } : {}),
+				...(splitBy && record.sideBySide === true ? { sideBySide: true as const } : {}),
+				...(goal ? { goal } : {}),
+			};
+			break;
+		}
+		case "table": {
+			const rowsRaw = asString(record.rows);
+			const rows = isGroupBy(rowsRaw) ? (rowsRaw as DashboardGroupBy) : "status";
+			const columnsRaw = asString(record.columns);
+			const metric = optionalMetric(record.metric, log);
+			const metricField = metric ? parseMetricField(record.metricField) : undefined;
+			mapping = {
+				chartType,
+				rows,
+				columns: isGroupBy(columnsRaw) && columnsRaw !== rows ? (columnsRaw as DashboardGroupBy) : null,
+				...(metric ? { metric } : {}),
+				...(metricField ? { metricField } : {}),
+			};
 			break;
 		}
 		case "line":
@@ -168,11 +212,13 @@ function parseFieldMapping(
 				"metric",
 			);
 			const metricField = parseMetricField(record.metricField);
+			const goal = parseGoal(record.goal, log);
 			mapping = {
 				chartType,
 				metric,
 				...(metricField ? { metricField } : {}),
 				scope: parseScope(record.scope),
+				...(goal ? { goal } : {}),
 			};
 			break;
 		}
@@ -354,12 +400,25 @@ export function detectDashboardIdCollisions(
 // Serialization
 // ---------------------------------------------------------------------------
 
+function serializeGoal(goal: DashboardGoal): Record<string, unknown> {
+	return compact({ amount: goal.amount, period: goal.period, dueDay: goal.dueDay });
+}
+
 function serializeFieldMapping(
 	mapping: DashboardFieldMapping,
 ): Record<string, unknown> {
 	switch (mapping.chartType) {
 		case "bar":
-			return compact({ groupBy: mapping.groupBy, metric: mapping.metric, metricField: mapping.metricField });
+			return compact({
+				groupBy: mapping.groupBy,
+				metric: mapping.metric,
+				metricField: mapping.metricField,
+				splitBy: mapping.splitBy,
+				sideBySide: mapping.sideBySide,
+				goal: mapping.goal ? serializeGoal(mapping.goal) : undefined,
+			});
+		case "table":
+			return compact({ rows: mapping.rows, columns: mapping.columns ?? undefined, metric: mapping.metric, metricField: mapping.metricField });
 		case "pie":
 			return { groupBy: mapping.groupBy };
 		case "line":
@@ -383,6 +442,7 @@ function serializeFieldMapping(
 				scope: mapping.scope
 					? { field: mapping.scope.field, value: mapping.scope.value }
 					: undefined,
+				goal: mapping.goal ? serializeGoal(mapping.goal) : undefined,
 			});
 		case "graph":
 			return {};

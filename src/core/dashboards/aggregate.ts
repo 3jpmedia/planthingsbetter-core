@@ -11,6 +11,7 @@ import type {
 	CustomFieldDef,
 	CustomFieldRef,
 	DashboardFieldMapping,
+	DashboardGoal,
 	DashboardGroupBy,
 	DashboardGroupingField,
 	DashboardMetric,
@@ -20,7 +21,8 @@ import type {
 	DashboardWidget,
 	Task,
 } from "../types";
-import type { ViewContext } from "../views/context";
+import { contextToday, type ViewContext } from "../views/context";
+import { dateSpan } from "../relative-dates";
 import { customFieldByKey, customValueOf } from "../views/custom-fields";
 import { customKeys, groupingField } from "../views/group";
 import { displayColor } from "../taxonomy/engine";
@@ -35,6 +37,36 @@ export interface CategoricalDatum {
 	key: string;
 	label: string;
 	value: number;
+	color: string;
+	/** A split chart's parts of this bar, one per split value it has
+	 *  (T-1127), in `splits` order. */
+	parts?: CategoricalPart[];
+}
+
+/** One part of a split bar: what one value of the split measures. */
+export interface CategoricalPart {
+	key: string;
+	value: number;
+}
+
+/**
+ * A goal as a chart draws it (T-1128): the amount, and when it's due in
+ * words ("Fri", "Oct 31", "today"), and whether that's passed.
+ */
+export interface GoalState {
+	amount: number;
+	/** The current period, when the goal has one ("this week"). */
+	period?: string;
+	/** The due day in words, when the goal has a period. */
+	due?: string;
+	/** The due day has passed (later in the same period). */
+	past?: boolean;
+}
+
+/** A table's row or column (T-1127). */
+export interface TableAxisEntry {
+	key: string;
+	label: string;
 	color: string;
 }
 
@@ -67,9 +99,32 @@ export type WidgetData =
 			/** For a count of part of the dashboard's tasks (a scope): how many
 			 *  tasks the dashboard has in all, so it reads "6 of 25". */
 			of?: number;
+			/** Its goal (T-1128). */
+			goal?: GoalState;
 			empty: boolean;
 	  } & Measure)
-	| ({ kind: "categorical"; data: CategoricalDatum[]; empty: boolean } & Measure)
+	| ({
+			kind: "categorical";
+			data: CategoricalDatum[];
+			/** A split chart's split values, in order and colored (T-1127). */
+			splits?: SeriesMeta[];
+			/** Each bar's goal (T-1128). */
+			goal?: GoalState;
+			empty: boolean;
+	  } & Measure)
+	| ({
+			kind: "table";
+			rows: TableAxisEntry[];
+			/** Empty for a table of one column. */
+			columns: TableAxisEntry[];
+			/** `cells[row][column]`; null: nothing there to measure. A table of
+			 *  one column has one cell per row. */
+			cells: Array<Array<number | null>>;
+			rowTotals: Array<number | null>;
+			columnTotals: Array<number | null>;
+			total: number | null;
+			empty: boolean;
+	  } & Measure)
 	| ({
 			kind: "series";
 			/** A bucket with nothing to measure (no task finished that week, for
@@ -351,13 +406,23 @@ export function mappingFields(
 ): { group?: CustomFieldDef; measure?: CustomFieldDef; problem: string | null } {
 	let group: CustomFieldDef | undefined;
 	let measure: CustomFieldDef | undefined;
-	const grouping = mapping.chartType === "kpi" || mapping.chartType === "graph" ? null : mapping.groupBy;
-	const groupKey = grouping ? customFieldKeyOf(grouping) : null;
-	if (groupKey) {
+	// What it groups by first, then a split's or a table's columns (T-1127).
+	const groupings: Array<DashboardGroupBy | null | undefined> =
+		mapping.chartType === "kpi" || mapping.chartType === "graph"
+			? []
+			: mapping.chartType === "table"
+				? [mapping.rows, mapping.columns]
+				: mapping.chartType === "bar"
+					? [mapping.groupBy, mapping.splitBy]
+					: [mapping.groupBy];
+	for (const [index, grouping] of groupings.entries()) {
+		const groupKey = grouping ? customFieldKeyOf(grouping) : null;
+		if (!groupKey) continue;
 		const def = customFieldByKey(context, groupKey);
-		if (!def) return { problem: "The field this chart groups by was removed. Edit the chart to pick another." };
-		group = groupingField(grouping as CustomFieldRef, context);
-		if (!group) return { problem: `${def.name} is no longer a choice or person field. Edit the chart to pick another.` };
+		if (!def) return { group, problem: `The field this chart ${index === 0 ? "groups" : "splits"} by was removed. Edit the chart to pick another.` };
+		const fits = groupingField(grouping as CustomFieldRef, context);
+		if (!fits) return { group, problem: `${def.name} is no longer a choice or person field. Edit the chart to pick another.` };
+		if (index === 0) group = fits;
 	}
 	const scope = mapping.chartType === "kpi" ? mapping.scope : null;
 	const scopeKey = scope ? customFieldKeyOf(scope.field) : null;
@@ -394,6 +459,175 @@ function graphOf(tasks: Task[], context: ViewContext): GraphSnapshot {
 	return graphSnapshot(graph, layoutGraph(graph));
 }
 
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const PERIOD_WORDS = { day: "today", week: "this-week", month: "this-month" } as const;
+const PERIOD_NAMES = { day: "today", week: "this week", month: "this month" } as const;
+
+/**
+ * A goal's current period and due day (T-1128), and the tasks that count
+ * toward it: those finished in the period -- the same days
+ * `completed:this-week` matches. Without a period, every task counts.
+ */
+export function goalWindow(
+	goal: DashboardGoal,
+	tasks: Task[],
+	context: Pick<ViewContext, "today">,
+): { state: GoalState; counted: Task[] } {
+	if (!goal.period) return { state: { amount: goal.amount }, counted: tasks };
+	const today = contextToday(context);
+	const span = dateSpan(PERIOD_WORDS[goal.period], today);
+	if (!span) return { state: { amount: goal.amount }, counted: tasks };
+	const counted = tasks.filter((task) => {
+		const day = task.completedAt?.slice(0, 10);
+		return day != null && span.from <= day && day <= span.to;
+	});
+	let dueDay = span.to;
+	if (goal.period === "week" && goal.dueDay) {
+		const monday = new Date(`${span.from}T00:00:00Z`);
+		monday.setUTCDate(monday.getUTCDate() + goal.dueDay - 1);
+		dueDay = monday.toISOString().slice(0, 10);
+	}
+	const due = new Date(`${dueDay}T00:00:00Z`);
+	const words =
+		goal.period === "day"
+			? "today"
+			: goal.period === "week"
+				? WEEKDAYS[(due.getUTCDay() + 6) % 7]
+				: `${MONTHS[due.getUTCMonth()]} ${due.getUTCDate()}`;
+	return {
+		state: { amount: goal.amount, period: PERIOD_NAMES[goal.period], due: words, past: today > dueDay },
+		counted,
+	};
+}
+
+/** Tasks per key of a grouping (a task under each of its keys). */
+function membersBy(tasks: Task[], field: DashboardGroupBy, context: ViewContext): Map<string, Task[]> {
+	const members = new Map<string, Task[]>();
+	for (const task of tasks) {
+		for (const key of groupKeys(task, field, context)) {
+			let list = members.get(key);
+			if (!list) members.set(key, (list = []));
+			list.push(task);
+		}
+	}
+	return members;
+}
+
+/**
+ * A bar chart, split or not, with or without a goal (T-1127, T-1128). A
+ * goal with a period measures only what was finished in it, but every group
+ * (and split) the dashboard's tasks have still shows -- at 0 when nothing
+ * is finished yet, the bar people most need to see.
+ */
+function barData(
+	mapping: Extract<DashboardFieldMapping, { chartType: "bar" | "pie" }>,
+	tasks: Task[],
+	context: ViewContext,
+	measure: CustomFieldDef | undefined,
+): WidgetData {
+	// A pie's slices must add up to its whole, so it only ever counts.
+	const metric: DashboardMetric = mapping.chartType === "bar" ? (mapping.metric ?? "count") : "count";
+	const goal = mapping.chartType === "bar" && mapping.goal ? goalWindow(mapping.goal, tasks, context) : null;
+	const splitBy = mapping.chartType === "bar" ? mapping.splitBy : undefined;
+	const counted = goal ? goal.counted : tasks;
+	const all = membersBy(tasks, mapping.groupBy, context);
+	const members = goal ? all : membersBy(counted, mapping.groupBy, context);
+	const countedSet = new Set(counted);
+	// A group with nothing to measure (no finished task, for cycle time)
+	// gets no bar -- except toward a goal, where it's a 0 to make up.
+	const values = new Map<string, number>();
+	for (const [key, list] of members) {
+		const value = aggregateMetric(goal ? list.filter((t) => countedSet.has(t)) : list, metric, measure);
+		if (value != null) values.set(key, value);
+		else if (goal) values.set(key, 0);
+	}
+	const keys = orderedKeys(mapping.groupBy, goal ? new Map([...all].map(([k, l]) => [k, l.length])) : values, context);
+
+	let splits: SeriesMeta[] | undefined;
+	const partsOf = new Map<string, CategoricalPart[]>();
+	if (splitBy) {
+		const splitCounts = new Map<string, number>();
+		for (const task of goal ? tasks : counted) {
+			for (const key of groupKeys(task, splitBy, context)) splitCounts.set(key, (splitCounts.get(key) ?? 0) + 1);
+		}
+		const splitKeys = orderedKeys(splitBy, splitCounts, context);
+		splits = splitKeys.map((key, index) => ({ key, label: valueLabel(splitBy, key, context), color: colorFor(splitBy, key, index, context) }));
+		for (const key of keys) {
+			const inGroup = members.get(key) ?? [];
+			const bySplit = membersBy(inGroup, splitBy, context);
+			const parts: CategoricalPart[] = [];
+			for (const split of splitKeys) {
+				const list = bySplit.get(split);
+				if (!list) continue;
+				const value = aggregateMetric(goal ? list.filter((t) => countedSet.has(t)) : list, metric, measure);
+				if (value != null) parts.push({ key: split, value });
+				else if (goal) parts.push({ key: split, value: 0 });
+			}
+			partsOf.set(key, parts);
+		}
+	}
+
+	const data: CategoricalDatum[] = keys.map((key, index) => ({
+		key,
+		label: valueLabel(mapping.groupBy, key, context),
+		value: values.get(key) ?? 0,
+		color: colorFor(mapping.groupBy, key, index, context),
+		...(splits ? { parts: partsOf.get(key) ?? [] } : {}),
+	}));
+	return {
+		kind: "categorical",
+		data,
+		...(splits ? { splits } : {}),
+		...(goal ? { goal: goal.state } : {}),
+		...measureOf(metric, counted, measure),
+		...(metric !== "count" ? { label: metricLabel(metric, measure) } : {}),
+		empty: data.length === 0,
+	};
+}
+
+/**
+ * A table (T-1127): a row per value of one grouping, a column per value of
+ * another, each cell what its tasks measure. Totals measure the tasks
+ * themselves, so a task under two labels counts once in its row's total.
+ */
+function tableData(
+	mapping: Extract<DashboardFieldMapping, { chartType: "table" }>,
+	tasks: Task[],
+	context: ViewContext,
+	measure: CustomFieldDef | undefined,
+): WidgetData {
+	const metric: DashboardMetric = mapping.metric ?? "count";
+	const byRow = membersBy(tasks, mapping.rows, context);
+	const rowKeys = orderedKeys(mapping.rows, new Map([...byRow].map(([k, l]) => [k, l.length])), context);
+	const rows = rowKeys.map((key, index) => ({ key, label: valueLabel(mapping.rows, key, context), color: colorFor(mapping.rows, key, index, context) }));
+	const columnsBy = mapping.columns;
+	const byColumn = columnsBy ? membersBy(tasks, columnsBy, context) : new Map<string, Task[]>();
+	const columnKeys = columnsBy ? orderedKeys(columnsBy, new Map([...byColumn].map(([k, l]) => [k, l.length])), context) : [];
+	const columns = columnsBy ? columnKeys.map((key, index) => ({ key, label: valueLabel(columnsBy, key, context), color: colorFor(columnsBy, key, index, context) })) : [];
+	const cells = rowKeys.map((row) => {
+		const inRow = byRow.get(row) ?? [];
+		if (!columnsBy) return [aggregateMetric(inRow, metric, measure)];
+		const split = membersBy(inRow, columnsBy, context);
+		return columnKeys.map((column) => {
+			const list = split.get(column);
+			return list ? aggregateMetric(list, metric, measure) : metric === "count" ? 0 : null;
+		});
+	});
+	return {
+		kind: "table",
+		rows,
+		columns,
+		cells,
+		rowTotals: rowKeys.map((row) => aggregateMetric(byRow.get(row) ?? [], metric, measure)),
+		columnTotals: columnKeys.map((column) => aggregateMetric(byColumn.get(column) ?? [], metric, measure)),
+		total: aggregateMetric(tasks, metric, measure),
+		...measureOf(metric, tasks, measure),
+		...(metric !== "count" ? { label: metricLabel(metric, measure) } : {}),
+		empty: rows.length === 0,
+	};
+}
+
 export function computeWidgetData(
 	widget: DashboardWidget,
 	tasks: Task[],
@@ -406,62 +640,37 @@ export function computeWidgetData(
 		if (mapping.chartType === "kpi") return { kind: "kpi", value: 0, ...base };
 		if (mapping.chartType === "graph") return { kind: "graph", snapshot: graphOf([], context), ...base };
 		if (mapping.chartType === "bar" || mapping.chartType === "pie") return { kind: "categorical", data: [], ...base };
+		if (mapping.chartType === "table") return { kind: "table", rows: [], columns: [], cells: [], rowTotals: [], columnTotals: [], total: null, ...base };
 		return { kind: "series", data: [], series: [], ...base };
 	}
 
 	if (mapping.chartType === "kpi") {
-		const scoped = mapping.scope
+		const inScope = mapping.scope
 			? tasks.filter((t) => matchesScope(t, mapping.scope as DashboardScope, context))
 			: tasks;
+		// Toward a goal with a period, only what was finished in it counts (T-1128).
+		const goal = mapping.goal ? goalWindow(mapping.goal, inScope, context) : null;
+		const scoped = goal ? goal.counted : inScope;
 		const value = aggregateMetric(scoped, mapping.metric, used.measure);
 		return {
 			kind: "kpi",
 			value: value ?? 0,
-			...(mapping.scope && mapping.metric === "count" ? { of: tasks.length } : {}),
+			...(mapping.scope && mapping.metric === "count" && !goal ? { of: tasks.length } : {}),
+			...(goal ? { goal: goal.state } : {}),
 			...measureOf(mapping.metric, scoped, used.measure),
-			empty: scoped.length === 0 || value == null,
+			// Toward a goal, nothing yet is a 0 to make up, not "no tasks".
+			empty: goal ? false : scoped.length === 0 || value == null,
 		};
 	}
+
+	if (mapping.chartType === "table") return tableData(mapping, tasks, context, used.measure);
 
 	if (mapping.chartType === "graph") {
 		const snapshot = graphOf(tasks, context);
 		return { kind: "graph", snapshot, decimals: 0, empty: snapshot.counts.tasks === 0 };
 	}
 
-	if (mapping.chartType === "bar" || mapping.chartType === "pie") {
-		// A pie's slices must add up to its whole, so it only ever counts.
-		const metric: DashboardMetric =
-			mapping.chartType === "bar" ? (mapping.metric ?? "count") : "count";
-		const members = new Map<string, Task[]>();
-		for (const task of tasks) {
-			for (const key of groupKeys(task, mapping.groupBy, context)) {
-				let list = members.get(key);
-				if (!list) members.set(key, (list = []));
-				list.push(task);
-			}
-		}
-		// A group with nothing to measure (no finished task, for cycle time)
-		// gets no bar.
-		const values = new Map<string, number>();
-		for (const [key, list] of members) {
-			const value = aggregateMetric(list, metric, used.measure);
-			if (value != null) values.set(key, value);
-		}
-		const keys = orderedKeys(mapping.groupBy, values, context);
-		const data: CategoricalDatum[] = keys.map((key, index) => ({
-			key,
-			label: valueLabel(mapping.groupBy, key, context),
-			value: values.get(key) ?? 0,
-			color: colorFor(mapping.groupBy, key, index, context),
-		}));
-		return {
-			kind: "categorical",
-			data,
-			...measureOf(metric, tasks, used.measure),
-			...(metric !== "count" ? { label: metricLabel(metric, used.measure) } : {}),
-			empty: data.length === 0,
-		};
-	}
+	if (mapping.chartType === "bar" || mapping.chartType === "pie") return barData(mapping, tasks, context, used.measure);
 
 	// line / timeline - temporal buckets, optionally split into series. A
 	// running total only adds up, so a timeline only ever counts.

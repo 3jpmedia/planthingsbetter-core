@@ -32,7 +32,9 @@ import {
 import { COLOR_PALETTE } from "../../color";
 import {
 	STATUS_CATEGORIES,
+	DASHBOARD_GOAL_PERIODS,
 	DASHBOARD_GROUPING_FIELDS,
+	type DashboardGoal,
 	DASHBOARD_TEMPORAL_FIELDS,
 	type DashboardMetric,
 	type DashboardTimeBucket,
@@ -51,6 +53,10 @@ import {
 	type CustomFieldType,
 } from "../../types";
 import { formatKey } from "../../ids";
+import { isGoalValid } from "../../dashboards/compat";
+
+/** A goal's due day by its first three letters, Monday first (T-1128). */
+const GOAL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 import {
 	iconSetting,
 	plainSetting,
@@ -624,7 +630,7 @@ function parseViews(raw: unknown): ParsedView[] {
 
 /* ---------------------------------------------------------- dashboards ---- */
 
-const CHART_TYPES = ["bar", "pie", "line", "timeline", "kpi", "graph"] as const;
+const CHART_TYPES = ["bar", "pie", "line", "timeline", "kpi", "table", "graph"] as const;
 const TIME_BUCKETS: readonly DashboardTimeBucket[] = ["day", "week", "month"];
 const METRICS: readonly DashboardMetric[] = ["count", "estimateSum", "estimateAvg", "fieldSum", "fieldAvg"];
 
@@ -663,11 +669,47 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 		}
 	};
 
+	// A second grouping: a bar's `splitBy`, a table's `columns` (T-1127).
+	const second = (key: "splitBy" | "columns") => {
+		if (data[key] == null) return;
+		const slug = customSlug(data[key]);
+		if (slug) widget.splitByField = slug;
+		else widget.splitBy = enumOr(data[key], DASHBOARD_GROUPING_FIELDS, key, line);
+	};
+	// A goal (T-1128): `goal: 2`, or `{amount: 2, period: week, due: fri}`.
+	const goalOf = () => {
+		if (data.goal == null) return;
+		const raw = typeof data.goal === "number" ? { amount: data.goal } : (data.goal as Record<string, unknown>);
+		if (typeof raw !== "object" || Array.isArray(raw)) fail(`${where} ("${title}") - "goal" must be a number or {amount: ..., period: week, due: fri}`);
+		const goal: DashboardGoal = { amount: Number(raw.amount) };
+		if (raw.period != null) goal.period = enumOr(raw.period, DASHBOARD_GOAL_PERIODS, "goal.period", line);
+		if (raw.due != null) {
+			const day = GOAL_DAYS.indexOf(String(raw.due).trim().toLowerCase().slice(0, 3));
+			if (day === -1) fail(`${where} ("${title}") - "goal.due" must be a weekday (mon to sun)`);
+			goal.dueDay = day + 1;
+		}
+		if (!isGoalValid(goal)) fail(`${where} ("${title}") - "goal" needs an amount above 0, and "due" only with "period: week"`);
+		widget.goal = goal;
+	};
+
 	if (chartType === "bar" || chartType === "pie") {
 		if (!groupBy && !groupByField) fail(`${where} ("${title}") - a ${chartType} chart needs "groupBy"`);
 		widget.groupBy = groupBy;
 		widget.groupByField = groupByField;
-		if (chartType === "bar") measure();
+		if (chartType === "bar") {
+			measure();
+			second("splitBy");
+			if (data.sideBySide === true) widget.sideBySide = true;
+			goalOf();
+		}
+	} else if (chartType === "table") {
+		const rowsField = customSlug(data.rows);
+		const rows = rowsField ? undefined : enumOr(data.rows, DASHBOARD_GROUPING_FIELDS, "rows", line);
+		if (!rows && !rowsField) fail(`${where} ("${title}") - a table needs "rows"`);
+		widget.groupBy = rows;
+		widget.groupByField = rowsField;
+		second("columns");
+		measure();
 	} else if (chartType === "line" || chartType === "timeline") {
 		const xField = enumOr(
 			data.xField,
@@ -717,6 +759,7 @@ function parseWidget(raw: unknown, where: string): ParsedWidget {
 				fail(`${where} ("${title}") - "scope" needs a "value"`);
 			}
 		}
+		goalOf();
 	}
 
 	if (data.weight != null) {
