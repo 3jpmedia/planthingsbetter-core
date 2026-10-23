@@ -214,6 +214,14 @@ export const FILTER_FIELDS: Record<ArrayFilterKey, FilterFieldSpec> = {
 		resolveAs: "person",
 		unsetIsVacuous: false,
 	},
+	// Who follows it, to hear when it changes (T-1078): `follower:me`,
+	// `follower:M-0003`, `follower:unset` (no one), `-follower:me`.
+	follower: {
+		token: "follower",
+		aliases: ["followers", "followed-by", "followedby", "follower.key"],
+		resolveAs: "person",
+		unsetIsVacuous: false,
+	},
 	// `child:T-0042` is T-0042's parent; `child:any` has sub-tasks.
 	child: {
 		token: "child",

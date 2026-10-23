@@ -423,6 +423,8 @@ export function matchesFilters(
 	if (!matchesNumbers(task.commentCount || null, filters.comments)) return false;
 	if (!matchesPeopleList(task.createdBy ? [task.createdBy] : [], filters.creator, context)) return false;
 	if (!matchesPeopleList(task.commenters ?? [], filters.commenter, context)) return false;
+	// T-1078: who follows it.
+	if (!matchesPeopleList(task.followers ?? [], filters.follower, context)) return false;
 	if (filters.child?.length && !matchesChildren(task, filters.child, context)) return false;
 	if (filters.internal !== undefined && Boolean(task.internal) !== filters.internal) return false;
 
@@ -533,6 +535,7 @@ export function matchesFilters(
 	if (filters.excludeComments?.length && matchesNumbers(task.commentCount || null, filters.excludeComments)) return false;
 	if (filters.excludeCreator?.length && matchesPeopleList(task.createdBy ? [task.createdBy] : [], filters.excludeCreator, context)) return false;
 	if (filters.excludeCommenter?.length && matchesPeopleList(task.commenters ?? [], filters.excludeCommenter, context)) return false;
+	if (filters.excludeFollower?.length && matchesPeopleList(task.followers ?? [], filters.excludeFollower, context)) return false;
 	if (filters.excludeChild?.length && matchesChildren(task, filters.excludeChild, context)) return false;
 
 	if (filters.excludeDueDate?.length && matchesDateExact(today, task.dueDate, filters.excludeDueDate))
@@ -696,6 +699,7 @@ export type ArrayFilterKey = Exclude<
 	| "excludeComments"
 	| "excludeCreator"
 	| "excludeCommenter"
+	| "excludeFollower"
 	| "excludeChild"
 	| LinkedDateBoundKey
 	| LinkedDateExcludeKey
@@ -723,6 +727,7 @@ export const FILTER_ARRAY_FIELDS: readonly ArrayFilterKey[] = [
 	"comments",
 	"creator",
 	"commenter",
+	"follower",
 	"child",
 	"dueDate",
 	"startDate",
@@ -761,6 +766,7 @@ export type ExcludeFilterKey =
 	| "excludeComments"
 	| "excludeCreator"
 	| "excludeCommenter"
+	| "excludeFollower"
 	| "excludeChild"
 	| LinkedDateExcludeKey
 	| LinkedFolderExcludeKey;
@@ -791,6 +797,7 @@ export const EXCLUDE_FIELD_KEY: Record<ArrayFilterKey, ExcludeFilterKey> = {
 	comments: "excludeComments",
 	creator: "excludeCreator",
 	commenter: "excludeCommenter",
+	follower: "excludeFollower",
 	child: "excludeChild",
 	dueDate: "excludeDueDate",
 	startDate: "excludeStartDate",
@@ -1095,6 +1102,8 @@ export function isEmptyFilterSet(filters: ViewFilters): boolean {
 		!filters.excludeCreator?.length &&
 		!filters.commenter?.length &&
 		!filters.excludeCommenter?.length &&
+		!filters.follower?.length &&
+		!filters.excludeFollower?.length &&
 		!filters.child?.length &&
 		!filters.excludeChild?.length &&
 		LINKED_NAME_FIELD_KEYS.every((field) => !filters[field]?.trim()) &&

@@ -525,6 +525,9 @@ export interface Task {
 	/** Who has commented on it (`Person.id`s), where the app knows;
 	 *  `comment.by:` matches on it. */
 	commenters?: string[];
+	/** Who follows it (`Person.id`s) to hear when it changes, where the app
+	 *  knows (T-1078); `follower:` matches on it. */
+	followers?: string[];
 	/** Its description, where the app has it at hand; `description:`
 	 *  searches it. */
 	description?: string;
@@ -1088,6 +1091,9 @@ export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters, Linke
 	/** `comment.by:` -- someone who commented (`Task.commenters`); `NONE`
 	 *  is no comments. */
 	commenter?: string[];
+	/** `follower:` -- someone who follows it (`Task.followers`, T-1078);
+	 *  `NONE` is no one. */
+	follower?: string[];
 	/** `child:` -- tasks with that sub-task, OR'd; `NONE` is no sub-tasks
 	 *  (`child:any` has some). */
 	child?: string[];
@@ -1190,6 +1196,7 @@ export interface ViewFilters extends LinkedDateFilters, LinkedNameFilters, Linke
 	excludeComments?: string[];
 	excludeCreator?: string[];
 	excludeCommenter?: string[];
+	excludeFollower?: string[];
 	excludeChild?: string[];
 }
 
