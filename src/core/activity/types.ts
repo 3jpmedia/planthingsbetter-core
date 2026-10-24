@@ -127,6 +127,7 @@ export const ACTIVITY_FIELDS = [
 	"newTaskPlacement",
 	"defaultNewTaskStatus",
 	"defaultNewTaskType",
+	"swipeDoneStatus",
 	"trashRetentionDays",
 	"charts",
 	"chart",

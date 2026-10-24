@@ -110,6 +110,7 @@ export const ACTIVITY_FIELD_VALUES: Record<ActivityField, ActivityFieldSpec> = {
 	newTaskPlacement: { token: "new-task-placement", aliases: ["newtaskplacement"] },
 	defaultNewTaskStatus: { token: "default-status", aliases: ["defaultnewtaskstatus"], resolveAs: "status" },
 	defaultNewTaskType: { token: "default-type", aliases: ["defaultnewtasktype"], resolveAs: "taskType" },
+	swipeDoneStatus: { token: "swipe-done-status", aliases: ["swipedonestatus"], resolveAs: "status" },
 	trashRetentionDays: { token: "trash-retention", aliases: ["trashretentiondays"] },
 	charts: { token: "charts", aliases: ["widgets"] },
 	chart: { token: "chart", aliases: ["widget"] },
